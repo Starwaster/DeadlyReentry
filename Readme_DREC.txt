@@ -16,6 +16,11 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 Changelog:
 v4 === \/
 *Removed :Final from custom.cfg
+*Moved tech defines to part cfgs
+*Added new decouplers, using Sentmassen's new texture.
+*Fixed explode-on-launch/switch bug
+*Added possibility to manually set G Tolerance (Add a ModuleAeroReentry, with the key gTolerance = x , to your part cfg)
+*Fixed volume to use Ship volume setting.
 
 v3 === \/
 *Added two more tweakable variables: shockwaveExponent and shockwaveMultiplier. shockwaveExponent is applied to shockwave temperature after it's calculated; then the temperature is multiplied by shockwaveMultiplier. To simulate Earth-level heating, use shockwaveExponent = 1.17 (can't be perfect, but it's close: you get a max shockwave temperature of ~6150C on reentry, a bit low; and 11800C on Munar reentry, a bit higher than Apollo 10).

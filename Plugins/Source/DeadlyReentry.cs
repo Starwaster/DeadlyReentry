@@ -156,6 +156,11 @@ namespace DeadlyReentry
 
 		}
 
+        public void onOverheat(EventReport report)
+        {
+            print("DRE OnOverheat: " + report.sender + ", " + report.origin + ": " + report.msg);
+        }
+
 		public override void OnStart (StartState state)
 		{
             counter = 0;
@@ -164,6 +169,14 @@ namespace DeadlyReentry
 			SetDamageLabel ();
 			if (myWindow != null)
 				myWindow.displayDirty = true;
+            try
+            {
+                GameEvents.onOverheat.Remove(this.onOverheat);
+            }
+            catch
+            {
+            }
+            GameEvents.onOverheat.Add(this.onOverheat);
 
 		}
 		public virtual float AdjustedHeat(Vector3 velocity, float shockwave, float temp)
@@ -229,12 +242,6 @@ namespace DeadlyReentry
 		{
 			if (!part.Rigidbody || part.physicalSignificance == Part.PhysicalSignificance.NONE)
 				return;
-            if (dead)
-            {
-                print("*DRE* Exploding part " + part.name);
-                part.explode();
-                return;
-            }
 
 			Fields ["displayShockwave"].guiActive = ReentryPhysics.debugging;
 			Fields ["displayGForce"].guiActive = ReentryPhysics.debugging;
@@ -285,81 +292,79 @@ namespace DeadlyReentry
                     return; // don't check G-forces in warp
 
                 double geeForce = vessel.geeForce_immediate;
-                if (FlightGlobals.ActiveVessel.situation != Vessel.Situations.PRELAUNCH || FlightGlobals.ActiveVessel.missionTime > 2.0)
+                if (geeForce > 40 && geeForce > lastGForce)
                 {
-                    if (geeForce > 40 && geeForce > lastGForce)
-                    {
-                        // G forces over 40 are probably a Kraken twitch unless they last multiple frames
-                        displayGForce = displayGForce * (1 - deltaTime) + (float)(lastGForce * deltaTime);
-                    }
-                    else
-                    {
-                        //keep a running average of G force over 1s, to further prevent absurd spikes (mostly decouplers & parachutes)
-                        displayGForce = displayGForce * (1 - deltaTime) + (float)(geeForce * deltaTime);
-                    }
-                    if (displayGForce < crewGMin)
-                        gExperienced = 0;
+                    // G forces over 40 are probably a Kraken twitch unless they last multiple frames
+                    displayGForce = displayGForce * (1 - deltaTime) + (float)(lastGForce * deltaTime);
+                }
+                else
+                {
+                    //keep a running average of G force over 1s, to further prevent absurd spikes (mostly decouplers & parachutes)
+                    displayGForce = displayGForce * (1 - deltaTime) + (float)(geeForce * deltaTime);
+                }
+                if (displayGForce < crewGMin)
+                    gExperienced = 0;
 
-                    //double gTolerance;
-                    if (gTolerance < 0)
-                    {
-                        if (part.Modules != null && part.Modules.Contains("ModuleEngines") && damage < 1)
-                            gTolerance = Math.Pow(UnityEngine.Random.Range(11.9f, 12.1f) * part.crashTolerance, 0.5);
-                        else
-                            gTolerance = Math.Pow(UnityEngine.Random.Range(5.9f, 6.1f) * part.crashTolerance, 0.5);
-
-                        gTolerance *= ReentryPhysics.gToleranceMult;
-                    }
-                    if (gTolerance >= 0 && displayGForce > gTolerance)
-                    { // G tolerance is based roughly on crashTolerance
-                        AddDamage(deltaTime * (float)(displayGForce / gTolerance - 1));
-                        if (!part.Modules.Contains("KerbalEVA"))
-                        { // kerbal bones shouldn't sound like metal when they break.
-                            gForceFX.audio.pitch = (float)(displayGForce / gTolerance);
-                            PlaySound(gForceFX, damage * 0.3f + 0.7f);
-                        }
-                    }
+                //double gTolerance;
+                if (gTolerance < 0)
+                {
+                    if (part.Modules != null && part.Modules.Contains("ModuleEngines") && damage < 1)
+                        gTolerance = Math.Pow(UnityEngine.Random.Range(11.9f, 12.1f) * part.crashTolerance, 0.5);
                     else
-                    {
-                        gForceFX.audio.volume *= 0.8f;
+                        gTolerance = Math.Pow(UnityEngine.Random.Range(5.9f, 6.1f) * part.crashTolerance, 0.5);
+
+                    gTolerance *= ReentryPhysics.gToleranceMult;
+                }
+                if (gTolerance >= 0 && displayGForce > gTolerance)
+                { // G tolerance is based roughly on crashTolerance
+                    AddDamage(deltaTime * (float)(displayGForce / gTolerance - 1));
+                    if (!part.Modules.Contains("KerbalEVA"))
+                    { // kerbal bones shouldn't sound like metal when they break.
+                        gForceFX.audio.pitch = (float)(displayGForce / gTolerance);
+                        PlaySound(gForceFX, damage * 0.3f + 0.7f);
                     }
-                    if (damage >= 1.0f && !dead)
+                }
+                else
+                {
+                    gForceFX.audio.volume *= 0.8f;
+                }
+                if (damage >= 1.0f && !dead)
+                {
+                    dead = true;
+                    FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
+                                                + part.partInfo.title + " exceeded g-force tolerance.");
+                    part.explode();
+                    return;
+                }
+                if (Math.Max(displayGForce, geeForce) >= crewGMin)
+                {
+                    gExperienced += Math.Pow(Math.Min(Math.Abs(Math.Max(displayGForce, geeForce)), crewGClamp), crewGPower) * deltaTime;
+                    List<ProtoCrewMember> crew = part.protoModuleCrew; //vessel.GetVesselCrew();
+                    if (gExperienced > crewGWarn && crew.Count > 0)
                     {
-                        dead = true;
-                        FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
-                                                   + part.partInfo.title + " exceeded g-force tolerance.");
-                        return;
-                    }
-                    if (Math.Max(displayGForce, geeForce) >= crewGMin)
-                    {
-                        gExperienced += Math.Pow(Math.Min(Math.Abs(Math.Max(displayGForce, geeForce)), crewGClamp), crewGPower) * deltaTime;
-                        List<ProtoCrewMember> crew = part.protoModuleCrew; //vessel.GetVesselCrew();
-                        if (gExperienced > crewGWarn && crew.Count > 0)
-                        {
                             
-                            if (gExperienced < crewGLimit)
-                                    ScreenMessages.PostScreenMessage("Reaching Crew G limit!", 3f, ScreenMessageStyle.UPPER_CENTER);
-                            else
+                        if (gExperienced < crewGLimit)
+                                ScreenMessages.PostScreenMessage("Reaching Crew G limit!", 3f, ScreenMessageStyle.UPPER_CENTER);
+                        else
+                        {
+                            // borrowed from TAC Life Support
+                            if (UnityEngine.Random.Range(0, 1) < crewGKillChance)
                             {
-                                // borrowed from TAC Life Support
-                                if (UnityEngine.Random.Range(0, 1) < crewGKillChance)
+                                int crewMemberIndex = UnityEngine.Random.Range(0, crew.Count - 1);
+                                if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA)
                                 {
-                                    int crewMemberIndex = UnityEngine.Random.Range(0, crew.Count - 1);
-                                    if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA)
-                                    {
-                                        CameraManager.Instance.SetCameraFlight();
-                                    }
+                                    CameraManager.Instance.SetCameraFlight();
+                                }
 
-                                    ScreenMessages.PostScreenMessage(vessel.vesselName + ": Crewmember " + crew[crewMemberIndex].name + " died of G-force damage!", 30.0f, ScreenMessageStyle.UPPER_CENTER);
-                                    FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
-                                                   + crew[crewMemberIndex].name + " died of G-force damage.");
-                                    Debug.Log("*DRE* [" + Time.time + "]: " + vessel.vesselName + " - " + crew[crewMemberIndex].name + " died of G-force damage.");
+                                ScreenMessages.PostScreenMessage(vessel.vesselName + ": Crewmember " + crew[crewMemberIndex].name + " died of G-force damage!", 30.0f, ScreenMessageStyle.UPPER_CENTER);
+                                FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
+                                                + crew[crewMemberIndex].name + " died of G-force damage.");
+                                Debug.Log("*DRE* [" + Time.time + "]: " + vessel.vesselName + " - " + crew[crewMemberIndex].name + " died of G-force damage.");
 
-                                    if (!vessel.isEVA)
-                                    {
-                                        part.RemoveCrewmember(crew[crewMemberIndex]);
-                                        crew[crewMemberIndex].Die();
-                                    }
+                                if (!vessel.isEVA)
+                                {
+                                    part.RemoveCrewmember(crew[crewMemberIndex]);
+                                    crew[crewMemberIndex].Die();
                                 }
                             }
                         }
@@ -416,6 +421,7 @@ namespace DeadlyReentry
                                 dead = true;
                                 FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
                                                            + part.partInfo.title + " burned up on reentry.");
+                                part.explode();
                                 return;
                             }
                         }
@@ -567,7 +573,7 @@ namespace DeadlyReentry
 		}
 	}
 
-	[KSPAddon(KSPAddon.Startup.EditorAny, false)]
+	[KSPAddon(KSPAddon.Startup.MainMenu, false)] // fixed
 	public class FixMaxTemps : MonoBehaviour
 	{
 		public void Start()
