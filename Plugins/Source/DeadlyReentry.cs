@@ -57,33 +57,33 @@ namespace DeadlyReentry
 
 			}
 		}
-		//FXGroup _ablationSmokeFX = null;
-		//FXGroup ablationSmokeFX {
-		//	get {
-		//		if(_ablationSmokeFX == null) {
-		//			_ablationSmokeFX = new FXGroup (part.partName + "_Smoking");
-		//			_ablationSmokeFX.fxEmitters.Add (Emitter("fx_smokeTrail_medium"));
-		//		}
-		//		return _ablationSmokeFX;
-		//	}
-		//}
+		FXGroup _ablationSmokeFX = null;
+		FXGroup ablationSmokeFX {
+			get {
+				if(_ablationSmokeFX == null) {
+					_ablationSmokeFX = new FXGroup (part.partName + "_Smoking");
+					_ablationSmokeFX.fxEmitters.Add (Emitter("fx_smokeTrail_medium").GetComponent<ParticleEmitter>());
+				}
+				return _ablationSmokeFX;
+			}
+		}
 
-		//FXGroup _ablationFX = null;
-		//FXGroup ablationFX {
-		//	get {
-		//		if(_ablationFX == null) {
-		//			_ablationFX = new FXGroup (part.partName + "_Burning");
-		//			_ablationFX.fxEmitters.Add (Emitter("fx_exhaustFlame_yellow"));
-		//			_ablationFX.fxEmitters.Add (Emitter("fx_exhaustSparks_yellow"));
-		//			_ablationFX.audio = gameObject.AddComponent<AudioSource>();
-		//			_ablationFX.audio.clip = GameDatabase.Instance.GetAudioClip("DeadlyReentry/Sounds/fire_damage");
-        //            _ablationFX.audio.volume = GameSettings.SHIP_VOLUME;
-		//			_ablationFX.audio.Stop ();
+		FXGroup _ablationFX = null;
+		FXGroup ablationFX {
+			get {
+				if(_ablationFX == null) {
+					_ablationFX = new FXGroup (part.partName + "_Burning");
+					_ablationFX.fxEmitters.Add (Emitter("fx_exhaustFlame_yellow").GetComponent<ParticleEmitter>());
+                    _ablationFX.fxEmitters.Add(Emitter("fx_exhaustSparks_yellow").GetComponent<ParticleEmitter>());
+					_ablationFX.audio = gameObject.AddComponent<AudioSource>();
+					_ablationFX.audio.clip = GameDatabase.Instance.GetAudioClip("DeadlyReentry/Sounds/fire_damage");
+                    _ablationFX.audio.volume = GameSettings.SHIP_VOLUME;
+					_ablationFX.audio.Stop ();
 
-		//		}
-		//		return _ablationFX;
-		//	}
-		//}
+				}
+				return _ablationFX;
+			}
+		}
 
 		[KSPField(isPersistant = false, guiActive = false, guiName = "Shockwave", guiUnits = "",   guiFormat = "G")]
 		public string displayShockwave;
@@ -401,7 +401,7 @@ namespace DeadlyReentry
                         // OH GOD IT'S ON FIRE.
                         float tempRatio = part.temperature / part.maxTemp;
                         AddDamage(deltaTime * (damage + 0.05f) * tempRatio / part.mass);
-                        //PlaySound(ablationFX, tempRatio * tempRatio);
+                        PlaySound(ablationFX, tempRatio * tempRatio);
 
                         new GameEvents.ExplosionReaction(0, damage);
 
@@ -412,10 +412,10 @@ namespace DeadlyReentry
 
                         if (part.temperature > part.maxTemp || damage >= 1.0f)
                         { // has it burnt up completely?
-                            //foreach (GameObject fx in ablationFX.fxEmitters)
-                            //    GameObject.DestroyImmediate(fx);
-                            //foreach (GameObject fx in ablationSmokeFX.fxEmitters)
-                            //    GameObject.DestroyImmediate(fx);
+                            foreach (ParticleEmitter fx in ablationFX.fxEmitters)
+                                GameObject.DestroyImmediate(fx.gameObject);
+                            foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
+                                GameObject.DestroyImmediate(fx.gameObject);
                             float shockwave = velocity.magnitude - 275;
                             if (shockwave > ReentryPhysics.startThermal && shockwave > part.maxTemp && !dead)
                             {
@@ -428,26 +428,26 @@ namespace DeadlyReentry
                         }
                         else
                         {
-                            //foreach (GameObject fx in ablationFX.fxEmitters)
-                            //{
-                            //    fx.SetActive(true);
-                            //    fx.transform.LookAt(part.transform.position + velocity);
-                            //    fx.transform.Rotate(90, 0, 0);
-                            //}
-                            //foreach (GameObject fx in ablationSmokeFX.fxEmitters)
-                            //{
-                            //    fx.SetActive(vessel.atmDensity > 0.5);
-                            //    fx.transform.LookAt(part.transform.position + velocity);
-                            //    fx.transform.Rotate(90, 0, 0);
-                            //}
+                            foreach (ParticleEmitter fx in ablationFX.fxEmitters)
+                            {
+                                fx.gameObject.SetActive(true);
+                                fx.gameObject.transform.LookAt(part.transform.position + velocity);
+                                fx.gameObject.transform.Rotate(90, 0, 0);
+                            }
+                            foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
+                            {
+                                fx.gameObject.SetActive(vessel.atmDensity > 0.5);
+                                fx.gameObject.transform.LookAt(part.transform.position + velocity);
+                                fx.gameObject.transform.Rotate(90, 0, 0);
+                            }
                         }
                     }
                     else
                     { // not on fire.
-                        //foreach (GameObject fx in ablationFX.fxEmitters)
-                        //    fx.SetActive(false);
-                        //foreach (GameObject fx in ablationSmokeFX.fxEmitters)
-                        //    fx.SetActive(false);
+                        foreach (ParticleEmitter fx in ablationFX.fxEmitters)
+                            fx.gameObject.SetActive(false);
+                        foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
+                            fx.gameObject.SetActive(false);
 
                     }
                 }
