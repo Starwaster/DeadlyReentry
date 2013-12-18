@@ -592,7 +592,7 @@ namespace DeadlyReentry
                             {
                                 try
                                 {
-                                    if (part.partPrefab != null && part.partPrefab.maxTemp > maxTemp)
+                                    if (part.partPrefab != null && part.partPrefab.maxTemp > maxTemp && !part.partPrefab.Modules.Contains("ModuleHeatShield")) // allow heat sinks
                                     {
                                         part.partPrefab.maxTemp *= scale;
                                         if (part.partPrefab.Modules.Contains("ModuleEngines"))
