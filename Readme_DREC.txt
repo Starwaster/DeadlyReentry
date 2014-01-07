@@ -26,6 +26,11 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v4.2 = \/
+*Updated cfgs to support RAPIER and lab
+*Now supports RealChutes
+*Speed increase by a.g.
+
 v4.1 = \/
 *0.23 compatibility by taniwha and arsenic87
 *maxTemp no longer changed if ModuleHeatshield is present. This should allow thermal sink-style heatshields, when combined with high reflectivity.

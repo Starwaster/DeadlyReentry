@@ -119,6 +119,15 @@ namespace DeadlyReentry
 
         private double counter = 0;
 
+        private bool is_debugging = false;
+        private bool is_on_fire = false;
+        private bool is_gforce_fx_playing = false;
+
+        private bool is_engine = false;
+        private bool is_eva = false;
+        private ModuleParachute parachute = null;
+        private PartModule realChute = null;
+        private Type rCType = null;
 
 		[KSPEvent (guiName = "No Damage", guiActiveUnfocused = true, externalToEVAOnly = true, guiActive = false, unfocusedRange = 4f)]
 		public void RepairDamage()
@@ -156,11 +165,6 @@ namespace DeadlyReentry
 
 		}
 
-        public void onOverheat(EventReport report)
-        {
-            print("DRE OnOverheat: " + report.sender + ", " + report.origin + ": " + report.msg);
-        }
-
 		public override void OnStart (StartState state)
 		{
             counter = 0;
@@ -169,14 +173,18 @@ namespace DeadlyReentry
 			SetDamageLabel ();
 			if (myWindow != null)
 				myWindow.displayDirty = true;
-            try
-            {
-                GameEvents.onOverheat.Remove(this.onOverheat);
-            }
-            catch
-            {
-            }
-            GameEvents.onOverheat.Add(this.onOverheat);
+			if (part && part.Modules != null)
+			{
+                is_engine = (part.Modules.Contains("ModuleEngines") || part.Modules.Contains("ModuleEnginesFX"));
+				is_eva = part.Modules.Contains("KerbalEVA");
+				if (part.Modules.Contains ("ModuleParachute"))
+					parachute = (ModuleParachute) part.Modules["ModuleParachute"];
+                if (part.Modules.Contains("RealChuteModule"))
+                {
+                    realChute = part.Modules["RealChuteModule"];
+                    rCType = realChute.GetType();
+                }
+			}
 
 		}
 		public virtual float AdjustedHeat(Vector3 velocity, float shockwave, float temp)
@@ -186,12 +194,18 @@ namespace DeadlyReentry
 
 		public bool IsShielded(Vector3 direction)
 		{
-			if (part.Modules.Contains ("ModuleParachute")) {
-				ModuleParachute p = (ModuleParachute) part.Modules["ModuleParachute"];
+			if ((object)parachute != null) {
+				ModuleParachute p = parachute;
 				if(p.deploymentState == ModuleParachute.deploymentStates.DEPLOYED || p.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED)
 					return false;
-                // FIXME add RealChute support
 			}
+            if ((object)realChute != null)
+            {
+                string mainDeployState = (string)rCType.GetField("deploymentState").GetValue(realChute);
+                string secDeployState = (string)rCType.GetField("secDeploymentState").GetValue(realChute);
+                if ((mainDeployState + secDeployState).Contains("DEPLOYED")) // LOW, PRE, or just DEPLOYED
+                    return false;
+            }
             Ray ray = new Ray(part.transform.position + direction.normalized * adjustCollider, direction.normalized);
 			RaycastHit[] hits = Physics.RaycastAll (ray, 10);
 			foreach (RaycastHit hit in hits) {
@@ -205,7 +219,7 @@ namespace DeadlyReentry
 
         public float ReentryHeat(Vector3 velocity)
         {
-            if (part == null || vessel == null || part.Rigidbody == null || vessel.flightIntegrator == null)
+            if ((object)vessel == null || (object)vessel.flightIntegrator == null)
                 return 0;
             float shockwave = velocity.magnitude - 275;
             if (shockwave > 0)
@@ -217,7 +231,8 @@ namespace DeadlyReentry
             if (shockwave < ambient)
             {
                 shockwave = ambient;
-                displayShockwave = shockwave.ToString("F0") + "C (Ambient)";
+                if (is_debugging)
+                    displayShockwave = shockwave.ToString("F0") + "C (Ambient)";
             }
             else if (vessel.atmDensity == 0)
             {
@@ -230,7 +245,8 @@ namespace DeadlyReentry
                     displayShockwave = "Shielded";
                 else
                 {
-                    displayShockwave = shockwave.ToString("F0") + "C";
+                    if (is_debugging)
+                        displayShockwave = shockwave.ToString("F0") + "C";
                     return AdjustedHeat(velocity, shockwave,
                                         ReentryPhysics.TemperatureDelta(vessel.atmDensity, shockwave, part.temperature));
                 }
@@ -240,14 +256,20 @@ namespace DeadlyReentry
 
 		public void FixedUpdate ()
 		{
-			if (!part.Rigidbody || part.physicalSignificance == Part.PhysicalSignificance.NONE)
+			Rigidbody rb = part.Rigidbody;
+
+			if (!rb || part.physicalSignificance == Part.PhysicalSignificance.NONE)
 				return;
 
-			Fields ["displayShockwave"].guiActive = ReentryPhysics.debugging;
-			Fields ["displayGForce"].guiActive = ReentryPhysics.debugging;
-            Fields["gExperienced"].guiActive = ReentryPhysics.debugging;
+			if (is_debugging != ReentryPhysics.debugging)
+			{
+				is_debugging = ReentryPhysics.debugging;
+				Fields ["displayShockwave"].guiActive = ReentryPhysics.debugging;
+				Fields ["displayGForce"].guiActive = ReentryPhysics.debugging;
+	            Fields["gExperienced"].guiActive = ReentryPhysics.debugging;
+			}
 
-			Vector3 velocity = (part.Rigidbody.GetPointVelocity(part.transform.position) + ReentryPhysics.frameVelocity);
+			Vector3 velocity = (rb.velocity + ReentryPhysics.frameVelocity);
 
             if (counter < 5.0)
             {
@@ -288,7 +310,7 @@ namespace DeadlyReentry
             if (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready)
             {
                 float deltaTime = TimeWarp.fixedDeltaTime;
-                if (dead || part == null || vessel == null || deltaTime > 0.5 || deltaTime <= 0)
+                if (dead || (object)vessel == null || deltaTime > 0.5 || deltaTime <= 0)
                     return; // don't check G-forces in warp
 
                 double geeForce = vessel.geeForce_immediate;
@@ -308,7 +330,7 @@ namespace DeadlyReentry
                 //double gTolerance;
                 if (gTolerance < 0)
                 {
-                    if (part.Modules != null && part.Modules.Contains("ModuleEngines") && damage < 1)
+                    if (is_engine && damage < 1)
                         gTolerance = Math.Pow(UnityEngine.Random.Range(11.9f, 12.1f) * part.crashTolerance, 0.5);
                     else
                         gTolerance = Math.Pow(UnityEngine.Random.Range(5.9f, 6.1f) * part.crashTolerance, 0.5);
@@ -318,15 +340,21 @@ namespace DeadlyReentry
                 if (gTolerance >= 0 && displayGForce > gTolerance)
                 { // G tolerance is based roughly on crashTolerance
                     AddDamage(deltaTime * (float)(displayGForce / gTolerance - 1));
-                    if (!part.Modules.Contains("KerbalEVA"))
+                    if (!is_eva)
                     { // kerbal bones shouldn't sound like metal when they break.
                         gForceFX.audio.pitch = (float)(displayGForce / gTolerance);
                         PlaySound(gForceFX, damage * 0.3f + 0.7f);
+                        is_gforce_fx_playing = true;
                     }
                 }
-                else
+                else if (is_gforce_fx_playing)
                 {
-                    gForceFX.audio.volume *= 0.8f;
+                    float new_volume = (gForceFX.audio.volume *= 0.8f);
+                    if (new_volume < 0.001f)
+                    {
+                        gForceFX.audio.Stop();
+                        is_gforce_fx_playing = false;
+                    }
                 }
                 if (damage >= 1.0f && !dead)
                 {
@@ -381,14 +409,13 @@ namespace DeadlyReentry
             {
                 if (FlightGlobals.ActiveVessel.situation != Vessel.Situations.PRELAUNCH || FlightGlobals.ActiveVessel.missionTime > 2.0)
                 {
-                    float deltaTime = TimeWarp.fixedDeltaTime;
-                    if (dead || part == null || part.Modules == null)
+                    if (dead)
                         return;
                     float damageThreshold;
 
-                    if (part.Modules.Contains("ModuleEngines") && damage < 1)
+                    if (is_engine && damage < 1)
                         damageThreshold = part.maxTemp * 0.975f;
-                    else if (part.Modules.Contains("KerbalEVA"))
+                    else if (is_eva)
                     {
                         damageThreshold = 800 * (1 - damage) * (1 - damage) - 275;
                         part.maxTemp = 900;
@@ -397,6 +424,7 @@ namespace DeadlyReentry
                         damageThreshold = part.maxTemp * 0.85f;
                     if (part.temperature > damageThreshold)
                     {
+                        float deltaTime = TimeWarp.fixedDeltaTime;
                         // Handle client-side fire stuff.
                         // OH GOD IT'S ON FIRE.
                         float tempRatio = part.temperature / part.maxTemp;
@@ -405,7 +433,7 @@ namespace DeadlyReentry
 
                         new GameEvents.ExplosionReaction(0, damage);
 
-                        if (part.Modules.Contains("ModuleEngines") && damage < 1)
+                        if (is_engine && damage < 1)
                             part.temperature = UnityEngine.Random.Range(0.97f + 0.05f * damage, 0.98f + 0.05f * damage) * part.maxTemp;
                         else if (damage < 1)// non-engines can keep burning
                             part.temperature = (tempRatio * (1 - damage) + 0.9f * damage) * part.maxTemp;
@@ -428,6 +456,7 @@ namespace DeadlyReentry
                         }
                         else
                         {
+                            is_on_fire = true;
                             foreach (ParticleEmitter fx in ablationFX.fxEmitters)
                             {
                                 fx.gameObject.SetActive(true);
@@ -442,8 +471,9 @@ namespace DeadlyReentry
                             }
                         }
                     }
-                    else
+                    else if (is_on_fire)
                     { // not on fire.
+                        is_on_fire = false;
                         foreach (ParticleEmitter fx in ablationFX.fxEmitters)
                             fx.gameObject.SetActive(false);
                         foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
