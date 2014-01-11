@@ -6,12 +6,12 @@ Also included: Module Manager (by sarbian, based on ialdabaoth's work). See Modu
 Module Manager is required for DREC to work.
 
 A note on settings:
-1. Playing on Stock Kerbin, want traditional DRE functionality: [b]don't change anything[/b]
+1. Playing on Stock Kerbin, want traditional DRE level of heating: don't change anything
 2. Playing on Stock Kerbin, want realistic levels of heat on reentry (i.e. faking an 8km/sec reentry): set the shockwave exponent and multiplier to taste; I suggest exponent 1.12 to start. You will need heat shields built for RSS.
-3. Playing on Real-scale Kerbin (RSS), want realistic heating: [b]don't change anything.[/b] Use RSS class heat shields.
-4. Playing on Real-scale Kerbin, want traditional DRE functionality: set _heat_ multiplier to 12 or so.
+3. Playing on Real-scale Kerbin (Real Solar System), want realistic heating: don't change anything. Use RSS class heat shields.
+4. Playing RSS, want traditional DRE level of heating: set _heat_ multiplier to 12 or so.
 
-You can get heatshields configured for DRE, and much more, in the Realism Overhaul release thread.
+You can get heatshields configured for RSS, and much more, in the Realism Overhaul release thread.
 http://forum.kerbalspaceprogram.com/threads/59207
 
 
@@ -26,10 +26,14 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v4.3 = \/
+*(Engine) overheating bug fixed thanks to FlowerChild
+
 v4.2 = \/
-*Updated cfgs to support RAPIER and lab
+*Updated cfgs to support new lab (note: Rapier handled automatically)
 *Now supports RealChutes
 *Speed increase by a.g.
+*Now should properly rescale engine heat when engine maxTemp changed (for ModuleEngineFX too)
 
 v4.1 = \/
 *0.23 compatibility by taniwha and arsenic87

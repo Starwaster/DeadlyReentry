@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Linq;
 using UnityEngine;
 using KSP;
 
@@ -165,6 +166,23 @@ namespace DeadlyReentry
 
 		}
 
+        public override void OnAwake()
+        {
+            base.OnAwake();
+            if (part && part.Modules != null) // thanks, FlowerChild!
+            {
+                is_engine = (part.Modules.Contains("ModuleEngines") || part.Modules.Contains("ModuleEnginesFX"));
+                is_eva = part.Modules.Contains("KerbalEVA");
+                if (part.Modules.Contains("ModuleParachute"))
+                    parachute = (ModuleParachute)part.Modules["ModuleParachute"];
+                if (part.Modules.Contains("RealChuteModule"))
+                {
+                    realChute = part.Modules["RealChuteModule"];
+                    rCType = realChute.GetType();
+                }
+            }
+        }
+
 		public override void OnStart (StartState state)
 		{
             counter = 0;
@@ -173,18 +191,7 @@ namespace DeadlyReentry
 			SetDamageLabel ();
 			if (myWindow != null)
 				myWindow.displayDirty = true;
-			if (part && part.Modules != null)
-			{
-                is_engine = (part.Modules.Contains("ModuleEngines") || part.Modules.Contains("ModuleEnginesFX"));
-				is_eva = part.Modules.Contains("KerbalEVA");
-				if (part.Modules.Contains ("ModuleParachute"))
-					parachute = (ModuleParachute) part.Modules["ModuleParachute"];
-                if (part.Modules.Contains("RealChuteModule"))
-                {
-                    realChute = part.Modules["RealChuteModule"];
-                    rCType = realChute.GetType();
-                }
-			}
+			// moved part detection logic to OnAWake
 
 		}
 		public virtual float AdjustedHeat(Vector3 velocity, float shockwave, float temp)
@@ -622,17 +629,34 @@ namespace DeadlyReentry
                             {
                                 try
                                 {
-                                    if (part.partPrefab != null && part.partPrefab.maxTemp > maxTemp && !part.partPrefab.Modules.Contains("ModuleHeatShield")) // allow heat sinks
+                                    if (part.partPrefab != null && !part.partPrefab.Modules.Contains("ModuleHeatShield")) // allow heat sinks
                                     {
-                                        part.partPrefab.maxTemp *= scale;
-                                        if (part.partPrefab.Modules.Contains("ModuleEngines"))
+                                        float oldTemp = part.partPrefab.maxTemp;
+                                        bool changed = false;
+                                        if (part.partPrefab.maxTemp > maxTemp)
                                         {
-                                            ModuleEngines module = (ModuleEngines)part.partPrefab.Modules["ModuleEngines"];
-                                            module.heatProduction *= scale;
+                                            part.partPrefab.maxTemp *= scale;
+                                            changed = true;
+                                        }
+                                        if (part.partPrefab.maxTemp > maxTemp)
+                                        {
+                                            changed = true;
+                                            part.partPrefab.maxTemp = maxTemp;
+                                        }
+                                        if (changed)
+                                        {
+                                            float curScale = part.partPrefab.maxTemp / oldTemp;
+
+                                            foreach (ModuleEngines module in part.partPrefab.Modules.OfType<ModuleEngines>())
+                                            {
+                                                module.heatProduction *= curScale;
+                                            }
+                                            foreach (ModuleEnginesFX module in part.partPrefab.Modules.OfType<ModuleEnginesFX>())
+                                            {
+                                                module.heatProduction *= curScale;
+                                            }
                                         }
                                     }
-                                    if (part.partPrefab.maxTemp > maxTemp)
-                                        part.partPrefab.maxTemp = maxTemp;
                                 }
                                 catch
                                 {
