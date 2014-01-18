@@ -26,6 +26,9 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v4.4 = \/
+*Removed redundant Awake() code - thanks a.g.!
+
 v4.3 = \/
 *(Engine) overheating bug fixed thanks to FlowerChild
 

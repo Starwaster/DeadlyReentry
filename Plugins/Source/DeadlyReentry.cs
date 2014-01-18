@@ -782,17 +782,6 @@ namespace DeadlyReentry
 			FixAeroFX (afx);
 		}
 
-		bool Awaken(PartModule module)
-		{
-			// borrowed from https://github.com/Ialdabaoth/ModuleManager/blob/master/moduleManager.cs
-			MethodInfo awakeMethod = typeof(PartModule).GetMethod ("Awake", BindingFlags.Instance | BindingFlags.NonPublic);
-			if (awakeMethod == null)
-				return false;
-			object[] paramList = new object[] { };
-			awakeMethod.Invoke(module, paramList);
-			return true;
-		}
-
         public void Update()
         {
             if (Input.GetKeyDown(KeyCode.R) && Input.GetKey(KeyCode.LeftAlt) && Input.GetKey(KeyCode.D))
@@ -812,8 +801,8 @@ namespace DeadlyReentry
 						{
 		                    foreach (Part p in vessel.Parts)
 		                    {
-								if(!(p.Modules.Contains ("ModuleAeroReentry") || p.Modules.Contains ("ModuleHeatShield")))
-									Awaken (p.AddModule ("ModuleAeroReentry"));
+                                if (!(p.Modules.Contains("ModuleAeroReentry") || p.Modules.Contains("ModuleHeatShield")))
+                                    p.AddModule("ModuleAeroReentry"); // thanks a.g.!
 
 							}
                         }
