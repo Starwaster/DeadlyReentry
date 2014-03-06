@@ -208,8 +208,8 @@ namespace DeadlyReentry
 			}
             if ((object)realChute != null)
             {
-                string mainDeployState = (string)rCType.GetField("deploymentState").GetValue(realChute);
-                string secDeployState = (string)rCType.GetField("secDeploymentState").GetValue(realChute);
+                string mainDeployState = (string)rCType.GetField("depState").GetValue(realChute);
+                string secDeployState = (string)rCType.GetField("secDepState").GetValue(realChute);
                 if ((mainDeployState + secDeployState).Contains("DEPLOYED")) // LOW, PRE, or just DEPLOYED
                     return false;
             }
