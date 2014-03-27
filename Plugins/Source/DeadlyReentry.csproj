@@ -31,13 +31,19 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="DeadlyReentry.cs" />
+    <Compile Include="Checkers.cs" />
+    <Compile Include="DeadlyReentry.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="ModuleAnimation2Value.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\KSP_0.20\KSP.app\Contents\Data\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System, Version=2.0.5.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e, processorArchitecture=MSIL">
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine">

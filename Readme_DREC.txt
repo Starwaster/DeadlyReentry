@@ -26,6 +26,15 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v4.6 = \/
+*Made AblativeShielding tweakable.
+*Added fix from HoneyFox to detect shielded parts the way FAR does
+*Added version checking (per Majiir's template)
+
+v4.5 = \/
+*Fixed compatibility with RealChutes (thanks Starwaster!)
+*Attempted just-in-case fix for HotRockets, etc.
+
 v4.4 = \/
 *Removed redundant Awake() code - thanks a.g.!
 
