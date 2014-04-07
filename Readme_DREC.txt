@@ -30,6 +30,7 @@ v4.6 = \/
 *Made AblativeShielding tweakable.
 *Added fix from HoneyFox to detect shielded parts the way FAR does
 *Added version checking (per Majiir's template)
+*Recompiled for 0.23.5
 
 v4.5 = \/
 *Fixed compatibility with RealChutes (thanks Starwaster!)
