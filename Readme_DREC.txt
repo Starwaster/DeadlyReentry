@@ -26,6 +26,11 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v4.61= \/
+*Fixed 6.25m heatshield animation modules (thanks Sage!)
+*Fixed typos in decouplers (thanks DispleasedScottie!)
+
+
 v4.6 = \/
 *Made AblativeShielding tweakable.
 *Added fix from HoneyFox to detect shielded parts the way FAR does
