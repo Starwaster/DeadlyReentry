@@ -114,7 +114,7 @@ namespace DeadlyReentry
 		public bool dead = false;
 
         [KSPField]
-        public double gTolerance = -1;
+        public float gTolerance = -1;
 
 		private double lastGForce = 0;
 
@@ -382,9 +382,9 @@ namespace DeadlyReentry
                 if (gTolerance < 0)
                 {
                     if (is_engine && damage < 1)
-                        gTolerance = Math.Pow(UnityEngine.Random.Range(11.9f, 12.1f) * part.crashTolerance, 0.5);
+                        gTolerance = (float)Math.Pow(UnityEngine.Random.Range(11.9f, 12.1f) * part.crashTolerance, 0.5);
                     else
-                        gTolerance = Math.Pow(UnityEngine.Random.Range(5.9f, 6.1f) * part.crashTolerance, 0.5);
+                        gTolerance = (float)Math.Pow(UnityEngine.Random.Range(5.9f, 6.1f) * part.crashTolerance, 0.5);
 
                     gTolerance *= ReentryPhysics.gToleranceMult;
                 }

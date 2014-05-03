@@ -26,6 +26,10 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v4.62 \/
+*Fixed heatshield floatcurves not having tangents (got some unexpected behavior).
+*Fix for overriding a part's g tolerance not working
+
 v4.61= \/
 *Fixed 6.25m heatshield animation modules (thanks Sage!)
 *Fixed typos in decouplers (thanks DispleasedScottie!)
