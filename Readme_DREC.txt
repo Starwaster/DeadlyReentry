@@ -29,6 +29,7 @@ Changelog:
 v4.62 \/
 *Fixed heatshield floatcurves not having tangents (got some unexpected behavior).
 *Fix for overriding a part's g tolerance not working
+*Upgrade to ModuleManager v2.1.0
 
 v4.61= \/
 *Fixed 6.25m heatshield animation modules (thanks Sage!)
