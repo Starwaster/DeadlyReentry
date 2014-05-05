@@ -26,7 +26,7 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
-v4.62 \/
+v4.7 \/
 *Fixed heatshield floatcurves not having tangents (got some unexpected behavior).
 *Fix for overriding a part's g tolerance not working
 *Upgrade to ModuleManager v2.1.0
