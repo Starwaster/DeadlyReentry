@@ -1,23 +1,20 @@
 This update is by NathanKell.
-ialdabaoth (who is awesome) created Deadly Reentry 2, based on r4m0n's Deadly Reentry, and I'm maintaining it in ialdabaoth's absence.
+ialdabaoth (who is awesome) created Deadly Reentry 2, based on r4m0n's Deadly Reentry; this is a continuation.
 
 License remains CC-BY-SA as modified by ialdabaoth.
-Also included: Module Manager (by sarbian, based on ialdabaoth's work). See Module Manager thread for details and license and source: http://http://forum.kerbalspaceprogram.com/threads/55219
+Also included: Module Manager (by sarbian and ialdabaoth). See Module Manager thread for details and license and source: http://http://forum.kerbalspaceprogram.com/threads/55219
 Module Manager is required for DREC to work.
 
 A note on settings:
-1. Playing on Stock Kerbin, want traditional DRE level of heating: don't change anything
-2. Playing on Stock Kerbin, want realistic levels of heat on reentry (i.e. faking an 8km/sec reentry): set the shockwave exponent and multiplier to taste; I suggest exponent 1.12 to start. You will need heat shields built for RSS.
-3. Playing on Real-scale Kerbin (Real Solar System), want realistic heating: don't change anything. Use RSS class heat shields.
-4. Playing RSS, want traditional DRE level of heating: set _heat_ multiplier to 12 or so.
-
-You can get heatshields configured for RSS, and much more, in the Realism Overhaul release thread.
-http://forum.kerbalspaceprogram.com/threads/59207
+1. Playing on Stock Kerbin, want traditional DRE functionality: don't change anything.
+2. Playing on Stock Kerbin, want "harder" / hotter reentry (i.e. faking an 8km/sec reentry): set the shockwave exponent and multiplier to taste; I suggest exponent 1.12 to start. You will need heat shields built for RSS. Grab this file:  https://github.com/NathanKell/RealismOverhaul/raw/master/RealismOverhaul/DRE_ShieldsFix.cfg and place it in your DeadlyReentry folder.
+3. Playing on Earth or 10x Kerbin (RSS), want heating to be realistic: don't change anything. Use RSS class heat shields. You can get heatshields configured for RSS, and much more, in the Realism Overhaul release thread: http://forum.kerbalspaceprogram.com/threads/59207
+4. Playing on Earth or 10x Kerbin (RSS), want traditional Kerbin sized-level of heating (aka "easy") set _heat_ multiplier to 12 or so.
 
 
 INSTALL INSTRUCTIONS:
-1. If you currently have Deadly Reentry installed, go to KSP/GameData/DeadlyReentry and delete everything (files and folders) except custom.cfg. Also delete any old versions of ModuleManager (modulemanager.dll for example) in your KSP/GameData folder. If you already have ModuleManager1.5.dll or a more recent version that that, keep it, and do not extract the one in this archive.
-2. Extract this archive to your KSP/GameData folder (per above, do not extract Module Manager if you already have 1.5+)
+1. If you currently have Deadly Reentry installed, go to KSP/GameData/DeadlyReentry and delete everything (files and folders) except custom.cfg. Also delete any old versions of ModuleManager (modulemanager.dll for example) in your KSP/GameData folder.
+2. Extract this archive to your KSP/GameData folder.
 
 USAGE INSTRUCTIONS:
 Be careful how you reenter. Make sure your craft has a heatshield (the Mk1 pod has a built-in heatshield, as do stock spaceplanes; the Mk1-2 needs a heat shield from the Structural tab). For a low Kerbin orbit reentry, try for a periapsis of about 20km.
