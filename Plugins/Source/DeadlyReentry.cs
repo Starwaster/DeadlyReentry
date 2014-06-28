@@ -114,7 +114,7 @@ namespace DeadlyReentry
 		public bool dead = false;
 
         [KSPField]
-        public double gTolerance = -1;
+        public float gTolerance = -1;
 
 		private double lastGForce = 0;
 
@@ -183,6 +183,46 @@ namespace DeadlyReentry
             }
         }
 
+		private bool GetShieldedStateFromFAR()
+        {
+            // Check if this part is shielded by fairings/cargobays according to FAR's information...
+            PartModule FARPartModule = null;
+            if (part.Modules.Contains("FARBasicDragModel"))
+            {
+                    FARPartModule = part.Modules["FARBasicDragModel"];
+            }
+            else if (part.Modules.Contains("FARWingAerodynamicModel"))
+            {
+                    FARPartModule = part.Modules["FARWingAerodynamicModel"];
+            }
+            else if (part.Modules.Contains("FARPayloadFairingModule"))
+            {
+                    FARPartModule = part.Modules["FARPayloadFairingModule"];
+            }
+
+			if (FARPartModule != null)
+			{
+				//Debug.Log("[DREC] Part has FAR module.");
+				try
+				{
+					FieldInfo fi = FARPartModule.GetType().GetField("isShielded");
+					bool isShieldedFromFAR = ((bool)(fi.GetValue(FARPartModule)));
+					//Debug.Log("[DREC] Found FAR isShielded: " + isShieldedFromFAR.ToString());
+					return isShieldedFromFAR;
+				}
+				catch (Exception e)
+				{
+					Debug.Log("[DREC]: " + e.Message);
+					return false;
+				}
+			}
+			else
+			{
+				//Debug.Log("[DREC] No FAR module.");
+				return false;
+			}
+		}
+
 		public override void OnStart (StartState state)
 		{
             counter = 0;
@@ -213,6 +253,10 @@ namespace DeadlyReentry
                 if ((mainDeployState + secDeployState).Contains("DEPLOYED")) // LOW, PRE, or just DEPLOYED
                     return false;
             }
+            
+            if (GetShieldedStateFromFAR() == true)
+            	return true;
+            
             Ray ray = new Ray(part.transform.position + direction.normalized * adjustCollider, direction.normalized);
 			RaycastHit[] hits = Physics.RaycastAll (ray, 10);
 			foreach (RaycastHit hit in hits) {
@@ -338,9 +382,9 @@ namespace DeadlyReentry
                 if (gTolerance < 0)
                 {
                     if (is_engine && damage < 1)
-                        gTolerance = Math.Pow(UnityEngine.Random.Range(11.9f, 12.1f) * part.crashTolerance, 0.5);
+                        gTolerance = (float)Math.Pow(UnityEngine.Random.Range(11.9f, 12.1f) * part.crashTolerance, 0.5);
                     else
-                        gTolerance = Math.Pow(UnityEngine.Random.Range(5.9f, 6.1f) * part.crashTolerance, 0.5);
+                        gTolerance = (float)Math.Pow(UnityEngine.Random.Range(5.9f, 6.1f) * part.crashTolerance, 0.5);
 
                     gTolerance *= ReentryPhysics.gToleranceMult;
                 }
