@@ -150,3 +150,8 @@ $RECYCLE.BIN/
 
 # Mac crap
 .DS_Store
+
+# Stuff
+.csproj
+.mdb
+.userprefs
