@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using UnityEngine;
 using KSP;
@@ -24,6 +24,10 @@ namespace DeadlyReentry
         protected Type moduleType;
         protected FieldInfo field;
         protected PropertyInfo property;
+		protected float currentTime;
+		protected PartModule FSwheel = null;
+		protected Type fswType = null;
+		protected bool fswHack = false;
 
         public override void OnStart(PartModule.StartState state)
         {
@@ -58,6 +62,19 @@ namespace DeadlyReentry
                         print("ModuleAnimation2Value - field/property not found: " + valueName);
                     }
                 }
+				if ((anims != null) && (anims.Length > 0) && ((field != null) || (property != null)))
+				{
+					// Check to see if our part contains the Firespitter module FSwheel
+					if (part.Modules.Contains("FSwheel"))
+					{
+						FSwheel = part.Modules["FSwheel"];
+						if (FSwheel != null)
+							fswType = FSwheel.GetType ();
+						// Check to see if our animation is the same as the one used by FSwheel
+						if (animationName == (string)fswType.GetField ("animationName").GetValue (FSwheel))
+							fswHack = true;
+					}
+				}
             }
 
             base.OnStart(state);
@@ -76,13 +93,24 @@ namespace DeadlyReentry
                         target = module;
                     }
 
+					currentTime = anims[0][animationName].normalizedTime;
+
+					// Workaround hack for Firespitter FSwheel issue.
+					// Corrects a problem where non-playing animation time is always 0. 
+					if (fswHack && (string)fswType.GetField ("deploymentState").GetValue (FSwheel) == "Retracted")
+					{
+						// Retracted wheel should always be time index 1
+						currentTime = 1f;
+					}
+
+
                     if (field != null)
                     {
-                        field.SetValue(target, valueCurve.Evaluate(anims[0][animationName].normalizedTime));
+                        field.SetValue(target, valueCurve.Evaluate(currentTime));
                     }
                     else
                     {
-                        property.SetValue(target, valueCurve.Evaluate(anims[0][animationName].normalizedTime), null);
+                        property.SetValue(target, valueCurve.Evaluate(currentTime), null);
                     }
                 }
             }
