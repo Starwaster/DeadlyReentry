@@ -23,6 +23,9 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v4.8 \/
+*Starwaster: Fix handling of FS animations, fix inflatable heat shield properties.
+
 v4.7 \/
 *Fixed heatshield floatcurves not having tangents (got some unexpected behavior).
 *Fix for overriding a part's g tolerance not working
