@@ -2,8 +2,11 @@ This update is by NathanKell.
 ialdabaoth (who is awesome) created Deadly Reentry 2, based on r4m0n's Deadly Reentry; this is a continuation.
 
 License remains CC-BY-SA as modified by ialdabaoth.
-Also included: Module Manager (by sarbian and ialdabaoth). See Module Manager thread for details and license and source: http://http://forum.kerbalspaceprogram.com/threads/55219
+Also included: Module Manager (by sarbian, swamp_ig, and ialdabaoth). See Module Manager thread for details and license and source: http://http://forum.kerbalspaceprogram.com/threads/55219
 Module Manager is required for DREC to work.
+
+Source for Deadly Reentry is on GitHub:
+https://github.com/NathanKell/DeadlyReentry
 
 A note on settings:
 1. Playing on Stock Kerbin, want traditional DRE functionality: don't change anything.
@@ -25,6 +28,7 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 Changelog:
 v4.8 \/
 *Starwaster: Fix handling of FS animations, fix inflatable heat shield properties.
+*Fix for .24 compatibility
 
 v4.7 \/
 *Fixed heatshield floatcurves not having tangents (got some unexpected behavior).

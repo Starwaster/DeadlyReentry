@@ -757,6 +757,7 @@ namespace DeadlyReentry
 
 		public void Start()
 		{
+            enabled = true; // 0.24 compatibility
 			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS")) {
                 if(node.HasValue("shockwaveExponent"))
                     float.TryParse(node.GetValue("shockwaveExponent"), out shockwaveExponent);
