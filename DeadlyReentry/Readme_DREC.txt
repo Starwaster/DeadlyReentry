@@ -29,6 +29,7 @@ Changelog:
 v4.8 \/
 *Starwaster: Fix handling of FS animations, fix inflatable heat shield properties.
 *Fix for .24 compatibility
+*Upgraded to Module Manager v2.2.0
 
 v4.7 \/
 *Fixed heatshield floatcurves not having tangents (got some unexpected behavior).
