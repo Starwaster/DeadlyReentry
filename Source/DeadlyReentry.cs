@@ -240,20 +240,7 @@ namespace DeadlyReentry
 		}
 
 		public bool IsShielded(Vector3 direction)
-		{
-			if ((object)parachute != null) {
-				ModuleParachute p = parachute;
-				if(p.deploymentState == ModuleParachute.deploymentStates.DEPLOYED || p.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED)
-					return false;
-			}
-            if ((object)realChute != null)
-            {
-                string mainDeployState = (string)rCType.GetField("depState").GetValue(realChute);
-                string secDeployState = (string)rCType.GetField("secDepState").GetValue(realChute);
-                if ((mainDeployState + secDeployState).Contains("DEPLOYED")) // LOW, PRE, or just DEPLOYED
-                    return false;
-            }
-            
+		{   
             if (GetShieldedStateFromFAR() == true)
             	return true;
             
@@ -292,14 +279,26 @@ namespace DeadlyReentry
             }
             else
             {
+                float adjTemp = AdjustedHeat(velocity, shockwave,
+                                        ReentryPhysics.TemperatureDelta(vessel.atmDensity, shockwave, part.temperature));
+                // deal with parachutes here
+                if ((object)parachute != null)
+                {
+                    ModuleParachute p = parachute;
+                    if (p.deploymentState == ModuleParachute.deploymentStates.DEPLOYED || p.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED && adjTemp > part.maxTemp)
+                        p.CutParachute();
+                }
+                if ((object)realChute != null)
+                {
+                    // do stuff, stupid_chris!
+                }
                 if (IsShielded(velocity))
                     displayShockwave = "Shielded";
                 else
                 {
                     if (is_debugging)
                         displayShockwave = shockwave.ToString("F0") + "C";
-                    return AdjustedHeat(velocity, shockwave,
-                                        ReentryPhysics.TemperatureDelta(vessel.atmDensity, shockwave, part.temperature));
+                    return adjTump;
                 }
             }
             return 0;
