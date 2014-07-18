@@ -285,12 +285,13 @@ namespace DeadlyReentry
                 if ((object)parachute != null)
                 {
                     ModuleParachute p = parachute;
-                    if (p.deploymentState == ModuleParachute.deploymentStates.DEPLOYED || p.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED && adjTemp > part.maxTemp)
+                    if ((p.deploymentState == ModuleParachute.deploymentStates.DEPLOYED || p.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED) && adjTemp > part.maxTemp)
                         p.CutParachute();
                 }
                 if ((object)realChute != null)
                 {
-                    // do stuff, stupid_chris!
+                   if (!(bool)rCType.GetProperty("anyDeployed").GetValue(realChute, null) && adjTemp > part.maxTemp)
+                       rCType.GetMethod("GUICut").Invoke(realChute, null);
                 }
                 if (IsShielded(velocity))
                     displayShockwave = "Shielded";
