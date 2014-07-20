@@ -23,8 +23,9 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
-v4.8.1
-*Now will cut chutes when they burn up, rather than destroying the part.
+v5.0
+*Now will cut chutes when they burn up, rather than destroying the part. Max chute temperature defaults to 1/2 part max temperature
+*Fixed issue with RealChutes compatibility
 
 v4.8 \/
 *Starwaster: Fix handling of FS animations, fix inflatable heat shield properties.

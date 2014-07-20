@@ -283,8 +283,9 @@ namespace DeadlyReentry
                 if ((object)parachute != null)
                 {
                     ModuleParachute p = parachute;
-                    if ((p.deploymentState == ModuleParachute.deploymentStates.DEPLOYED || p.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED) && adjTemp > part.maxTemp)
-                        p.CutParachute();
+                    if ((p.deploymentState == ModuleParachute.deploymentStates.DEPLOYED || p.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED) &&
+                        Math.Pow(vessel.atmDensity, ReentryPhysics.densityExponent) * shockwave > part.maxTemp)
+                            p.CutParachute();
                 }
                 if ((object)realChute != null)
                 {
@@ -742,6 +743,7 @@ namespace DeadlyReentry
 		public static float fullThermal = 1150.0f;
 
         public static float gToleranceMult = 2.0f;
+        public static float parachuteTempMult = 0.5f;
 
         public static bool debugging = false;
         protected Rect windowPos = new Rect(100, 100, 0, 0);
@@ -776,6 +778,10 @@ namespace DeadlyReentry
 
                 if (node.HasValue("gToleranceMult"))
                     float.TryParse(node.GetValue("gToleranceMult"), out gToleranceMult);
+
+                if (node.HasValue("parachuteTempMult"))
+                    float.TryParse(node.GetValue("parachuteTempMult"), out parachuteTempMult);
+
 
                 if (node.HasValue("crewGClamp"))
                     double.TryParse(node.GetValue("crewGClamp"), out ModuleAeroReentry.crewGClamp);
@@ -924,6 +930,11 @@ namespace DeadlyReentry
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
+            GUILayout.Label("Parachute Temp Mult:", labelStyle);
+            string newParachuteTempMult = GUILayout.TextField(parachuteTempMult.ToString(), GUILayout.MinWidth(100));
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
             GUILayout.Label("Crew G Max", labelStyle);
             string newcrewGClamp = GUILayout.TextField(ModuleAeroReentry.crewGClamp.ToString(), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
@@ -960,6 +971,7 @@ namespace DeadlyReentry
 				node.AddValue ("@temperatureExponent", temperatureExponent.ToString ());
 				node.AddValue ("@densityExponent", densityExponent.ToString ());
                 node.AddValue("@gToleranceMult", gToleranceMult.ToString());
+                node.AddValue("@parachuteTempMult", gToleranceMult.ToString());
 
                 node.AddValue("@crewGClamp", ModuleAeroReentry.crewGClamp.ToString());
                 node.AddValue("@crewGPower", ModuleAeroReentry.crewGPower.ToString());
@@ -1014,6 +1026,10 @@ namespace DeadlyReentry
 				{
                     gToleranceMult = newValue;
 				}
+                if (float.TryParse(newParachuteTempMult, out newValue))
+                {
+                    parachuteTempMult = newValue;
+                }
 
                 if (float.TryParse(newcrewGClamp, out newValue))
                 {
