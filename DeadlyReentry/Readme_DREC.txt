@@ -7,7 +7,7 @@ Module Manager is required for DREC to work.
 
 A note on settings:
 1. Playing on Stock Kerbin, want traditional DRE functionality: don't change anything.
-2. Playing on Stock Kerbin, want "harder" / hotter reentry (i.e. faking an 8km/sec reentry): set the shockwave exponent and multiplier to taste; I suggest exponent 1.12 to start. You will need heat shields built for RSS. Grab this file:  https://github.com/NathanKell/RealismOverhaul/raw/master/RealismOverhaul/DRE_ShieldsFix.cfg and place it in your DeadlyReentry folder.
+2. Playing on Stock Kerbin, want "harder" / hotter reentry (i.e. faking an 8km/sec reentry): set the shockwave exponent and multiplier to taste; I suggest exponent 1.12 to start. You will need heat shields built for RSS. Grab this file:  https://raw.githubusercontent.com/NathanKell/RealismOverhaul/master/RealismOverhaul/RO_DRE.cfg and place it in your DeadlyReentry folder.
 3. Playing on Earth or 10x Kerbin (RSS), want heating to be realistic: don't change anything. Use RSS class heat shields. You can get heatshields configured for RSS, and much more, in the Realism Overhaul release thread: http://forum.kerbalspaceprogram.com/threads/59207
 4. Playing on Earth or 10x Kerbin (RSS), want traditional Kerbin sized-level of heating (aka "easy") set _heat_ multiplier to 12 or so.
 
