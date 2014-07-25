@@ -23,6 +23,10 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v5.1
+*Recompiled for 0.24.1
+*Nerfed overpowered 1.25m heatshield, had double the dissipation it should.
+
 v5.0
 *Now will cut chutes when they burn up, rather than destroying the part. Max chute temperature defaults to 1/2 part max temperature
 *Fixed issue with RealChutes compatibility
