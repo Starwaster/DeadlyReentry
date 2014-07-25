@@ -23,6 +23,9 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v5.2
+*Updated for 0.24.2
+
 v5.1
 *Recompiled for 0.24.1
 *Nerfed overpowered 1.25m heatshield, had double the dissipation it should.
