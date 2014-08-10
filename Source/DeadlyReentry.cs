@@ -801,6 +801,10 @@ namespace DeadlyReentry
 					bool.TryParse (node.GetValue ("debugging"), out debugging);
 				break;
 			};
+
+            DREAtmDataOrganizer.LoadConfigNodes();
+            DREAtmTempCurve curve = new DREAtmTempCurve();
+            curve.CalculateNewDREAtmTempCurve(FlightGlobals.currentMainBody);
 		}
 
         public void OnGUI()
