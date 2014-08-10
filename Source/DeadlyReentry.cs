@@ -9,6 +9,7 @@ namespace DeadlyReentry
 {
 	public class ModuleAeroReentry: PartModule
 	{
+        public const float CTOK = 273.15f;
 		UIPartActionWindow _myWindow = null; 
 		UIPartActionWindow myWindow {
 			get {
@@ -260,7 +261,7 @@ namespace DeadlyReentry
         {
             if ((object)vessel == null || (object)vessel.flightIntegrator == null)
                 return 0;
-            float shockwave = velocity.magnitude - 275;
+            float shockwave = velocity.magnitude - CTOK;
             if (shockwave > 0)
             {
                 shockwave = Mathf.Pow(shockwave, ReentryPhysics.shockwaveExponent);
@@ -470,7 +471,7 @@ namespace DeadlyReentry
                         damageThreshold = part.maxTemp * 0.975f;
                     else if (is_eva)
                     {
-                        damageThreshold = 800 * (1 - damage) * (1 - damage) - 275;
+                        damageThreshold = 800 * (1 - damage) * (1 - damage) - CTOK;
                         part.maxTemp = 900;
                     }
                     else
@@ -497,7 +498,7 @@ namespace DeadlyReentry
                                 GameObject.DestroyImmediate(fx.gameObject);
                             foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
                                 GameObject.DestroyImmediate(fx.gameObject);
-                            float shockwave = velocity.magnitude - 275;
+                            float shockwave = velocity.magnitude - CTOK;
                             if (shockwave > ReentryPhysics.startThermal && shockwave > part.maxTemp && !dead)
                             {
                                 dead = true;
@@ -650,7 +651,7 @@ namespace DeadlyReentry
                     if (lossConst > 0)
                     {
                         double ablativeAmount = part.Resources[ablative].amount;
-                        double loss = dot * Math.Exp(-lossConst / part.temperature);
+                        double loss = dot * Math.Exp(-lossConst / (part.temperature + CTOK));
                         loss *= ablativeAmount * TimeWarp.fixedDeltaTime;
                         if (loss > ablationMin && part.temperature > ablationTempThresh)
                         {
