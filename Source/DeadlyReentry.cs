@@ -130,6 +130,8 @@ namespace DeadlyReentry
         private PartModule realChute = null;
         private Type rCType = null;
 
+         PartModule FARPartModule = null;
+
 		[KSPEvent (guiName = "No Damage", guiActiveUnfocused = true, externalToEVAOnly = true, guiActive = false, unfocusedRange = 4f)]
 		public void RepairDamage()
 		{
@@ -186,21 +188,8 @@ namespace DeadlyReentry
 		private bool GetShieldedStateFromFAR()
         {
             // Check if this part is shielded by fairings/cargobays according to FAR's information...
-            PartModule FARPartModule = null;
-            if (part.Modules.Contains("FARBasicDragModel"))
-            {
-                    FARPartModule = part.Modules["FARBasicDragModel"];
-            }
-            else if (part.Modules.Contains("FARWingAerodynamicModel"))
-            {
-                    FARPartModule = part.Modules["FARWingAerodynamicModel"];
-            }
-            else if (part.Modules.Contains("FARPayloadFairingModule"))
-            {
-                    FARPartModule = part.Modules["FARPayloadFairingModule"];
-            }
 
-			if (FARPartModule != null)
+			if ((object)FARPartModule != null)
 			{
 				//Debug.Log("[DREC] Part has FAR module.");
 				try
@@ -232,7 +221,19 @@ namespace DeadlyReentry
 			if (myWindow != null)
 				myWindow.displayDirty = true;
 			// moved part detection logic to OnAWake
-
+            // exception: FAR.
+            if (part.Modules.Contains("FARBasicDragModel"))
+            {
+                    FARPartModule = part.Modules["FARBasicDragModel"];
+            }
+            else if (part.Modules.Contains("FARWingAerodynamicModel"))
+            {
+                    FARPartModule = part.Modules["FARWingAerodynamicModel"];
+            }
+            else if (part.Modules.Contains("FARPayloadFairingModule"))
+            {
+                    FARPartModule = part.Modules["FARPayloadFairingModule"];
+            }
 		}
 		public virtual float AdjustedHeat(Vector3 velocity, float shockwave, float temp)
 		{
@@ -596,11 +597,23 @@ namespace DeadlyReentry
 		[KSPField(isPersistant = true)]
 		public string ablative;
 
-		[KSPField(isPersistant = true)]
-		public float area;
+		[KSPField(isPersistant = false)]
+		public float area = -1;
 
-		[KSPField(isPersistant = true)]
+		[KSPField(isPersistant = false)]
 		public float thickness;
+
+        [KSPField(isPersistant = true)]
+        public float lossConst = -1;
+
+        [KSPField(isPersistant = true)]
+        public float pyrolysisTempLoss = -1;
+
+        [KSPField(isPersistant = true)]
+        public float ablationTempThresh = 300f;
+
+        [KSPField(isPersistant = true)]
+        public float ablationMin = 0.002f;
 
 		[KSPField(isPersistant = true)]
 		public FloatCurve loss = new FloatCurve();
@@ -628,29 +641,45 @@ namespace DeadlyReentry
 				dot = 1; 
 			else // check the angle between the shock front and the shield
 				dot = Vector3.Dot (velocity.normalized, part.transform.TransformDirection(direction).normalized);
-			
 			if (dot > 0 && temp > 0) {
 				//radiate away some heat
 				float rad = temp * dot * reflective;
 				temp -= rad  * (1 - damage) * (1 - damage);
-				if(loss.Evaluate(shockwave) > 0
-				   && part.Resources.Contains (ablative)) {
-					// ablate away some shielding
-					float ablation = (float) (dot 
-					                          * loss.Evaluate((float) Math.Pow (shockwave, ReentryPhysics.temperatureExponent)) 
-					                          * Math.Pow (vessel.atmDensity, ReentryPhysics.densityExponent) 
-					                          * TimeWarp.fixedDeltaTime);
-
-                    float disAmount = dissipation.Evaluate(part.temperature) * ablation * (1 - damage) * (1 - damage);
-                    if (disAmount > 0)
+                if (part.Resources.Contains(ablative))
+                {
+                    if (lossConst > 0)
                     {
-                        if (part.Resources[ablative].amount < ablation)
-                            ablation = (float)part.Resources[ablative].amount;
-                        // wick away some heat with the shielding
-                        part.Resources[ablative].amount -= ablation;
-                        temp -= dissipation.Evaluate(part.temperature) * ablation * (1 - damage) * (1 - damage);
+                        double ablativeAmount = part.Resources[ablative].amount;
+                        double loss = dot * Math.Exp(-lossConst / part.temperature);
+                        loss *= ablativeAmount * TimeWarp.fixedDeltaTime;
+                        if (loss > ablationMin && part.temperature > ablationTempThresh)
+                        {
+                            part.Resources[ablative].amount -= loss;
+                            temp -= (float)(pyrolysisTempLoss * loss);
+                        }
                     }
-				}
+                    else
+                    {
+                        if (loss.Evaluate(shockwave) > 0)
+                        {
+                            // ablate away some shielding
+                            float ablation = (float)(dot
+                                                      * loss.Evaluate((float)Math.Pow(shockwave, ReentryPhysics.temperatureExponent))
+                                                      * Math.Pow(vessel.atmDensity, ReentryPhysics.densityExponent)
+                                                      * TimeWarp.fixedDeltaTime);
+
+                            float disAmount = dissipation.Evaluate(part.temperature) * ablation * (1 - damage) * (1 - damage);
+                            if (disAmount > 0)
+                            {
+                                if (part.Resources[ablative].amount < ablation)
+                                    ablation = (float)part.Resources[ablative].amount;
+                                // wick away some heat with the shielding
+                                part.Resources[ablative].amount -= ablation;
+                                temp -= dissipation.Evaluate(part.temperature) * ablation * (1 - damage) * (1 - damage);
+                            }
+                        }
+                    }
+                }
 			}
 			return temp;
 		}
@@ -732,6 +761,9 @@ namespace DeadlyReentry
 		}
 
 		public static Vector3 frameVelocity;
+        public static double frameDensity = 1.225;
+        public static double frameAlt = 0;
+        public static double frameDensityMult = 1.225;
 
         public static float shockwaveMultiplier = 1.0f;
         public static float shockwaveExponent = 1.0f;
@@ -813,19 +845,32 @@ namespace DeadlyReentry
 
 		private void FixAeroFX(AerodynamicsFX aeroFX)
 		{
+			aeroFX.airDensity = (float)(frameDensityMult);
+			/*aeroFX.state = Mathf.InverseLerp(0.15f, 0.1f, aeroFX.airDensity);
+	        aeroFX.heatFlux = 0.5f * aeroFX.airDensity * Mathf.Pow(aeroFX.airspeed, aeroFX.fudge1);
+	        aeroFX.FxScalar = Mathf.Min(1f, (aeroFX.heatFlux - aeroFX.) / (5f * aeroFX.));
+	        aeroFX.transitionFade = 1f - Mathf.Sin(aeroFX.state * 3.14159274f);
+	        aeroFX.FxScalar *= aeroFX.transitionFade;*/
 
-			if (afx.velocity.magnitude < startThermal) // approximate speed where shockwaves begin visibly glowing
-				afx.state = 0;
-			else if (afx.velocity.magnitude >= fullThermal)
-				afx.state = 1;
-			else
-				afx.state = (afx.velocity.magnitude - startThermal) / (fullThermal - startThermal);
+            afx.state = Mathf.InverseLerp(startThermal, fullThermal, afx.airspeed);
 		}
 
 		public void FixedUpdate()
 		{
-			FixAeroFX (afx);
 			frameVelocity = Krakensbane.GetFrameVelocityV3f() - Krakensbane.GetLastCorrection() * TimeWarp.fixedDeltaTime;
+            frameDensity = FlightGlobals.ActiveVessel.atmDensity; //ferram4.FARAeroUtil.GetCurrentDensity(FlightGlobals.ActiveVessel.mainBody, (float)FlightGlobals.ActiveVessel.altitude)
+            frameAlt = FlightGlobals.ActiveVessel.altitude * 0.001;
+            // roughly match real density without FAR
+            if (FlightGlobals.currentMainBody == FlightGlobals.Bodies[1])
+            {
+                if (frameAlt < 80)
+                    frameDensityMult = frameDensity * -0.0000001737522 * Math.Pow(frameAlt, 4) + 0.00003655086 * Math.Pow(frameAlt, 3) - 0.002382204 * Math.Pow(frameAlt, 2) + 0.05168653 * frameAlt + 0.9925287;
+                else
+                    frameDensityMult = frameDensity * 1.47;
+            }
+            else
+                frameDensityMult = frameDensity;
+            FixAeroFX (afx);
 		}
 
 		public void LateUpdate()
