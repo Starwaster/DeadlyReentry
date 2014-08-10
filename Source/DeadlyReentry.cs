@@ -90,6 +90,9 @@ namespace DeadlyReentry
 		[KSPField(isPersistant = false, guiActive = false, guiName = "Shockwave", guiUnits = "",   guiFormat = "G")]
 		public string displayShockwave;
 
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Ambient", guiUnits = "", guiFormat = "G")]
+        public string displayAmbient;
+
 		[KSPField(isPersistant = false, guiActive = true, guiName = "Temperature", guiUnits = "C",   guiFormat = "F0")]
 		public float displayTemperature;
 
@@ -246,7 +249,7 @@ namespace DeadlyReentry
             if (GetShieldedStateFromFAR() == true)
             	return true;
             
-            Ray ray = new Ray(part.transform.position + direction.normalized * adjustCollider, direction.normalized);
+            Ray ray = new Ray(part.transform.position - direction.normalized * (1.0f+adjustCollider), direction.normalized);
 			RaycastHit[] hits = Physics.RaycastAll (ray, 10);
 			foreach (RaycastHit hit in hits) {
 				if(hit.rigidbody != null && hit.collider != part.collider) {
@@ -268,6 +271,7 @@ namespace DeadlyReentry
                 shockwave *= ReentryPhysics.shockwaveMultiplier;
             }
             float ambient = vessel.flightIntegrator.getExternalTemperature();
+            displayAmbient = ambient.ToString("F0") + "C";
             if (shockwave < ambient)
             {
                 shockwave = ambient;
@@ -286,13 +290,13 @@ namespace DeadlyReentry
                 {
                     ModuleParachute p = parachute;
                     if ((p.deploymentState == ModuleParachute.deploymentStates.DEPLOYED || p.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED) &&
-                        Math.Pow(vessel.atmDensity, ReentryPhysics.densityExponent) * shockwave > part.maxTemp)
+                        Math.Pow(vessel.atmDensity, ReentryPhysics.densityExponent) * shockwave > part.maxTemp * 0.25f)
                             p.CutParachute();
                 }
                 if ((object)realChute != null)
                 {
                    if (!(bool)rCType.GetProperty("anyDeployed").GetValue(realChute, null) && 
-                                        Math.Pow(vessel.atmDensity, ReentryPhysics.densityExponent) * shockwave > part.maxTemp)
+                                        Math.Pow(vessel.atmDensity, ReentryPhysics.densityExponent) * shockwave > part.maxTemp * 0.25f)
                        rCType.GetMethod("GUICut").Invoke(realChute, null);
                 }
                 if (IsShielded(velocity))
@@ -302,7 +306,7 @@ namespace DeadlyReentry
                     if (is_debugging)
                         displayShockwave = shockwave.ToString("F0") + "C";
                     return AdjustedHeat(velocity, shockwave,
-                                        ReentryPhysics.TemperatureDelta(vessel.atmDensity, shockwave, part.temperature));
+                                        ReentryPhysics.TemperatureDelta(vessel.atmDensity, shockwave + CTOK, part.temperature + CTOK));
                 }
             }
             return 0;
@@ -319,11 +323,13 @@ namespace DeadlyReentry
 			{
 				is_debugging = ReentryPhysics.debugging;
 				Fields ["displayShockwave"].guiActive = ReentryPhysics.debugging;
+                Fields["displayAmbient"].guiActive = ReentryPhysics.debugging;
 				Fields ["displayGForce"].guiActive = ReentryPhysics.debugging;
 	            Fields["gExperienced"].guiActive = ReentryPhysics.debugging;
 			}
 
-			Vector3 velocity = (rb.velocity + ReentryPhysics.frameVelocity);
+            Vector3 velocity = part.vessel.orbit.GetVel() - part.vessel.mainBody.getRFrmVel(part.vessel.vesselTransform.position);
+                //(rb.velocity + ReentryPhysics.frameVelocity);
 
             if (counter < 5.0)
             {
@@ -613,8 +619,8 @@ namespace DeadlyReentry
         [KSPField(isPersistant = true)]
         public float ablationTempThresh = 300f;
 
-        [KSPField(isPersistant = true)]
-        public float ablationMin = 0.002f;
+        /*[KSPField(isPersistant = true)]
+        public float ablationMin = 0.002f;*/
 
 		[KSPField(isPersistant = true)]
 		public FloatCurve loss = new FloatCurve();
@@ -627,6 +633,7 @@ namespace DeadlyReentry
 			base.OnStart (state);
 			if (ablative == null)
 				ablative = "None";
+            part.heatConductivity = 0.0f; // shield attached parts from this temperature
 		}
 		public override string GetInfo()
 		{
@@ -642,7 +649,7 @@ namespace DeadlyReentry
 				dot = 1; 
 			else // check the angle between the shock front and the shield
 				dot = Vector3.Dot (velocity.normalized, part.transform.TransformDirection(direction).normalized);
-			if (dot > 0 && temp > 0) {
+			if (dot > 0 /*&& temp > 0*/) {
 				//radiate away some heat
 				float rad = temp * dot * reflective;
 				temp -= rad  * (1 - damage) * (1 - damage);
@@ -653,10 +660,10 @@ namespace DeadlyReentry
                         double ablativeAmount = part.Resources[ablative].amount;
                         double loss = dot * Math.Exp(-lossConst / (part.temperature + CTOK));
                         loss *= ablativeAmount * TimeWarp.fixedDeltaTime;
-                        if (loss > ablationMin && part.temperature > ablationTempThresh)
+                        if (/*loss > ablationMin &&*/ part.temperature > ablationTempThresh)
                         {
                             part.Resources[ablative].amount -= loss;
-                            temp -= (float)(pyrolysisTempLoss * loss);
+                            temp -= (pyrolysisTempLoss * (float)loss);
                         }
                     }
                     else
@@ -781,11 +788,11 @@ namespace DeadlyReentry
         public static bool debugging = false;
         protected Rect windowPos = new Rect(100, 100, 0, 0);
 
-		public static float TemperatureDelta(double density, float temp1, float temp2)
+		public static float TemperatureDelta(double density, float shockwaveK, float partTempK)
 		{
-			if (temp1 < temp2 || density == 0 || temp1 < 0)
+			if (shockwaveK < partTempK || density == 0 || shockwaveK < 0)
 				return 0;
-			return (float) ( Math.Pow (Math.Abs(temp1 - temp2), temperatureExponent) 
+			return (float) ( Math.Pow (shockwaveK - partTempK, temperatureExponent) 
 						   * Math.Pow (density, densityExponent)
 						   * heatMultiplier * TimeWarp.fixedDeltaTime);
 		}
@@ -865,7 +872,7 @@ namespace DeadlyReentry
             if (FlightGlobals.currentMainBody == FlightGlobals.Bodies[1])
             {
                 if (frameAlt < 80)
-                    frameDensityMult = frameDensity * -0.0000001737522 * Math.Pow(frameAlt, 4) + 0.00003655086 * Math.Pow(frameAlt, 3) - 0.002382204 * Math.Pow(frameAlt, 2) + 0.05168653 * frameAlt + 0.9925287;
+                    frameDensityMult = frameDensity * (-0.0000001737522 * Math.Pow(frameAlt, 4) + 0.00003655086 * Math.Pow(frameAlt, 3) - 0.002382204 * Math.Pow(frameAlt, 2) + 0.05168653 * frameAlt + 0.9925287);
                 else
                     frameDensityMult = frameDensity * 1.47;
             }
