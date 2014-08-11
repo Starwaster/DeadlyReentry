@@ -120,9 +120,19 @@ namespace DeadlyReentry
         [KSPField]
         public float gTolerance = -1;
 
+        // counters etc
 		private double lastGForce = 0;
-
         private double counter = 0;
+        public static double crewGClamp = 30;
+        public static double crewGPower = 4;
+        public static double crewGMin = 5;
+        public static double crewGWarn = 300000;
+        public static double crewGLimit = 600000;
+        public static double crewGKillChance = 0.75;
+
+        protected float ambient = 0f; // ambient temperature (C)
+        protected float density = 1.225f; // ambient density (kg/m^3)
+        protected float shockwave; // shockwave temperature (C)
 
         private bool is_debugging = false;
         private bool is_on_fire = false;
@@ -133,8 +143,7 @@ namespace DeadlyReentry
         private ModuleParachute parachute = null;
         private PartModule realChute = null;
         private Type rCType = null;
-
-         PartModule FARPartModule = null;
+        private PartModule FARPartModule = null;
 
 		[KSPEvent (guiName = "No Damage", guiActiveUnfocused = true, externalToEVAOnly = true, guiActive = false, unfocusedRange = 4f)]
 		public void RepairDamage()
@@ -265,22 +274,20 @@ namespace DeadlyReentry
             if ((object)vessel == null || (object)vessel.flightIntegrator == null)
                 return 0;
 
-            float ambient = vessel.flightIntegrator.getExternalTemperature();
-            float shockwave = ReentryPhysics.baseTempCurve.EvaluateTempDiffCurve(velocity.magnitude) + ambient - CTOK;
+            shockwave = ReentryPhysics.baseTempCurve.EvaluateTempDiffCurve(velocity.magnitude) + ambient - CTOK;
 
             if (shockwave > 0)
             {
                 shockwave = Mathf.Pow(shockwave, ReentryPhysics.shockwaveExponent);
                 shockwave *= ReentryPhysics.shockwaveMultiplier;
             }
-            displayAmbient = ambient.ToString("F0") + "C";
             if (shockwave < ambient)
             {
                 shockwave = ambient;
                 if (is_debugging)
                     displayShockwave = shockwave.ToString("F0") + "C (Ambient)";
             }
-            else if (vessel.atmDensity == 0)
+            else if (density == 0)
             {
                 shockwave = 0;
                 displayShockwave = "None (vacuum)";
@@ -292,13 +299,13 @@ namespace DeadlyReentry
                 {
                     ModuleParachute p = parachute;
                     if ((p.deploymentState == ModuleParachute.deploymentStates.DEPLOYED || p.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED) &&
-                        Math.Pow(vessel.atmDensity, ReentryPhysics.densityExponent) * shockwave > part.maxTemp * 0.25f)
+                        Math.Pow(density, ReentryPhysics.densityExponent) * shockwave > part.maxTemp * ReentryPhysics.parachuteTempMult)
                             p.CutParachute();
                 }
                 if ((object)realChute != null)
                 {
-                   if (!(bool)rCType.GetProperty("anyDeployed").GetValue(realChute, null) && 
-                                        Math.Pow(vessel.atmDensity, ReentryPhysics.densityExponent) * shockwave > part.maxTemp * 0.25f)
+                   if (!(bool)rCType.GetProperty("anyDeployed").GetValue(realChute, null) &&
+                                        Math.Pow(density, ReentryPhysics.densityExponent) * shockwave > part.maxTemp * ReentryPhysics.parachuteTempMult)
                        rCType.GetMethod("GUICut").Invoke(realChute, null);
                 }
                 if (IsShielded(velocity))
@@ -308,7 +315,7 @@ namespace DeadlyReentry
                     if (is_debugging)
                         displayShockwave = shockwave.ToString("F0") + "C";
                     return AdjustedHeat(velocity, shockwave,
-                                        ReentryPhysics.TemperatureDelta(vessel.atmDensity, shockwave + CTOK, part.temperature + CTOK));
+                                        ReentryPhysics.TemperatureDelta(density, shockwave + CTOK, part.temperature + CTOK));
                 }
             }
             return 0;
@@ -339,7 +346,9 @@ namespace DeadlyReentry
                 lastGForce = 0;
                 return;
             }
-
+            ambient = vessel.flightIntegrator.getExternalTemperature();
+            displayAmbient = ambient.ToString("F0") + "C";
+            density = (float)ReentryPhysics.CalculateDensity(vessel.mainBody, vessel.staticPressure, ambient);
 			part.temperature += ReentryHeat (velocity);
 			displayTemperature = part.temperature;
 			CheckForFire (velocity);
@@ -361,12 +370,7 @@ namespace DeadlyReentry
 			part.crashTolerance = part.partInfo.partPrefab.crashTolerance * (1 - 0.5f * damage);
 			SetDamageLabel ();
 		}
-        public static double crewGClamp = 30;
-        public static double crewGPower = 4;
-        public static double crewGMin = 5;
-        public static double crewGWarn = 300000;
-        public static double crewGLimit = 600000;
-        public static double crewGKillChance = 0.75;
+        
 		public void CheckGeeForces()
 		{
             if (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready)
@@ -527,7 +531,7 @@ namespace DeadlyReentry
                             }
                             foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
                             {
-                                fx.gameObject.SetActive(vessel.atmDensity > 0.5);
+                                fx.gameObject.SetActive(density > 0.1);
                                 fx.gameObject.transform.LookAt(part.transform.position + velocity);
                                 fx.gameObject.transform.Rotate(90, 0, 0);
                             }
@@ -620,10 +624,7 @@ namespace DeadlyReentry
 
         [KSPField(isPersistant = true)]
         public float ablationTempThresh = 300f;
-
-        /*[KSPField(isPersistant = true)]
-        public float ablationMin = 0.002f;*/
-
+        
 		[KSPField(isPersistant = true)]
 		public FloatCurve loss = new FloatCurve();
 
@@ -662,7 +663,7 @@ namespace DeadlyReentry
                         double ablativeAmount = part.Resources[ablative].amount;
                         double loss = dot * Math.Exp(-lossConst / (part.temperature + CTOK));
                         loss *= ablativeAmount * TimeWarp.fixedDeltaTime;
-                        if (/*loss > ablationMin &&*/ part.temperature > ablationTempThresh)
+                        if (part.temperature > ablationTempThresh)
                         {
                             part.Resources[ablative].amount -= loss;
                             temp -= (pyrolysisTempLoss * (float)loss);
@@ -675,7 +676,7 @@ namespace DeadlyReentry
                             // ablate away some shielding
                             float ablation = (float)(dot
                                                       * loss.Evaluate((float)Math.Pow(shockwave, ReentryPhysics.temperatureExponent))
-                                                      * Math.Pow(vessel.atmDensity, ReentryPhysics.densityExponent)
+                                                      * Math.Pow(density, ReentryPhysics.densityExponent)
                                                       * TimeWarp.fixedDeltaTime);
 
                             float disAmount = dissipation.Evaluate(part.temperature) * ablation * (1 - damage) * (1 - damage);
@@ -772,8 +773,7 @@ namespace DeadlyReentry
 
 		public static Vector3 frameVelocity;
         public static double frameDensity = 1.225;
-        public static double frameAlt = 0;
-        public static double frameDensityMult = 1.225;
+        public static float ATMTOPA = 101325f;
 
         public static float shockwaveMultiplier = 1.0f;
         public static float shockwaveExponent = 1.0f;
@@ -878,6 +878,13 @@ namespace DeadlyReentry
             baseTempCurve.CalculateNewDREAtmTempCurve(FlightGlobals.currentMainBody, false);
         }
 
+        public static double CalculateDensity(CelestialBody body, double pressure, float temp)
+        {
+            float bodyGasConsant = DREAtmDataOrganizer.GetGasConstant(body);
+            pressure *= ATMTOPA;
+            return pressure / (temp * bodyGasConsant);
+        }
+
         public void OnGUI()
         {
             if (debugging)
@@ -888,7 +895,7 @@ namespace DeadlyReentry
 
 		private void FixAeroFX(AerodynamicsFX aeroFX)
 		{
-			aeroFX.airDensity = (float)(frameDensityMult);
+			aeroFX.airDensity = (float)(Math.Pow(frameDensity, densityExponent));
 			/*aeroFX.state = Mathf.InverseLerp(0.15f, 0.1f, aeroFX.airDensity);
 	        aeroFX.heatFlux = 0.5f * aeroFX.airDensity * Mathf.Pow(aeroFX.airspeed, aeroFX.fudge1);
 	        aeroFX.FxScalar = Mathf.Min(1f, (aeroFX.heatFlux - aeroFX.) / (5f * aeroFX.));
@@ -901,18 +908,8 @@ namespace DeadlyReentry
 		public void FixedUpdate()
 		{
 			frameVelocity = Krakensbane.GetFrameVelocityV3f() - Krakensbane.GetLastCorrection() * TimeWarp.fixedDeltaTime;
-            frameDensity = FlightGlobals.ActiveVessel.atmDensity; //ferram4.FARAeroUtil.GetCurrentDensity(FlightGlobals.ActiveVessel.mainBody, (float)FlightGlobals.ActiveVessel.altitude)
-            frameAlt = FlightGlobals.ActiveVessel.altitude * 0.001;
-            // roughly match real density without FAR
-            if (FlightGlobals.currentMainBody == FlightGlobals.Bodies[1])
-            {
-                if (frameAlt < 80)
-                    frameDensityMult = frameDensity * (-0.0000001737522 * Math.Pow(frameAlt, 4) + 0.00003655086 * Math.Pow(frameAlt, 3) - 0.002382204 * Math.Pow(frameAlt, 2) + 0.05168653 * frameAlt + 0.9925287);
-                else
-                    frameDensityMult = frameDensity * 1.47;
-            }
-            else
-                frameDensityMult = frameDensity;
+            frameDensity = CalculateDensity(FlightGlobals.currentMainBody, FlightGlobals.ActiveVessel.staticPressure, FlightGlobals.ActiveVessel.flightIntegrator.getExternalTemperature());
+            
             FixAeroFX (afx);
 		}
 

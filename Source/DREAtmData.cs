@@ -11,6 +11,16 @@ namespace DeadlyReentry
     {
         public static Dictionary<string, DREAtmosphericGasSpecies> idOrganizedListOfGasSpecies;
         public static Dictionary<CelestialBody, DREAtmosphereComposition> bodyOrganizedListOfAtmospheres;
+        static ConfigNode FARAeroData = null;
+        static bool FARFound = false;
+
+        public static void GetFARNode()
+        {
+            foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("FARAeroData"))
+                FARAeroData = node;
+
+            FARFound = true;
+        }
 
         public static void LoadConfigNodes()
         {
@@ -55,13 +65,54 @@ namespace DeadlyReentry
                     newComposition.maxSimVelocity = float.Parse(atmNode.GetValue("maxSimVelocity"));
 
                     string bodyName = atmNode.GetValue("bodyName");
+                    if (!FARFound)
+                        GetFARNode();
 
-                    foreach(CelestialBody body in FlightGlobals.Bodies)
+                    for(int idx = 0; idx < FlightGlobals.Bodies.Count; idx++)
+                    {
+                        CelestialBody body = FlightGlobals.Bodies[idx];
                         if(body.name == bodyName)
                         {
+                            bool found = false;
+                            if ((object)FARAeroData != null)
+                            {
+                                foreach(ConfigNode n in FARAeroData.nodes)
+                                {
+                                    if(int.Parse(node.GetValue("index")) == idx)
+                                    {
+                                        found = true;
+                                        float ftmp;
+                                        if(node.HasValue("specHeatRatio"))
+                                        {
+                                            float.TryParse(node.GetValue("specHeatRatio"), out ftmp);
+                                            newComposition.specHeatRatio = ftmp;
+                                        }
+                                        if (node.HasValue("gasMolecularWeight"))
+                                        {
+                                            float.TryParse(node.GetValue("gasMolecularWeight"), out ftmp);
+                                            newComposition.gasConstant = (float)((double)(DREAtmosphericGasSpecies.UniversalGasConstant) * 1000 / (double)(ftmp));
+                                        }
+                                    }
+                                }
+                            }
+                            if (!found)
+                            {
+                                double weight = 0f;
+                                double gamma = 0;
+                                foreach (KeyValuePair<DREAtmosphericGasSpecies, float> kvp in newComposition.gasSpeciesAndMassFractions)
+                                {
+                                    weight += kvp.Key.GetMolecularMass() * kvp.Value;
+                                    double Cp = kvp.Key.CalculateCp(newComposition.referenceTemperature);
+                                    gamma += (Cp / (Cp - (double)kvp.Key.GetSpecificGasConstant())) * (double)kvp.Value;
+                                }
+                                newComposition.gasConstant = (float)((double)(DREAtmosphericGasSpecies.UniversalGasConstant) * 1000 / weight);
+                                newComposition.specHeatRatio = (float)gamma;
+
+                            }
                             bodyOrganizedListOfAtmospheres.Add(body, newComposition);
                             break;
                         }
+                    }
 
                     if (bodyName == "defaultOxygenatedRocky")
                         defaultOxygenatedRocky = newComposition;
@@ -111,6 +162,19 @@ namespace DeadlyReentry
 
             return atmosphere.referenceTemperature;
         }
+
+        public static float GetSpecHeatRatio(CelestialBody body)
+        {
+            DREAtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[body];
+
+            return atmosphere.specHeatRatio;
+        }
+        public static float GetGasConstant(CelestialBody body)
+        {
+            DREAtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[body];
+
+            return atmosphere.gasConstant;
+        }
     }
 
     public class DREAtmosphereComposition
@@ -118,6 +182,8 @@ namespace DeadlyReentry
         public Dictionary<DREAtmosphericGasSpecies, float> gasSpeciesAndMassFractions;
         public float referenceTemperature;
         public float maxSimVelocity;
+        public float specHeatRatio;
+        public float gasConstant;
 
         public CurveData[] TemperatureAsFunctionOfVelocity(int stepsBetweenCurvePoints, float dVForIntegration, float maxVel)
         {
@@ -305,6 +371,8 @@ namespace DeadlyReentry
         //Specific gas constant, Universal Gas Constant / Molecular Mass
         private float specificGasConstant;
 
+        public const float UniversalGasConstant = 8131.4f;
+
         public DREAtmosphericGasSpecies(string thisId)
         {
             id = thisId;
@@ -332,7 +400,7 @@ namespace DeadlyReentry
                         tempEndDecomposition = float.Parse(thisNode.GetValue("tempEndDecomposition"));
 
                         float molecularMass = float.Parse(thisNode.GetValue("molecularMass"));
-                        specificGasConstant = 8131.4f / molecularMass;
+                        specificGasConstant = UniversalGasConstant / molecularMass;
 
                         heatOfFormation = float.Parse(thisNode.GetValue("heatOfFormation")) / molecularMass * 1000000;
 
@@ -449,7 +517,17 @@ namespace DeadlyReentry
         public float GetHeatOfFormation()
         {
             return heatOfFormation;
-        }            
+        }
+
+        public float GetSpecificGasConstant()
+        {
+            return specificGasConstant;
+        }
+
+        public float GetMolecularMass()
+        {
+            return UniversalGasConstant / specificGasConstant;
+        }
     }
     public struct CurveData
     {
