@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 using KSP;
 
@@ -14,30 +15,40 @@ namespace DeadlyReentry
     /// </summary>
     public class DREAtmTempCurve
     {
-        private FloatCurve tempAdditionFromVelocity = null;
-        private float referenceTemp = 300;
+        public FloatCurve tempAdditionFromVelocity = new FloatCurve();
+        public CurveData[] protoTempCurve = null;
+        public float referenceTemp = 300;
 
         public void CalculateNewDREAtmTempCurve(CelestialBody body, bool dumpText)
         {
-            tempAdditionFromVelocity = DREAtmDataOrganizer.CalculateNewTemperatureCurve(body);
-            referenceTemp = DREAtmDataOrganizer.GetReferenceTemp(body);
-            if(dumpText)
-                DumpToText(5, body);
+            ThreadPool.QueueUserWorkItem(DREAtmDataOrganizer.CalculateNewTemperatureCurve, new tempCurveDataContainer(body, this, dumpText));
         }
 
         public float EvaluateTempDiffCurve(float vel)
         {
-            return tempAdditionFromVelocity.Evaluate(vel) + referenceTemp;
+            if(protoTempCurve != null)
+            {
+                tempAdditionFromVelocity = new FloatCurve();
+                foreach(CurveData data in protoTempCurve)
+                {
+                    tempAdditionFromVelocity.Add(data.x, data.y, data.dy_dx, data.dy_dx);
+                }
+                protoTempCurve = null;
+            }
+            return tempAdditionFromVelocity.Evaluate(vel);
         }
 
         public void DumpToText(float velIncrements, CelestialBody body)
         {
             FileStream fs = File.Open(KSPUtil.ApplicationRootPath.Replace("\\", "/") + "GameData/DeadlyReentry/" + body.bodyName + "temp_vs_vel_curve.csv", FileMode.Create, FileAccess.Write);
-            StreamWriter sw = new StreamWriter(fs, System.Text.Encoding.ASCII);
+            StreamWriter sw = new StreamWriter(fs, System.Text.Encoding.UTF8);
 
+            EvaluateTempDiffCurve(0);
             for(float v = 0; v < tempAdditionFromVelocity.maxTime; v += velIncrements)
             {
-                sw.WriteLine(v + ", " + EvaluateTempDiffCurve(v));
+                float y = EvaluateTempDiffCurve(v) + referenceTemp;
+                string s = v.ToString() + ", " + y.ToString();
+                sw.WriteLine(s);
             }
 
             sw.Close();

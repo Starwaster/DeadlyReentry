@@ -60,11 +60,15 @@ namespace DeadlyReentry
             }
         }
 
-        public static FloatCurve CalculateNewTemperatureCurve(CelestialBody body)
+        public static void CalculateNewTemperatureCurve(object o)
         {
-            DREAtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[body];
-            Debug.Log("Beginning Temperature Curve Calculation");
-            return atmosphere.TemperatureAsFunctionOfVelocity(100, 5, atmosphere.maxSimVelocity);
+            tempCurveDataContainer container = (tempCurveDataContainer)o;
+            DREAtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[container.body];
+            //Debug.Log("Beginning Temperature Curve Calculation");
+            container.callingCurve.protoTempCurve = atmosphere.TemperatureAsFunctionOfVelocity(100, 5, atmosphere.maxSimVelocity);
+            container.callingCurve.referenceTemp = GetReferenceTemp(container.body);
+            if (container.dumpToText)
+                container.callingCurve.DumpToText(5, container.body);
         }
 
         public static float GetReferenceTemp(CelestialBody body)
@@ -81,18 +85,16 @@ namespace DeadlyReentry
         public float referenceTemperature;
         public float maxSimVelocity;
 
-        public FloatCurve TemperatureAsFunctionOfVelocity(int stepsBetweenCurvePoints, float dVForIntegration, float maxVel)
+        public CurveData[] TemperatureAsFunctionOfVelocity(int stepsBetweenCurvePoints, float dVForIntegration, float maxVel)
         {
-            FloatCurve tempVsVelCurve = new FloatCurve();
+            List<CurveData> tempVsVelCurve = new List<CurveData>();
 
-            Dictionary<DREAtmosphericGasSpecies, Vector2> workingGasSpeciesAndMassFractions = CreateWorkingGasSpeciesAndMassFractionDict();
+            Dictionary<DREAtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions = CreateWorkingGasSpeciesAndMassFractionDict();
 
             float temp = referenceTemperature;
             float velocity = 0;
 
-            StringBuilder debug = new StringBuilder();
-
-            tempVsVelCurve.Add(velocity, 0, 0, 0);
+            //StringBuilder debug = new StringBuilder();
 
             while (velocity < maxVel)
             {
@@ -106,45 +108,45 @@ namespace DeadlyReentry
                 dT_dV = velocity / dT_dV;
 
                 if (i <= stepsBetweenCurvePoints)
-                    tempVsVelCurve.Add(velocity, temp - referenceTemperature, dT_dV, dT_dV);
+                    tempVsVelCurve.Add(new CurveData(velocity, temp - referenceTemperature, dT_dV));
 
                 i++;
                 temp += dT_dV * dVForIntegration;
                 velocity += dVForIntegration;
 
-                debug.AppendLine("Cp: " + Cp + " dCp_dt: " + dCp_dt + " energyChange: " + energyChange + " vel: " + velocity + " temp: " + temp + " dT_dV: " + dT_dV);
+                //debug.AppendLine("Cp: " + Cp + " dCp_dt: " + dCp_dt + " energyChange: " + energyChange + " vel: " + velocity + " temp: " + temp + " dT_dV: " + dT_dV);
             }
-            Debug.Log(debug.ToString());
+            //Debug.Log(debug.ToString());
 
-            return tempVsVelCurve;
+            return tempVsVelCurve.ToArray();
         }
 
         #region dT_dV internal functions
-        private float CalculateCp(Dictionary<DREAtmosphericGasSpecies, Vector2> workingGasSpeciesAndMassFractions, float temp)
+        private float CalculateCp(Dictionary<DREAtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions, float temp)
         {
             float Cp = 0;
 
-            foreach (KeyValuePair<DREAtmosphericGasSpecies, Vector2> pair in workingGasSpeciesAndMassFractions)
-                Cp += pair.Key.CalculateCp(temp) * pair.Key.CalculatePhi(temp) * pair.Value.x;
+            foreach (KeyValuePair<DREAtmosphericGasSpecies, float[]> pair in workingGasSpeciesAndMassFractions)
+                Cp += pair.Key.CalculateCp(temp) * pair.Key.CalculatePhi(temp) * pair.Value[0];
 
             return Cp;
         }
 
-        private float Calculate_dCp_dt(Dictionary<DREAtmosphericGasSpecies, Vector2> workingGasSpeciesAndMassFractions, float temp)
+        private float Calculate_dCp_dt(Dictionary<DREAtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions, float temp)
         {
             float dCp_dt = 0;
 
-            foreach (KeyValuePair<DREAtmosphericGasSpecies, Vector2> pair in workingGasSpeciesAndMassFractions)
-                dCp_dt += (pair.Key.Calculate_dCp_dT(temp) * pair.Key.CalculatePhi(temp) + pair.Key.Calculate_dPhi_dT(temp) * pair.Key.CalculateCp(temp)) * pair.Value.x;
+            foreach (KeyValuePair<DREAtmosphericGasSpecies, float[]> pair in workingGasSpeciesAndMassFractions)
+                dCp_dt += (pair.Key.Calculate_dCp_dT(temp) * pair.Key.CalculatePhi(temp) + pair.Key.Calculate_dPhi_dT(temp) * pair.Key.CalculateCp(temp)) * pair.Value[0];
 
             return dCp_dt;
         }
 
-        private float CalculateEnergyLostThroughDecomposition(Dictionary<DREAtmosphericGasSpecies, Vector2> workingGasSpeciesAndMassFractions, float temp)
+        private float CalculateEnergyLostThroughDecomposition(Dictionary<DREAtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions, float temp)
         {
             float energy = 0;
 
-            foreach (KeyValuePair<DREAtmosphericGasSpecies, Vector2> pair in workingGasSpeciesAndMassFractions)
+            foreach (KeyValuePair<DREAtmosphericGasSpecies, float[]> pair in workingGasSpeciesAndMassFractions)
             {
                 float heatOfFormationDecompositionSpecies = 0;
                 foreach (KeyValuePair<DREAtmosphericGasSpecies, float> pairDecomposition in pair.Key.decompositionSpeciesWithFraction)
@@ -152,30 +154,30 @@ namespace DeadlyReentry
                     heatOfFormationDecompositionSpecies += pairDecomposition.Key.GetHeatOfFormation() * pairDecomposition.Value;
                 }
 
-                energy += pair.Value.y * (pair.Key.GetHeatOfFormation() - heatOfFormationDecompositionSpecies) * pair.Key.Calculate_dPhi_dT(temp);
+                energy += pair.Value[1] * (pair.Key.GetHeatOfFormation() - heatOfFormationDecompositionSpecies) * pair.Key.Calculate_dPhi_dT(temp);
             }
 
             return energy;
 
         }
 
-        private void UpdateCompositionDueToDecomposition(Dictionary<DREAtmosphericGasSpecies, Vector2> workingGasSpeciesAndMassFractions, float temp)
+        private void UpdateCompositionDueToDecomposition(Dictionary<DREAtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions, float temp)
         {
             for (int i = 0; i < workingGasSpeciesAndMassFractions.Count; i++)
             {
-                KeyValuePair<DREAtmosphericGasSpecies, Vector2> pair = workingGasSpeciesAndMassFractions.ElementAt(i);
-                float currentPhi = pair.Value.x;
+                KeyValuePair<DREAtmosphericGasSpecies, float[]> pair = workingGasSpeciesAndMassFractions.ElementAt(i);
+                float currentPhi = pair.Value[0];
 
-                float tempDerivedPhi = pair.Key.CalculatePhi(temp) * pair.Value.x;
+                float tempDerivedPhi = pair.Key.CalculatePhi(temp) * pair.Value[0];
                 float phiDiff = tempDerivedPhi - currentPhi;
 
-                workingGasSpeciesAndMassFractions[pair.Key] = new Vector2(tempDerivedPhi, pair.Value.y);
+                workingGasSpeciesAndMassFractions[pair.Key] = new float[] {tempDerivedPhi, pair.Value[1]};
                 for (int j = 0; j < workingGasSpeciesAndMassFractions.Count; j++)
                 {
-                    KeyValuePair<DREAtmosphericGasSpecies, Vector2> DecompPair = workingGasSpeciesAndMassFractions.ElementAt(j);
+                    KeyValuePair<DREAtmosphericGasSpecies, float[]> DecompPair = workingGasSpeciesAndMassFractions.ElementAt(j);
                     if(pair.Key.decompositionSpeciesWithFraction.ContainsKey(DecompPair.Key))
                     {
-                        workingGasSpeciesAndMassFractions[DecompPair.Key] = new Vector2(DecompPair.Value.x - phiDiff * pair.Key.decompositionSpeciesWithFraction[DecompPair.Key], DecompPair.Value.y);
+                        workingGasSpeciesAndMassFractions[DecompPair.Key] = new float[]{DecompPair.Value[0] - phiDiff * pair.Key.decompositionSpeciesWithFraction[DecompPair.Key], DecompPair.Value[1]};
                     }
                 }
             }
@@ -184,14 +186,14 @@ namespace DeadlyReentry
         #endregion
 
         #region Setup Functions
-        private Dictionary<DREAtmosphericGasSpecies, Vector2> CreateWorkingGasSpeciesAndMassFractionDict()
+        private Dictionary<DREAtmosphericGasSpecies, float[]> CreateWorkingGasSpeciesAndMassFractionDict()
         {
-            Dictionary<DREAtmosphericGasSpecies, Vector2> workingGasSpeciesAndMassFractions = new Dictionary<DREAtmosphericGasSpecies, Vector2>();
+            Dictionary<DREAtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions = new Dictionary<DREAtmosphericGasSpecies, float[]>();
 
             //First, copy over the data from the default atmosphere
             foreach (KeyValuePair<DREAtmosphericGasSpecies, float> pair in gasSpeciesAndMassFractions)
             {
-                workingGasSpeciesAndMassFractions.Add(pair.Key, new Vector2(pair.Value, pair.Value));
+                workingGasSpeciesAndMassFractions.Add(pair.Key, new float[]{pair.Value, pair.Value});
             }
             //Then, go through each value and add its decomposition species; continue until no more items can be added to the dictionary
             int lastCount = workingGasSpeciesAndMassFractions.Count;
@@ -199,14 +201,12 @@ namespace DeadlyReentry
             {
                 for (int i = 0; i < workingGasSpeciesAndMassFractions.Count; i++)
                 {
-                    KeyValuePair<DREAtmosphericGasSpecies, Vector2> pair = workingGasSpeciesAndMassFractions.ElementAt(i);
+                    KeyValuePair<DREAtmosphericGasSpecies, float[]> pair = workingGasSpeciesAndMassFractions.ElementAt(i);
 
                     foreach (KeyValuePair<DREAtmosphericGasSpecies, float> decompositionSpecies in pair.Key.decompositionSpeciesWithFraction)
                     {
                         if (!workingGasSpeciesAndMassFractions.ContainsKey(decompositionSpecies.Key))
-                            workingGasSpeciesAndMassFractions.Add(decompositionSpecies.Key, new Vector2(0, 0));
-                        //else
-                        //    workingGasSpeciesAndMassFractions[decompositionSpecies.Key] += new Vector2(0, decompositionSpecies.Value * pair.Value.y);
+                            workingGasSpeciesAndMassFractions.Add(decompositionSpecies.Key, new float[]{0, 0});
                     }
                 }
 
@@ -216,24 +216,23 @@ namespace DeadlyReentry
             //Set max concentrations
             for (int i = 0; i < workingGasSpeciesAndMassFractions.Count; i++)
             {
-                KeyValuePair<DREAtmosphericGasSpecies, Vector2> pair = workingGasSpeciesAndMassFractions.ElementAt(i);
+                KeyValuePair<DREAtmosphericGasSpecies, float[]> pair = workingGasSpeciesAndMassFractions.ElementAt(i);
 
                 foreach (KeyValuePair<DREAtmosphericGasSpecies, float> decompositionSpecies in pair.Key.decompositionSpeciesWithFraction)
                 {
-                    if (!workingGasSpeciesAndMassFractions.ContainsKey(decompositionSpecies.Key))
-                        workingGasSpeciesAndMassFractions.Add(decompositionSpecies.Key, new Vector2(0, decompositionSpecies.Value * pair.Value.y));
-                    else
-                        workingGasSpeciesAndMassFractions[decompositionSpecies.Key] += new Vector2(0, decompositionSpecies.Value * pair.Value.y);
+                    float[] tmp = workingGasSpeciesAndMassFractions[decompositionSpecies.Key];
+                    tmp[1] += decompositionSpecies.Value * pair.Value[1];
+                    workingGasSpeciesAndMassFractions[decompositionSpecies.Key] = tmp;
                 }
             }          
 
             StringBuilder debug = new StringBuilder();
-            debug.AppendLine("Gas Species Initialized");
-            foreach(KeyValuePair<DREAtmosphericGasSpecies, Vector2> pair in workingGasSpeciesAndMassFractions)
-            {
-                debug.AppendLine(pair.Key.id + " Mass Fraction: " + pair.Value.x);
-            }
-            Debug.Log(debug.ToString());
+            //debug.AppendLine("Gas Species Initialized");
+            //foreach(KeyValuePair<DREAtmosphericGasSpecies, float[]> pair in workingGasSpeciesAndMassFractions)
+            //{
+            //    debug.AppendLine(pair.Key.id + " Mass Fraction: " + pair.Value[0]);
+            //}
+            //Debug.Log(debug.ToString());
 
             return workingGasSpeciesAndMassFractions;
         }
@@ -342,7 +341,7 @@ namespace DeadlyReentry
             constantsDecompositionCurve[3] = -tempBeginDecomposition * tempBeginDecomposition * (tempBeginDecomposition - 3f * tempEndDecomposition) * tmp + 1f;
 
             
-            Debug.Log("Initialized Gas Species '" + id + "'\n\r");
+            //Debug.Log("Initialized Gas Species '" + id + "'\n\r");
         }
 
         public float CalculateCp(float temp)
@@ -416,6 +415,33 @@ namespace DeadlyReentry
         public float GetHeatOfFormation()
         {
             return heatOfFormation;
+        }            
+    }
+    public struct CurveData
+    {
+        public float x;
+        public float y;
+        public float dy_dx;
+
+        public CurveData(float x, float y, float dy_dx)
+        {
+            this.x = x;
+            this.y = y;
+            this.dy_dx = dy_dx;
         }
     }
+
+    public class tempCurveDataContainer
+    {
+        public tempCurveDataContainer(CelestialBody body, DREAtmTempCurve callingCurve, bool dumpToText)
+        {
+            this.body = body;
+            this.callingCurve = callingCurve;
+            this.dumpToText = dumpToText;
+        }
+        public CelestialBody body;
+        public DREAtmTempCurve callingCurve;
+        public bool dumpToText;
+    }
+
 }
