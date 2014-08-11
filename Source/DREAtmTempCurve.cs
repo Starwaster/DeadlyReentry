@@ -17,11 +17,12 @@ namespace DeadlyReentry
         private FloatCurve tempAdditionFromVelocity = null;
         private float referenceTemp = 300;
 
-        public void CalculateNewDREAtmTempCurve(CelestialBody body)
+        public void CalculateNewDREAtmTempCurve(CelestialBody body, bool dumpText)
         {
             tempAdditionFromVelocity = DREAtmDataOrganizer.CalculateNewTemperatureCurve(body);
             referenceTemp = DREAtmDataOrganizer.GetReferenceTemp(body);
-            DumpToText(5);
+            if(dumpText)
+                DumpToText(5, body);
         }
 
         public float EvaluateTempDiffCurve(float vel)
@@ -29,9 +30,9 @@ namespace DeadlyReentry
             return tempAdditionFromVelocity.Evaluate(vel) + referenceTemp;
         }
 
-        public void DumpToText(float velIncrements)
+        public void DumpToText(float velIncrements, CelestialBody body)
         {
-            FileStream fs = File.Open(KSPUtil.ApplicationRootPath.Replace("\\", "/") + "GameData/DeadlyReentry/temp_vs_vel_curve.csv", FileMode.CreateNew, FileAccess.Write);
+            FileStream fs = File.Open(KSPUtil.ApplicationRootPath.Replace("\\", "/") + "GameData/DeadlyReentry/" + body.bodyName + "temp_vs_vel_curve.csv", FileMode.Create, FileAccess.Write);
             StreamWriter sw = new StreamWriter(fs, System.Text.Encoding.ASCII);
 
             for(float v = 0; v < tempAdditionFromVelocity.maxTime; v += velIncrements)

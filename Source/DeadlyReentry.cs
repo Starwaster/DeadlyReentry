@@ -745,6 +745,8 @@ namespace DeadlyReentry
         public static float gToleranceMult = 2.0f;
         public static float parachuteTempMult = 0.5f;
 
+        public static DREAtmTempCurve baseTempCurve = new DREAtmTempCurve();
+
         public static bool debugging = false;
         protected Rect windowPos = new Rect(100, 100, 0, 0);
 
@@ -803,8 +805,7 @@ namespace DeadlyReentry
 			};
 
             DREAtmDataOrganizer.LoadConfigNodes();
-            DREAtmTempCurve curve = new DREAtmTempCurve();
-            curve.CalculateNewDREAtmTempCurve(FlightGlobals.currentMainBody);
+            baseTempCurve.CalculateNewDREAtmTempCurve(FlightGlobals.currentMainBody, false);
 		}
 
         public void OnGUI()
@@ -961,6 +962,13 @@ namespace DeadlyReentry
             GUILayout.BeginHorizontal();
             GUILayout.Label("Crew G Kill chance per update", labelStyle);
             string newcrewGKillChance = GUILayout.TextField(ModuleAeroReentry.crewGKillChance.ToString(), GUILayout.MinWidth(100));
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Rebuild and Dump Temp Curve"))
+            {
+                baseTempCurve.CalculateNewDREAtmTempCurve(FlightGlobals.currentMainBody, true);
+            }
             GUILayout.EndHorizontal();
 
 			GUILayout.BeginHorizontal();
