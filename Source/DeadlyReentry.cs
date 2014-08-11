@@ -899,6 +899,7 @@ namespace DeadlyReentry
         {
             float bodyGasConsant = DREAtmDataOrganizer.GetGasConstant(body);
             pressure *= ATMTOPA;
+            temp += 273.15f;
             return pressure / (temp * bodyGasConsant);
         }
 
