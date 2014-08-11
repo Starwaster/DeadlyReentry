@@ -21,7 +21,10 @@ namespace DeadlyReentry
 
         public void CalculateNewDREAtmTempCurve(CelestialBody body, bool dumpText)
         {
-            ThreadPool.QueueUserWorkItem(DREAtmDataOrganizer.CalculateNewTemperatureCurve, new tempCurveDataContainer(body, this, dumpText));
+            if (ReentryPhysics.multithreadedTempCurve)
+                ThreadPool.QueueUserWorkItem(DREAtmDataOrganizer.CalculateNewTemperatureCurve, new tempCurveDataContainer(body, this, dumpText));
+            else
+                DREAtmDataOrganizer.CalculateNewTemperatureCurve(new tempCurveDataContainer(body, this, dumpText));
         }
 
         public float EvaluateTempDiffCurve(float vel)
