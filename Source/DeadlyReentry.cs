@@ -514,8 +514,7 @@ namespace DeadlyReentry
                                 GameObject.DestroyImmediate(fx.gameObject);
                             foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
                                 GameObject.DestroyImmediate(fx.gameObject);
-                            float shockwave = velocity.magnitude - CTOK;
-                            if (shockwave > ReentryPhysics.startThermal && shockwave > part.maxTemp && !dead)
+                            if (/*shockwave > ReentryPhysics.startThermal && shockwave > part.maxTemp &&*/ !dead)
                             {
                                 dead = true;
                                 FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
@@ -638,7 +637,7 @@ namespace DeadlyReentry
 		[KSPField(isPersistant = true)]
 		public FloatCurve dissipation = new FloatCurve();
 
-        public static float SIGMA = 5.670373e-8f;
+        public static double SIGMA = 5.670373e-8f;
 
 		public override void OnStart (StartState state)
 		{
@@ -661,15 +660,17 @@ namespace DeadlyReentry
 				dot = 1; 
 			else // check the angle between the shock front and the shield
 				dot = Vector3.Dot (velocity.normalized, part.transform.TransformDirection(direction).normalized);
-            if (emissiveConst > 0)
+
+            if (emissiveConst > 0) // new heatshield model
             {
+                float tempAbs = part.temperature + CTOK;
                 temp = Math.Max(0, dot * temp * reflective);
-                temp -= (float)(Math.Pow(part.temperature + CTOK, 4)) * emissiveConst;
+                temp -= (float)(Math.Pow(tempAbs, 4) * (double)emissiveConst * SIGMA);
 
                 if (part.Resources.Contains(ablative) && lossConst > 0)
                 {
                     double ablativeAmount = part.Resources[ablative].amount;
-                    double loss = dot * Math.Exp(-lossConst / (part.temperature + CTOK));
+                    double loss = dot * Math.Exp(-lossConst / tempAbs);
                     loss *= ablativeAmount * TimeWarp.fixedDeltaTime;
                     if (part.temperature > ablationTempThresh)
                     {
@@ -988,6 +989,10 @@ namespace DeadlyReentry
             {
                 debugging = false;
             }
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Current density: " + frameDensity, labelStyle);
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
