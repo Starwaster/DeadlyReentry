@@ -665,7 +665,8 @@ namespace DeadlyReentry
             {
                 float tempAbs = part.temperature + CTOK;
                 temp = Math.Max(0, dot * temp * reflective);
-                temp -= (float)(Math.Pow(tempAbs, 4) * (double)emissiveConst * SIGMA);
+                temp -= (float)(Math.Min(Math.Max(part.temperature - ambient, 0), Math.Pow(tempAbs, 4) * (double)emissiveConst * SIGMA * TimeWarp.fixedDeltaTime));
+
 
                 if (part.Resources.Contains(ablative) && lossConst > 0)
                 {
@@ -800,6 +801,7 @@ namespace DeadlyReentry
 
 		public static float startThermal = 800.0f;
 		public static float fullThermal = 1150.0f;
+        public static float afxDensityExponent = 0.75f;
 
         public static float gToleranceMult = 2.0f;
         public static float parachuteTempMult = 0.5f;
@@ -833,6 +835,8 @@ namespace DeadlyReentry
 					float.TryParse (node.GetValue ("startThermal"), out startThermal);
 				if(node.HasValue("fullThermal"))
 					float.TryParse (node.GetValue ("fullThermal"), out fullThermal);
+                if (node.HasValue("afxDensityExponent"))
+                    float.TryParse(node.GetValue("afxDensityExponent"), out afxDensityExponent);
 				if(node.HasValue("temperatureExponent"))
 					float.TryParse (node.GetValue ("temperatureExponent"), out temperatureExponent);
 				if(node.HasValue("densityExponent"))
@@ -913,7 +917,7 @@ namespace DeadlyReentry
 
 		private void FixAeroFX(AerodynamicsFX aeroFX)
 		{
-			aeroFX.airDensity = (float)(Math.Pow(frameDensity, densityExponent));
+			aeroFX.airDensity = (float)(Math.Pow(frameDensity, afxDensityExponent));
 			/*aeroFX.state = Mathf.InverseLerp(0.15f, 0.1f, aeroFX.airDensity);
 	        aeroFX.heatFlux = 0.5f * aeroFX.airDensity * Mathf.Pow(aeroFX.airspeed, aeroFX.fudge1);
 	        aeroFX.FxScalar = Mathf.Min(1f, (aeroFX.heatFlux - aeroFX.) / (5f * aeroFX.));
@@ -1038,6 +1042,11 @@ namespace DeadlyReentry
 			GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
+			GUILayout.Label("FX Density exp.:", labelStyle);
+            string newAFXDensityExponent = GUILayout.TextField(afxDensityExponent.ToString(), GUILayout.MinWidth(100));
+			GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
             GUILayout.Label("G Tolerance Mult:", labelStyle);
             string newGToleranceMult = GUILayout.TextField(gToleranceMult.ToString(), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
@@ -1091,6 +1100,7 @@ namespace DeadlyReentry
 				node.AddValue ("@heatMultiplier", heatMultiplier.ToString ());
 				node.AddValue ("@startThermal", startThermal.ToString ());
 				node.AddValue ("@fullThermal", fullThermal.ToString ());
+                node.AddValue("@afxDensityExponent", afxDensityExponent.ToString());
 				node.AddValue ("@temperatureExponent", temperatureExponent.ToString ());
 				node.AddValue ("@densityExponent", densityExponent.ToString ());
                 node.AddValue("@gToleranceMult", gToleranceMult.ToString());
@@ -1147,6 +1157,11 @@ namespace DeadlyReentry
 				{
 					fullThermal = newValue;
 				}
+                if (float.TryParse(newAFXDensityExponent, out newValue))
+				{
+                    afxDensityExponent = newValue;
+				}
+                
                 if (float.TryParse(newGToleranceMult, out newValue))
 				{
                     gToleranceMult = newValue;
