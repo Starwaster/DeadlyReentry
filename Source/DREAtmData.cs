@@ -29,6 +29,12 @@ namespace DeadlyReentry
             foreach (KeyValuePair<string, DREAtmosphericGasSpecies> pair in idOrganizedListOfGasSpecies)
                 pair.Value.Initialize();
 
+            DREAtmosphereComposition defaultOxygenatedRocky = new DREAtmosphereComposition(), 
+                defaultUnoxygenatedRocky = new DREAtmosphereComposition(), 
+                defaultGasGiant = new DREAtmosphereComposition();
+
+            float gasGiantRadius = 3000;
+
             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("DRE_ATM_COMPOSITIONS"))
             {
                 foreach (ConfigNode atmNode in node.GetNodes("ATM_COMPOSITION"))
@@ -36,11 +42,12 @@ namespace DeadlyReentry
                     DREAtmosphereComposition newComposition = new DREAtmosphereComposition();
 
                     newComposition.gasSpeciesAndMassFractions = new Dictionary<DREAtmosphericGasSpecies, float>();
+
                     foreach (ConfigNode gasSpeciesNode in atmNode.GetNodes("GAS_SPECIES"))
                     {
                         DREAtmosphericGasSpecies decompositionSpecies = DREAtmDataOrganizer.idOrganizedListOfGasSpecies[gasSpeciesNode.GetValue("id")];
-                        float massFraction = float.Parse(gasSpeciesNode.GetValue("massFraction"));
 
+                        float massFraction = float.Parse(gasSpeciesNode.GetValue("massFraction"));
                         newComposition.gasSpeciesAndMassFractions.Add(decompositionSpecies, massFraction);
                     }
 
@@ -56,19 +63,46 @@ namespace DeadlyReentry
                             break;
                         }
 
+                    if (bodyName == "defaultOxygenatedRocky")
+                        defaultOxygenatedRocky = newComposition;
+                    else if (bodyName == "defaultUnoxygenatedRocky")
+                        defaultUnoxygenatedRocky = newComposition;
+                    else if (bodyName == "defaultGasGiant")
+                        defaultGasGiant = newComposition;
+                }
+                gasGiantRadius = float.Parse(node.GetValue("gasGiantRadius"));
+            }
+
+            foreach(CelestialBody body in FlightGlobals.Bodies)
+            {
+                if(!bodyOrganizedListOfAtmospheres.ContainsKey(body))
+                {
+                    if (body.Radius > gasGiantRadius)
+                        bodyOrganizedListOfAtmospheres.Add(body, defaultGasGiant);
+                    else if(body.atmosphereContainsOxygen)
+                        bodyOrganizedListOfAtmospheres.Add(body, defaultOxygenatedRocky);
+                    else
+                        bodyOrganizedListOfAtmospheres.Add(body, defaultUnoxygenatedRocky);
                 }
             }
         }
 
         public static void CalculateNewTemperatureCurve(object o)
         {
-            tempCurveDataContainer container = (tempCurveDataContainer)o;
-            DREAtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[container.body];
-            //Debug.Log("Beginning Temperature Curve Calculation");
-            container.callingCurve.protoTempCurve = atmosphere.TemperatureAsFunctionOfVelocity(100, 5, atmosphere.maxSimVelocity);
-            container.callingCurve.referenceTemp = GetReferenceTemp(container.body);
-            if (container.dumpToText)
-                container.callingCurve.DumpToText(5, container.body);
+            try
+            {
+                tempCurveDataContainer container = (tempCurveDataContainer)o;
+                DREAtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[container.body];
+                //Debug.Log("Beginning Temperature Curve Calculation");
+                container.callingCurve.protoTempCurve = atmosphere.TemperatureAsFunctionOfVelocity(100, 5, atmosphere.maxSimVelocity);
+                container.callingCurve.referenceTemp = GetReferenceTemp(container.body);
+                if (container.dumpToText)
+                    container.callingCurve.DumpToText(5, container.body);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("DRE Exception in Temperature Curve Calculation: " + e.StackTrace);
+            }
         }
 
         public static float GetReferenceTemp(CelestialBody body)

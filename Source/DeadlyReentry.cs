@@ -259,19 +259,19 @@ namespace DeadlyReentry
         {
             if ((object)vessel == null || (object)vessel.flightIntegrator == null)
                 return 0;
-            float shockwave = ReentryPhysics.baseTempCurve.EvaluateTempDiffCurve(velocity.magnitude) - 273.15f;
+            float ambient = vessel.flightIntegrator.getExternalTemperature();
+            float shockwave = ReentryPhysics.baseTempCurve.EvaluateTempDiffCurve(velocity.magnitude) + ambient - 273.15f;
             if (shockwave > 0)
             {
                 shockwave = Mathf.Pow(shockwave, ReentryPhysics.shockwaveExponent);
                 shockwave *= ReentryPhysics.shockwaveMultiplier;
             }
-            float ambient = vessel.flightIntegrator.getExternalTemperature();
-            if (shockwave < ambient)
+            /*if (shockwave < ambient)
             {
                 shockwave = ambient;
                 if (is_debugging)
                     displayShockwave = shockwave.ToString("F0") + "C (Ambient)";
-            }
+            }*/
             else if (vessel.atmDensity == 0)
             {
                 shockwave = 0;
@@ -813,13 +813,26 @@ namespace DeadlyReentry
             GameEvents.onVesselChange.Add(UpdateTempCurve);
 		}
 
-        public void UpdateTempCurve(GameEvents.HostedFromToAction<Vessel, CelestialBody> a) { UpdateTempCurve(a.host); }
+        public void UpdateTempCurve(GameEvents.HostedFromToAction<Vessel, CelestialBody> a)
+        {
+            if(a.host == FlightGlobals.ActiveVessel)
+                UpdateTempCurve(a.to);
+        }
 
-        public void UpdateTempCurve(Vessel v) { UpdateTempCurve(); }
-        
+        public void UpdateTempCurve(Vessel v)
+        {
+            UpdateTempCurve(v.mainBody);
+        }
+
+        public void UpdateTempCurve(CelestialBody body)
+        {
+            Debug.Log("Updating temperature curve for current body.\n\rCurrent body is: " + body.bodyName);
+            baseTempCurve.CalculateNewDREAtmTempCurve(body, false);
+        }
+
         public void UpdateTempCurve()
         {
-            Debug.Log("Updating temperature curve for current body./n/rCurrent body is: " + FlightGlobals.currentMainBody.bodyName);
+            Debug.Log("Updating temperature curve for current body.\n\rCurrent body is: " + FlightGlobals.currentMainBody.bodyName);
             baseTempCurve.CalculateNewDREAtmTempCurve(FlightGlobals.currentMainBody, false);
         }
 
