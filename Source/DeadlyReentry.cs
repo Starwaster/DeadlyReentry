@@ -642,7 +642,7 @@ namespace DeadlyReentry
         public float lossConst = -1;
 
         [KSPField(isPersistant = true)]
-        public float pyrolysisTempLoss = -1;
+        public float pyrolysisLoss = -1;
 
         [KSPField(isPersistant = true)]
         public float ablationTempThresh = 300f;
@@ -699,7 +699,7 @@ namespace DeadlyReentry
                     if (part.temperature > ablationTempThresh)
                     {
                         part.Resources[ablative].amount -= loss;
-                        fluxOut += (pyrolysisTempLoss * (float)loss);
+                        fluxOut += (pyrolysisLoss * (float)loss);
                     }
                 }
             }
