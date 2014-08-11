@@ -90,7 +90,7 @@ namespace DeadlyReentry
                                         if (node.HasValue("gasMolecularWeight"))
                                         {
                                             float.TryParse(node.GetValue("gasMolecularWeight"), out ftmp);
-                                            newComposition.gasConstant = (float)((double)(DREAtmosphericGasSpecies.UniversalGasConstant) * 1000 / (double)(ftmp));
+                                            newComposition.gasConstant = (float)((double)(DREAtmosphericGasSpecies.UniversalGasConstant) / (double)(ftmp));
                                         }
                                     }
                                 }
@@ -105,7 +105,7 @@ namespace DeadlyReentry
                                     double Cp = kvp.Key.CalculateCp(newComposition.referenceTemperature);
                                     gamma += (Cp / (Cp - (double)kvp.Key.GetSpecificGasConstant())) * (double)kvp.Value;
                                 }
-                                newComposition.gasConstant = (float)((double)(DREAtmosphericGasSpecies.UniversalGasConstant) * 1000 / weight);
+                                newComposition.gasConstant = (float)((double)(DREAtmosphericGasSpecies.UniversalGasConstant) / weight);
                                 newComposition.specHeatRatio = (float)gamma;
 
                             }
@@ -165,15 +165,25 @@ namespace DeadlyReentry
 
         public static float GetSpecHeatRatio(CelestialBody body)
         {
-            DREAtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[body];
-
-            return atmosphere.specHeatRatio;
+            if ((object)body == null)
+                return 0f;
+            if (bodyOrganizedListOfAtmospheres.ContainsKey(body))
+            {
+                DREAtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[body];
+                return atmosphere.specHeatRatio;
+            }
+            return 1.4f;
         }
         public static float GetGasConstant(CelestialBody body)
         {
-            DREAtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[body];
-
-            return atmosphere.gasConstant;
+            if ((object)body == null)
+                return 0f;
+            if (bodyOrganizedListOfAtmospheres.ContainsKey(body))
+            {
+                DREAtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[body];
+                return atmosphere.gasConstant;
+            }
+            return 287.103f;
         }
     }
 
@@ -371,7 +381,7 @@ namespace DeadlyReentry
         //Specific gas constant, Universal Gas Constant / Molecular Mass
         private float specificGasConstant;
 
-        public const float UniversalGasConstant = 8131.4f;
+        public const float UniversalGasConstant = 8314.5f;
 
         public DREAtmosphericGasSpecies(string thisId)
         {
