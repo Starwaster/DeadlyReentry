@@ -76,20 +76,20 @@ namespace DeadlyReentry
                             bool found = false;
                             if ((object)FARAeroData != null)
                             {
-                                foreach(ConfigNode n in FARAeroData.nodes)
+                                foreach(ConfigNode bodyNode in FARAeroData.nodes)
                                 {
-                                    if(int.Parse(node.GetValue("index")) == idx)
+                                    if(int.Parse(bodyNode.GetValue("index")) == idx)
                                     {
                                         found = true;
                                         float ftmp;
-                                        if(node.HasValue("specHeatRatio"))
+                                        if(bodyNode.HasValue("specHeatRatio"))
                                         {
-                                            float.TryParse(node.GetValue("specHeatRatio"), out ftmp);
+                                            float.TryParse(bodyNode.GetValue("specHeatRatio"), out ftmp);
                                             newComposition.specHeatRatio = ftmp;
                                         }
-                                        if (node.HasValue("gasMolecularWeight"))
+                                        if (bodyNode.HasValue("gasMolecularWeight"))
                                         {
-                                            float.TryParse(node.GetValue("gasMolecularWeight"), out ftmp);
+                                            float.TryParse(bodyNode.GetValue("gasMolecularWeight"), out ftmp);
                                             newComposition.gasConstant = (float)((double)(DREAtmosphericGasSpecies.UniversalGasConstant) / (double)(ftmp));
                                         }
                                     }

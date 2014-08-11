@@ -274,7 +274,7 @@ namespace DeadlyReentry
             if ((object)vessel == null || (object)vessel.flightIntegrator == null)
                 return 0;
 
-            shockwave = ReentryPhysics.baseTempCurve.EvaluateTempDiffCurve(velocity.magnitude) + ambient - CTOK;
+            shockwave = ReentryPhysics.baseTempCurve.EvaluateTempDiffCurve(velocity.magnitude) + ambient;
 
             if (shockwave > 0)
             {
@@ -348,8 +348,12 @@ namespace DeadlyReentry
             }
             ambient = vessel.flightIntegrator.getExternalTemperature();
             displayAmbient = ambient.ToString("F0") + "C";
+
             density = (float)ReentryPhysics.CalculateDensity(vessel.mainBody, vessel.staticPressure, ambient);
+
 			part.temperature += ReentryHeat (velocity);
+            if (part.temperature < -243)
+                part.temperature = -243;
 			displayTemperature = part.temperature;
 			CheckForFire (velocity);
 			CheckGeeForces ();
@@ -617,6 +621,9 @@ namespace DeadlyReentry
 		public float thickness;
 
         [KSPField(isPersistant = true)]
+        public float emissiveConst = 0;
+
+        [KSPField(isPersistant = true)]
         public float lossConst = -1;
 
         [KSPField(isPersistant = true)]
@@ -630,6 +637,8 @@ namespace DeadlyReentry
 
 		[KSPField(isPersistant = true)]
 		public FloatCurve dissipation = new FloatCurve();
+
+        public static float SIGMA = 5.670373e-8f;
 
 		public override void OnStart (StartState state)
 		{
@@ -652,32 +661,39 @@ namespace DeadlyReentry
 				dot = 1; 
 			else // check the angle between the shock front and the shield
 				dot = Vector3.Dot (velocity.normalized, part.transform.TransformDirection(direction).normalized);
-			if (dot > 0 /*&& temp > 0*/) {
-				//radiate away some heat
-				float rad = temp * dot * reflective;
-				temp -= rad  * (1 - damage) * (1 - damage);
-                if (part.Resources.Contains(ablative))
+            if (emissiveConst > 0)
+            {
+                temp = Math.Max(0, dot * temp * reflective);
+                temp -= (float)(Math.Pow(part.temperature + CTOK, 4)) * emissiveConst;
+
+                if (part.Resources.Contains(ablative) && lossConst > 0)
                 {
-                    if (lossConst > 0)
+                    double ablativeAmount = part.Resources[ablative].amount;
+                    double loss = dot * Math.Exp(-lossConst / (part.temperature + CTOK));
+                    loss *= ablativeAmount * TimeWarp.fixedDeltaTime;
+                    if (part.temperature > ablationTempThresh)
                     {
-                        double ablativeAmount = part.Resources[ablative].amount;
-                        double loss = dot * Math.Exp(-lossConst / (part.temperature + CTOK));
-                        loss *= ablativeAmount * TimeWarp.fixedDeltaTime;
-                        if (part.temperature > ablationTempThresh)
-                        {
-                            part.Resources[ablative].amount -= loss;
-                            temp -= (pyrolysisTempLoss * (float)loss);
-                        }
+                        part.Resources[ablative].amount -= loss;
+                        temp -= (pyrolysisTempLoss * (float)loss);
                     }
-                    else
+                }
+            }
+            else
+            {
+                if (dot > 0 && temp > 0)
+                {
+                    //radiate away some heat
+                    float rad = temp * dot * reflective;
+                    temp -= rad * (1 - damage) * (1 - damage);
+                    if (part.Resources.Contains(ablative))
                     {
                         if (loss.Evaluate(shockwave) > 0)
                         {
                             // ablate away some shielding
                             float ablation = (float)(dot
-                                                      * loss.Evaluate((float)Math.Pow(shockwave, ReentryPhysics.temperatureExponent))
-                                                      * Math.Pow(density, ReentryPhysics.densityExponent)
-                                                      * TimeWarp.fixedDeltaTime);
+                                                        * loss.Evaluate((float)Math.Pow(shockwave, ReentryPhysics.temperatureExponent))
+                                                        * Math.Pow(density, ReentryPhysics.densityExponent)
+                                                        * TimeWarp.fixedDeltaTime);
 
                             float disAmount = dissipation.Evaluate(part.temperature) * ablation * (1 - damage) * (1 - damage);
                             if (disAmount > 0)
@@ -691,7 +707,7 @@ namespace DeadlyReentry
                         }
                     }
                 }
-			}
+            }
 			return temp;
 		}
 	}
