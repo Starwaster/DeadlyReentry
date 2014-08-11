@@ -264,13 +264,15 @@ namespace DeadlyReentry
         {
             if ((object)vessel == null || (object)vessel.flightIntegrator == null)
                 return 0;
-            float shockwave = velocity.magnitude - CTOK;
+
+            float ambient = vessel.flightIntegrator.getExternalTemperature();
+            float shockwave = ReentryPhysics.baseTempCurve.EvaluateTempDiffCurve(velocity.magnitude) + ambient - CTOK;
+
             if (shockwave > 0)
             {
                 shockwave = Mathf.Pow(shockwave, ReentryPhysics.shockwaveExponent);
                 shockwave *= ReentryPhysics.shockwaveMultiplier;
             }
-            float ambient = vessel.flightIntegrator.getExternalTemperature();
             displayAmbient = ambient.ToString("F0") + "C";
             if (shockwave < ambient)
             {
@@ -785,7 +787,10 @@ namespace DeadlyReentry
         public static float gToleranceMult = 2.0f;
         public static float parachuteTempMult = 0.5f;
 
+        public static DREAtmTempCurve baseTempCurve = new DREAtmTempCurve();
+
         public static bool debugging = false;
+        public static bool multithreadedTempCurve = true;
         protected Rect windowPos = new Rect(100, 100, 0, 0);
 
 		public static float TemperatureDelta(double density, float shockwaveK, float partTempK)
@@ -839,9 +844,39 @@ namespace DeadlyReentry
 
 				if(node.HasValue("debugging"))
 					bool.TryParse (node.GetValue ("debugging"), out debugging);
-				break;
+                if (node.HasValue("multithreadedTempCurve"))
+                    bool.TryParse(node.GetValue("multithreadedTempCurve"), out multithreadedTempCurve);
+                break;
 			};
+
+            DREAtmDataOrganizer.LoadConfigNodes();
+            UpdateTempCurve();
+            GameEvents.onVesselSOIChanged.Add(UpdateTempCurve);
+            GameEvents.onVesselChange.Add(UpdateTempCurve);
 		}
+
+        public void UpdateTempCurve(GameEvents.HostedFromToAction<Vessel, CelestialBody> a)
+        {
+            if(a.host == FlightGlobals.ActiveVessel)
+                UpdateTempCurve(a.to);
+        }
+
+        public void UpdateTempCurve(Vessel v)
+        {
+            UpdateTempCurve(v.mainBody);
+        }
+
+        public void UpdateTempCurve(CelestialBody body)
+        {
+            Debug.Log("Updating temperature curve for current body.\n\rCurrent body is: " + body.bodyName);
+            baseTempCurve.CalculateNewDREAtmTempCurve(body, false);
+        }
+
+        public void UpdateTempCurve()
+        {
+            Debug.Log("Updating temperature curve for current body.\n\rCurrent body is: " + FlightGlobals.currentMainBody.bodyName);
+            baseTempCurve.CalculateNewDREAtmTempCurve(FlightGlobals.currentMainBody, false);
+        }
 
         public void OnGUI()
         {
@@ -913,6 +948,12 @@ namespace DeadlyReentry
                     }
                 }
             }
+        }
+
+        public void OnDestroy()
+        {
+            GameEvents.onVesselSOIChanged.Remove(UpdateTempCurve);
+            GameEvents.onVesselChange.Remove(UpdateTempCurve);
         }
 
         public void DrawWindow(int windowID)
@@ -1012,6 +1053,16 @@ namespace DeadlyReentry
             string newcrewGKillChance = GUILayout.TextField(ModuleAeroReentry.crewGKillChance.ToString(), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
 
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Rebuild and Dump Temp Curve"))
+            {
+                baseTempCurve.CalculateNewDREAtmTempCurve(FlightGlobals.currentMainBody, true);
+            }
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            multithreadedTempCurve = GUILayout.Toggle(multithreadedTempCurve, "Multithread Temp Curve Calculation", GUILayout.MinWidth(100));
+            GUILayout.EndHorizontal();
+
 			GUILayout.BeginHorizontal();
 			if (GUILayout.Button ("Save")) {
 				ConfigNode node = new ConfigNode("@REENTRY_EFFECTS[Default]:Final");
@@ -1025,6 +1076,8 @@ namespace DeadlyReentry
 				node.AddValue ("@densityExponent", densityExponent.ToString ());
                 node.AddValue("@gToleranceMult", gToleranceMult.ToString());
                 node.AddValue("@parachuteTempMult", gToleranceMult.ToString());
+
+                node.AddValue("@multithreadedTempCurve", multithreadedTempCurve.ToString());
 
                 node.AddValue("@crewGClamp", ModuleAeroReentry.crewGClamp.ToString());
                 node.AddValue("@crewGPower", ModuleAeroReentry.crewGPower.ToString());
