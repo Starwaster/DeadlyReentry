@@ -43,7 +43,7 @@ namespace DeadlyReentry
 
         public void DumpToText(float velIncrements, CelestialBody body)
         {
-            FileStream fs = File.Open(KSPUtil.ApplicationRootPath.Replace("\\", "/") + "GameData/DeadlyReentry/" + body.bodyName + "temp_vs_vel_curve.csv", FileMode.Create, FileAccess.Write);
+            FileStream fs = File.Open(KSPUtil.ApplicationRootPath.Replace("\\", "/") + "GameData/DeadlyReentry/" + body.bodyName + "_T_vs_V_curve.csv", FileMode.Create, FileAccess.Write);
             StreamWriter sw = new StreamWriter(fs, System.Text.Encoding.UTF8);
 
             EvaluateTempDiffCurve(0);
