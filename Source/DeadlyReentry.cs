@@ -96,10 +96,10 @@ namespace DeadlyReentry
 		[KSPField(isPersistant = false, guiActive = true, guiName = "Temperature", guiUnits = "C",   guiFormat = "F0")]
 		public float displayTemperature;
 
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Flux In", guiUnits = "C", guiFormat = "N3")]
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Flux In", guiUnits = "kW/m^2", guiFormat = "N3")]
         public float displayFluxIn;
 
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Flux Out", guiUnits = "C", guiFormat = "N3")]
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Flux Out", guiUnits = "kW/m^2", guiFormat = "N3")]
         public float displayFluxOut;
 
 		[KSPField(isPersistant = false, guiActive = false, guiName = "Acceleration", guiUnits = "G",   guiFormat = "F3")]
@@ -127,7 +127,13 @@ namespace DeadlyReentry
         public float gTolerance = -1;
 
         [KSPField(isPersistant = false)]
-        public float area = -1;
+        public float area = -1f;
+
+        [KSPField(isPersistant = true)]
+        public float heatMass = 1f;
+
+        [KSPField(isPersistant = true)]
+        public float heatCapacity = 1f;
 
         [KSPField(isPersistant = true)]
         public float emissiveConst = 0;
@@ -146,8 +152,11 @@ namespace DeadlyReentry
         protected float ambient = 0f; // ambient temperature (C)
         protected float density = 1.225f; // ambient density (kg/m^3)
         protected float shockwave; // shockwave temperature (C)
-        protected float fluxIn = 0f; // temp flux in
-        protected float fluxOut = 0f; // temp flux out
+        protected float Cp; // specific heat
+        protected Vector3 velocity; // velocity vector in local reference space (m/s)
+        protected float speed; // velocity magnitude (m/s)
+        protected float fluxIn = 0f; // heat flux in, kW/m^2
+        protected float fluxOut = 0f; // heat flux out, kW/m^2
 
         private bool is_debugging = false;
         private bool is_on_fire = false;
@@ -263,7 +272,7 @@ namespace DeadlyReentry
                     FARPartModule = part.Modules["FARPayloadFairingModule"];
             }
 		}
-		public virtual float AdjustedHeat(Vector3 velocity, float shockwave, float temp)
+		public virtual float AdjustedHeat(float temp)
 		{
 			return temp;
 		}
@@ -284,12 +293,13 @@ namespace DeadlyReentry
 		}
 
 
-        public float ReentryHeat(Vector3 velocity)
+        public float ReentryHeat()
         {
             if ((object)vessel == null || (object)vessel.flightIntegrator == null)
                 return 0;
 
-            shockwave = ReentryPhysics.baseTempCurve.EvaluateTempDiffCurve(velocity.magnitude);
+            shockwave = ReentryPhysics.baseTempCurve.EvaluateTempDiffCurve(speed);
+            Cp = ReentryPhysics.baseTempCurve.EvaluateVelCpCurve(speed);
 
             if (shockwave > 0)
             {
@@ -333,8 +343,7 @@ namespace DeadlyReentry
                     if (is_debugging)
                         displayShockwave = shockwave.ToString("F0") + "C";
                     fluxIn = ReentryPhysics.TemperatureDelta(density, shockwave + CTOK, part.temperature + CTOK);
-                    return AdjustedHeat(velocity, shockwave,
-                                         fluxIn);
+                    return AdjustedHeat(fluxIn);
                 }
             }
             return 0;
@@ -364,23 +373,59 @@ namespace DeadlyReentry
                 lastGForce = 0;
                 return;
             }
-            Vector3 velocity = part.vessel.orbit.GetVel() - part.vessel.mainBody.getRFrmVel(part.vessel.vesselTransform.position);
+            velocity = part.vessel.orbit.GetVel() - part.vessel.mainBody.getRFrmVel(part.vessel.vesselTransform.position);
                 //(rb.velocity + ReentryPhysics.frameVelocity);
+            speed = velocity.magnitude;
             ambient = vessel.flightIntegrator.getExternalTemperature();
             displayAmbient = ambient.ToString("F0") + "C";
 
             density = (float)ReentryPhysics.CalculateDensity(vessel.mainBody, vessel.staticPressure, ambient);
 
-			part.temperature += ReentryHeat (velocity);
-            
+			float tempDelta = ReentryHeat();
+            part.temperature += tempDelta;
+            float fluxFactor = 1f; // compute kW per degree
+            if (!(area > 0)) // i.e. using old reentry heat model rather than the new one
+            {
+                // then we need to calculate the flux factor (in terms of kW / m^2 drag area)
+                // assume 1 J / g-K specific heat
+                // flux in kW
+                fluxFactor = (part.rb.mass) * 1000f; // grams to tonnes, J to kJ
+                fluxFactor /= deltaTime; // per tick -> per second
+                bool useFAR = false;
+                // get Cd and surface area from FAR if we can, else use crazy stock stuff
+                if ((object)FARPartModule != null)
+                {
+                    double Cd = -1, S = -1;
+                    try
+                    {
+                        FieldInfo fiCd = FARPartModule.GetType().GetField("Cd");
+                        FieldInfo fiS = FARPartModule.GetType().GetField("S");
+                        Cd = ((double)(fiCd.GetValue(FARPartModule)));
+                        S = ((double)(fiS.GetValue(FARPartModule)));
+                        useFAR = true;
+                        fluxFactor /= (float)(Cd * S);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.Log("[DREC]: error getting drag area" + e.Message);
+                    }
+                }
+                if(!useFAR)
+                    fluxFactor /= (part.rb.mass * 8f) * part.rb.drag;
+
+                fluxIn *= fluxFactor;
+                fluxOut *= fluxFactor;
+            }
+            else
+                fluxFactor = (fluxIn - fluxOut) / tempDelta / deltaTime;
+            if (part.temperature < ambient) // stock heating/cooling
+                fluxIn += part.heatDissipation * deltaTime * (part.temperature - ambient) * fluxFactor;
+            else
+                fluxOut += part.heatDissipation * deltaTime * (part.temperature - ambient) * fluxFactor;
+
             if (part.temperature < -253) // clamp to 20K
                 part.temperature = -253;
 
-            float areaFactor = 1.0f; //(area > 0 ? area * 10f : 1f); // to convert temp to heat.
-            if (part.temperature < ambient) // stock heating/cooling
-                fluxIn += part.heatDissipation * deltaTime * (part.temperature - ambient) * areaFactor;
-            else
-                fluxOut += part.heatDissipation * deltaTime * (part.temperature - ambient) * areaFactor;
 			displayTemperature = part.temperature;
             displayFluxIn = fluxIn;
             displayFluxOut = fluxOut;
@@ -680,7 +725,16 @@ namespace DeadlyReentry
 			return s;
 		}
 
-		public override float AdjustedHeat(Vector3 velocity, float shockwave, float temp)
+        public float CalculateFluxIn()
+        {
+            double flux = 0;
+            const double FLUXCONST = 1;
+            double vel = velocity.magnitude;
+            flux = FLUXCONST * (shockwave - part.temperature) * Cp * Math.Sqrt(vel) * Math.Sqrt(density);
+            return (float)flux;
+        }
+
+		public override float AdjustedHeat(float temp)
 		{
 			if (direction.magnitude == 0) // an empty vector means the shielding exists on all sides
 				dot = 1; 
@@ -691,6 +745,7 @@ namespace DeadlyReentry
 
             if (useNewModel) // new heatshield model
             {
+                fluxIn = CalculateFluxIn();
                 if (dot < 0f)
                     dot = 0f;
                 double tempAbs = (double)(part.temperature + CTOK);
