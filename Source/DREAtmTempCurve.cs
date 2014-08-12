@@ -8,7 +8,8 @@ using KSP;
 namespace DeadlyReentry
 {
     /// <summary>
-    /// This class contains a curve relating stagnation temperature to velocity
+    /// This class contains curves relating stagnation temperature to velocity
+    /// and Cp to velocity
     /// (accounting for some real gas effects, like changes in specific heat and 
     /// dissocation), methods to develop the curve from atmospheric composition and
     /// the ability to dump the data in a comma delineated format
@@ -17,6 +18,8 @@ namespace DeadlyReentry
     {
         public FloatCurve tempAdditionFromVelocity = new FloatCurve();
         public CurveData[] protoTempCurve = null;
+        public FloatCurve velCpCurve = new FloatCurve();
+        public CurveData[] protoVelCpCurve = null;
         public float referenceTemp = 300;
 
         public void CalculateNewDREAtmTempCurve(CelestialBody body, bool dumpText)
@@ -40,6 +43,19 @@ namespace DeadlyReentry
             }
             return tempAdditionFromVelocity.Evaluate(vel);
         }
+        public float EvaluateVelCpCurve(float vel)
+        {
+            if (protoVelCpCurve != null)
+            {
+                velCpCurve = new FloatCurve();
+                foreach (CurveData data in protoVelCpCurve)
+                {
+                    velCpCurve.Add(data.x, data.y, data.dy_dx, data.dy_dx);
+                }
+                protoTempCurve = null;
+            }
+            return velCpCurve.Evaluate(vel);
+        }
 
         public void DumpToText(float velIncrements, CelestialBody body)
         {
@@ -50,6 +66,7 @@ namespace DeadlyReentry
             for(float v = 0; v < tempAdditionFromVelocity.maxTime; v += velIncrements)
             {
                 float y = EvaluateTempDiffCurve(v) + referenceTemp;
+                float z = EvaluateVelCpCurve(v);
                 string s = v.ToString() + ", " + y.ToString();
                 sw.WriteLine(s);
             }

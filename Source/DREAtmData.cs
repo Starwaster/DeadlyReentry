@@ -145,7 +145,9 @@ namespace DeadlyReentry
                 tempCurveDataContainer container = (tempCurveDataContainer)o;
                 DREAtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[container.body];
                 //Debug.Log("Beginning Temperature Curve Calculation");
-                container.callingCurve.protoTempCurve = atmosphere.TemperatureAsFunctionOfVelocity(100, 5, atmosphere.maxSimVelocity);
+                Curves result = atmosphere.TemperatureAsFunctionOfVelocity(100, 5, atmosphere.maxSimVelocity);
+                container.callingCurve.protoTempCurve = result.temp;
+                container.callingCurve.protoVelCpCurve = result.cp;
                 container.callingCurve.referenceTemp = GetReferenceTemp(container.body);
                 if (container.dumpToText)
                     container.callingCurve.DumpToText(5, container.body);
@@ -195,9 +197,10 @@ namespace DeadlyReentry
         public float specHeatRatio;
         public float gasConstant;
 
-        public CurveData[] TemperatureAsFunctionOfVelocity(int stepsBetweenCurvePoints, float dVForIntegration, float maxVel)
+        public Curves TemperatureAsFunctionOfVelocity(int stepsBetweenCurvePoints, float dVForIntegration, float maxVel)
         {
             List<CurveData> tempVsVelCurve = new List<CurveData>();
+            List<CurveData> velCpCurve = new List<CurveData>();
 
             Dictionary<DREAtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions = CreateWorkingGasSpeciesAndMassFractionDict();
 
@@ -205,7 +208,7 @@ namespace DeadlyReentry
             float velocity = 0;
 
             //StringBuilder debug = new StringBuilder();
-
+            float oldCp = CalculateCp(workingGasSpeciesAndMassFractions, temp);
             while (velocity < maxVel)
             {
                 int i = 0;
@@ -217,18 +220,25 @@ namespace DeadlyReentry
                 float dT_dV = Cp + dCp_dt * temp + energyChange;
                 dT_dV = velocity / dT_dV;
 
+                //float dCp_dV = dCp_dt * dT_dV;
+                float dCp_dV = (Cp - oldCp) / dVForIntegration;
                 if (i <= stepsBetweenCurvePoints)
+                {
                     tempVsVelCurve.Add(new CurveData(velocity, temp - referenceTemperature, dT_dV));
+                    velCpCurve.Add(new CurveData(velocity, Cp, dCp_dt));
+                }
 
                 i++;
                 temp += dT_dV * dVForIntegration;
                 velocity += dVForIntegration;
-
+                oldCp = Cp;
                 //debug.AppendLine("Cp: " + Cp + " dCp_dt: " + dCp_dt + " energyChange: " + energyChange + " vel: " + velocity + " temp: " + temp + " dT_dV: " + dT_dV);
             }
             //Debug.Log(debug.ToString());
-
-            return tempVsVelCurve.ToArray();
+            Curves retval = new Curves();
+            retval.temp = tempVsVelCurve.ToArray();
+            retval.cp = velCpCurve.ToArray();
+            return retval;
         }
 
         #region dT_dV internal functions
@@ -551,6 +561,12 @@ namespace DeadlyReentry
             this.y = y;
             this.dy_dx = dy_dx;
         }
+    }
+
+    public struct Curves
+    {
+        public CurveData[] temp;
+        public CurveData[] cp;
     }
 
     public class tempCurveDataContainer
