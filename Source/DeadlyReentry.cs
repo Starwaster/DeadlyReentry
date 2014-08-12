@@ -126,6 +126,12 @@ namespace DeadlyReentry
         [KSPField]
         public float gTolerance = -1;
 
+        [KSPField(isPersistant = false)]
+        public float area = -1;
+
+        [KSPField(isPersistant = true)]
+        public float emissiveConst = 0;
+
         // counters etc
 		private double lastGForce = 0;
         private double counter = 0;
@@ -136,6 +142,7 @@ namespace DeadlyReentry
         public static double crewGLimit = 600000;
         public static double crewGKillChance = 0.75;
 
+        protected float deltaTime = 0f;
         protected float ambient = 0f; // ambient temperature (C)
         protected float density = 1.225f; // ambient density (kg/m^3)
         protected float shockwave; // shockwave temperature (C)
@@ -350,24 +357,30 @@ namespace DeadlyReentry
 				Fields ["displayGForce"].guiActive = ReentryPhysics.debugging;
 	            Fields["gExperienced"].guiActive = ReentryPhysics.debugging;
 			}
-
-            Vector3 velocity = part.vessel.orbit.GetVel() - part.vessel.mainBody.getRFrmVel(part.vessel.vesselTransform.position);
-                //(rb.velocity + ReentryPhysics.frameVelocity);
-
+            deltaTime = TimeWarp.fixedDeltaTime;
             if (counter < 5.0)
             {
-                counter += TimeWarp.fixedDeltaTime;
+                counter += deltaTime;
                 lastGForce = 0;
                 return;
             }
+            Vector3 velocity = part.vessel.orbit.GetVel() - part.vessel.mainBody.getRFrmVel(part.vessel.vesselTransform.position);
+                //(rb.velocity + ReentryPhysics.frameVelocity);
             ambient = vessel.flightIntegrator.getExternalTemperature();
             displayAmbient = ambient.ToString("F0") + "C";
 
             density = (float)ReentryPhysics.CalculateDensity(vessel.mainBody, vessel.staticPressure, ambient);
 
 			part.temperature += ReentryHeat (velocity);
-            if (part.temperature < -253)
+            
+            if (part.temperature < -253) // clamp to 20K
                 part.temperature = -253;
+
+            float areaFactor = 1.0f; //(area > 0 ? area * 10f : 1f); // to convert temp to heat.
+            if (part.temperature < ambient) // stock heating/cooling
+                fluxIn += part.heatDissipation * deltaTime * (part.temperature - ambient) * areaFactor;
+            else
+                fluxOut += part.heatDissipation * deltaTime * (part.temperature - ambient) * areaFactor;
 			displayTemperature = part.temperature;
             displayFluxIn = fluxIn;
             displayFluxOut = fluxOut;
@@ -384,7 +397,7 @@ namespace DeadlyReentry
 			if(ReentryPhysics.debugging)
 				print (part.partInfo.title + ": +" + dmg + " damage");
 			damage += dmg;
-			part.maxTemp = part.partInfo.partPrefab.maxTemp * (1 - 0.15f * damage);
+			//part.maxTemp = part.partInfo.partPrefab.maxTemp * (1 - 0.15f * damage);
 			part.breakingForce = part.partInfo.partPrefab.breakingForce * (1 - damage);
 			part.breakingTorque = part.partInfo.partPrefab.breakingTorque * (1 - damage);
 			part.crashTolerance = part.partInfo.partPrefab.crashTolerance * (1 - 0.5f * damage);
@@ -395,7 +408,6 @@ namespace DeadlyReentry
 		{
             if (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready)
             {
-                float deltaTime = TimeWarp.fixedDeltaTime;
                 if (dead || (object)vessel == null || deltaTime > 0.5 || deltaTime <= 0)
                     return; // don't check G-forces in warp
 
@@ -425,7 +437,7 @@ namespace DeadlyReentry
                 }
                 if (gTolerance >= 0 && displayGForce > gTolerance)
                 { // G tolerance is based roughly on crashTolerance
-                    AddDamage(deltaTime * (float)(displayGForce / gTolerance - 1));
+                    AddDamage(deltaTime * (float)((displayGForce / gTolerance) - 1));
                     if (!is_eva)
                     { // kerbal bones shouldn't sound like metal when they break.
                         gForceFX.audio.pitch = (float)(displayGForce / gTolerance);
@@ -510,11 +522,12 @@ namespace DeadlyReentry
                         damageThreshold = part.maxTemp * 0.85f;
                     if (part.temperature > damageThreshold)
                     {
-                        float deltaTime = TimeWarp.fixedDeltaTime;
                         // Handle client-side fire stuff.
                         // OH GOD IT'S ON FIRE.
-                        float tempRatio = part.temperature / part.maxTemp;
-                        AddDamage(deltaTime * (damage + 0.05f) * tempRatio / part.mass);
+                        float tempRatio = (part.temperature / damageThreshold) - 1f;
+                        tempRatio *= (part.temperature / part.maxTemp) * (part.temperature / part.maxTemp) * 4f;
+                        AddDamage(deltaTime * (damage + 1.0f) * tempRatio);
+                        tempRatio = part.temperature / part.maxTemp;
                         PlaySound(ablationFX, tempRatio * tempRatio);
 
                         new GameEvents.ExplosionReaction(0, damage);
@@ -522,7 +535,7 @@ namespace DeadlyReentry
                         if (is_engine && damage < 1)
                             part.temperature = UnityEngine.Random.Range(0.97f + 0.05f * damage, 0.98f + 0.05f * damage) * part.maxTemp;
                         else if (damage < 1)// non-engines can keep burning
-                            part.temperature = (tempRatio * (1 - damage) + 0.9f * damage) * part.maxTemp;
+                            part.temperature += (1f+damage*4f) * (1f+damage*4f) * 200f * deltaTime;
 
                         if (part.temperature > part.maxTemp || damage >= 1.0f)
                         { // has it burnt up completely?
@@ -629,17 +642,11 @@ namespace DeadlyReentry
 		[KSPField(isPersistant = true)]
 		public string ablative;
 
-		[KSPField(isPersistant = false)]
-		public float area = -1;
-
-		[KSPField(isPersistant = false)]
-		public float thickness;
+        [KSPField(isPersistant = true)]
+        public float lossExp = -1;
 
         [KSPField(isPersistant = true)]
-        public float emissiveConst = 0;
-
-        [KSPField(isPersistant = true)]
-        public float lossConst = -1;
+        public float lossConst = 1.0f;
 
         [KSPField(isPersistant = true)]
         public float pyrolysisLoss = -1;
@@ -653,6 +660,8 @@ namespace DeadlyReentry
 		[KSPField(isPersistant = true)]
 		public FloatCurve dissipation = new FloatCurve();
 
+        public bool useNewModel = false;
+
         public static double SIGMA = 5.670373e-8;
 
 		public override void OnStart (StartState state)
@@ -661,6 +670,7 @@ namespace DeadlyReentry
 			if (ablative == null)
 				ablative = "None";
             part.heatConductivity = 0.0f; // shield attached parts from this temperature
+            useNewModel = area > 0;
 		}
 		public override string GetInfo()
 		{
@@ -679,28 +689,24 @@ namespace DeadlyReentry
 
             fluxOut = 0;
 
-            if (emissiveConst > 0) // new heatshield model
+            if (useNewModel) // new heatshield model
             {
                 if (dot < 0f)
                     dot = 0f;
-
                 double tempAbs = (double)(part.temperature + CTOK);
-                fluxOut += (float)Math.Max(0, dot * temp * reflective);
-                fluxOut += (float)(Math.Min(
+                fluxOut += (float)Math.Max(0, dot * temp * reflective); // reflection. Keep???
+                fluxOut += (float)(Math.Min( // radiation
                     Math.Max(part.temperature - ambient, 0),
-                    Math.Pow(tempAbs, 4) * (double)emissiveConst * SIGMA * TimeWarp.fixedDeltaTime));
+                    Math.Pow(tempAbs, 4) * (double)area * (double)emissiveConst * SIGMA * deltaTime));
+                fluxOut *= (1f - damage) * (1f - damage); // reflection and radiation are impacted by damage
 
-
-                if (part.Resources.Contains(ablative) && lossConst > 0)
+                if (part.Resources.Contains(ablative) && lossExp > 0 && part.temperature > ablationTempThresh)
                 {
                     double ablativeAmount = part.Resources[ablative].amount;
-                    double loss = (double)dot * Math.Exp(-lossConst / tempAbs);
-                    loss *= ablativeAmount * TimeWarp.fixedDeltaTime;
-                    if (part.temperature > ablationTempThresh)
-                    {
-                        part.Resources[ablative].amount -= loss;
-                        fluxOut += (pyrolysisLoss * (float)loss);
-                    }
+                    double loss = (double)lossConst * Math.Pow(dot, 0.25) * Math.Exp(-lossExp / tempAbs);
+                    loss *= ablativeAmount * deltaTime;
+                    part.Resources[ablative].amount -= loss;
+                    fluxOut += (pyrolysisLoss * (float)loss);
                 }
             }
             else
@@ -718,7 +724,7 @@ namespace DeadlyReentry
                             float ablation = (float)(dot
                                                         * loss.Evaluate((float)Math.Pow(shockwave, ReentryPhysics.temperatureExponent))
                                                         * Math.Pow(density, ReentryPhysics.densityExponent)
-                                                        * TimeWarp.fixedDeltaTime);
+                                                        * deltaTime);
 
                             float disAmount = dissipation.Evaluate(part.temperature) * ablation * (1 - damage) * (1 - damage);
                             if (disAmount > 0)
@@ -733,7 +739,8 @@ namespace DeadlyReentry
                     }
                 }
             }
-			return temp - fluxOut;
+			temp -= fluxOut;
+            return temp;
 		}
 	}
 
