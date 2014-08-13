@@ -21,6 +21,8 @@ namespace DeadlyReentry
         public FloatCurve velCpCurve = new FloatCurve();
         public CurveData[] protoVelCpCurve = null;
         public float referenceTemp = 300;
+        private static readonly object _locker = new object();
+
 
         public void CalculateNewDREAtmTempCurve(CelestialBody body, bool dumpText)
         {
@@ -59,21 +61,24 @@ namespace DeadlyReentry
 
         public void DumpToText(float velIncrements, CelestialBody body)
         {
-            FileStream fs = File.Open(KSPUtil.ApplicationRootPath.Replace("\\", "/") + "GameData/DeadlyReentry/" + body.bodyName + "_T_vs_V_curve.csv", FileMode.Create, FileAccess.Write);
-            StreamWriter sw = new StreamWriter(fs, System.Text.Encoding.UTF8);
-
-            EvaluateTempDiffCurve(0);
-            for(float v = 0; v < tempAdditionFromVelocity.maxTime; v += velIncrements)
+            lock (_locker)
             {
-                float y = EvaluateTempDiffCurve(v) + referenceTemp;
-                float z = EvaluateVelCpCurve(v);
-                string s = v.ToString() + ", " + y.ToString();
-                sw.WriteLine(s);
-            }
+                FileStream fs = File.Open(KSPUtil.ApplicationRootPath.Replace("\\", "/") + "GameData/DeadlyReentry/" + body.bodyName + "_T_vs_V_curve.csv", FileMode.Create, FileAccess.Write);
+                StreamWriter sw = new StreamWriter(fs, System.Text.Encoding.UTF8);
 
-            sw.Close();
-            sw = null;
-            fs = null;
+                EvaluateTempDiffCurve(0);
+                for (float v = 0; v < tempAdditionFromVelocity.maxTime; v += velIncrements)
+                {
+                    float y = EvaluateTempDiffCurve(v) + referenceTemp;
+                    float z = EvaluateVelCpCurve(v);
+                    string s = v.ToString() + ", " + y.ToString();
+                    sw.WriteLine(s);
+                }
+
+                sw.Close();
+                sw = null;
+                fs = null;
+            }
         }
     }
 }
