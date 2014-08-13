@@ -153,6 +153,8 @@ namespace DeadlyReentry
         protected float density = 1.225f; // ambient density (kg/m^3)
         protected float shockwave; // shockwave temperature (C)
         protected float Cp; // specific heat
+        protected double Cd; // Drag coefficient
+        protected double S; // surface area
         protected Vector3 velocity; // velocity vector in local reference space (m/s)
         protected float speed; // velocity magnitude (m/s)
         protected float fluxIn = 0f; // heat flux in, kW/m^2
@@ -220,6 +222,7 @@ namespace DeadlyReentry
                     rCType = realChute.GetType();
                 }
             }
+            FARPartModule = null;
         }
 
 		private bool GetShieldedStateFromFAR()
@@ -266,10 +269,6 @@ namespace DeadlyReentry
             else if (part.Modules.Contains("FARWingAerodynamicModel"))
             {
                     FARPartModule = part.Modules["FARWingAerodynamicModel"];
-            }
-            else if (part.Modules.Contains("FARPayloadFairingModule"))
-            {
-                    FARPartModule = part.Modules["FARPayloadFairingModule"];
             }
 		}
 		public virtual float AdjustedHeat(float temp)
@@ -381,6 +380,28 @@ namespace DeadlyReentry
 
             density = (float)ReentryPhysics.CalculateDensity(vessel.mainBody, vessel.staticPressure, ambient);
 
+            // get Cd and surface area from FAR if we can, else use crazy stock stuff
+            if ((object)FARPartModule != null)
+            {
+                try
+                {
+                    FieldInfo fiCd = FARPartModule.GetType().GetField("Cd");
+                    FieldInfo fiS = FARPartModule.GetType().GetField("S");
+                    Cd = ((double)(fiCd.GetValue(FARPartModule)));
+                    S = ((double)(fiS.GetValue(FARPartModule)));
+
+                }
+                catch (Exception e)
+                {
+                    Debug.Log("[DREC]: error getting drag area" + e.Message);
+                }
+            }
+            else
+            {
+                S = (part.rb.mass * 8);
+                Cd = part.rb.drag;
+            }
+
 			float tempDelta = ReentryHeat();
             part.temperature += tempDelta;
             float fluxFactor = 1f; // compute kW/m^2 per degree
@@ -391,33 +412,13 @@ namespace DeadlyReentry
                 // flux in kW
                 fluxFactor = (part.rb.mass) * 1000f; // grams to tonnes, J to kJ
                 fluxFactor /= deltaTime; // per tick -> per second
-                bool useFAR = false;
-                // get Cd and surface area from FAR if we can, else use crazy stock stuff
-                if ((object)FARPartModule != null)
-                {
-                    double Cd = -1, S = -1;
-                    try
-                    {
-                        FieldInfo fiCd = FARPartModule.GetType().GetField("Cd");
-                        FieldInfo fiS = FARPartModule.GetType().GetField("S");
-                        Cd = ((double)(fiCd.GetValue(FARPartModule)));
-                        S = ((double)(fiS.GetValue(FARPartModule)));
-                        useFAR = true;
-                        fluxFactor /= (float)(Cd * S);
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.Log("[DREC]: error getting drag area" + e.Message);
-                    }
-                }
-                if(!useFAR)
-                    fluxFactor /= (part.rb.mass * 8f) * part.rb.drag;
-
+                fluxFactor /= (float)(Cd * S);
                 fluxIn *= fluxFactor;
                 fluxOut *= fluxFactor;
             }
             else
                 fluxFactor = (fluxIn - fluxOut) / tempDelta / deltaTime;
+
             if (part.temperature < ambient) // stock heating/cooling
                 fluxIn += part.heatDissipation * deltaTime * (part.temperature - ambient) * fluxFactor;
             else

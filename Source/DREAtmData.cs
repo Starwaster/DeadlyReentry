@@ -208,7 +208,7 @@ namespace DeadlyReentry
             float velocity = 0;
 
             //StringBuilder debug = new StringBuilder();
-            float oldCp = CalculateCp(workingGasSpeciesAndMassFractions, temp);
+            //float oldCp = CalculateCp(workingGasSpeciesAndMassFractions, temp);
             while (velocity < maxVel)
             {
                 int i = 0;
@@ -220,18 +220,18 @@ namespace DeadlyReentry
                 float dT_dV = Cp + dCp_dt * temp + energyChange;
                 dT_dV = velocity / dT_dV;
 
-                //float dCp_dV = dCp_dt * dT_dV;
-                float dCp_dV = (Cp - oldCp) / dVForIntegration;
+                float dCp_dV = dCp_dt * dT_dV;
+                //float dCp_dV = (Cp - oldCp) / dVForIntegration;
                 if (i <= stepsBetweenCurvePoints)
                 {
                     tempVsVelCurve.Add(new CurveData(velocity, temp - referenceTemperature, dT_dV));
-                    velCpCurve.Add(new CurveData(velocity, Cp, dCp_dt));
+                    velCpCurve.Add(new CurveData(velocity, Cp, dCp_dV));
                 }
 
                 i++;
                 temp += dT_dV * dVForIntegration;
                 velocity += dVForIntegration;
-                oldCp = Cp;
+                //oldCp = Cp;
                 //debug.AppendLine("Cp: " + Cp + " dCp_dt: " + dCp_dt + " energyChange: " + energyChange + " vel: " + velocity + " temp: " + temp + " dT_dV: " + dT_dV);
             }
             //Debug.Log(debug.ToString());
