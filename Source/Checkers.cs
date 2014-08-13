@@ -32,7 +32,7 @@ using UnityEngine;
 /*-----------------------------------------*\
 |   SUBSTITUTE YOUR MOD'S NAMESPACE HERE.   |
 \*-----------------------------------------*/
-namespace DeadlyReentry
+namespace RealHeat
 {
 
     /**
