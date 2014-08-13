@@ -86,12 +86,6 @@ namespace RealHeat
 			}
 		}
 
-		[KSPField(isPersistant = false, guiActive = false, guiName = "Shockwave", guiUnits = "",   guiFormat = "G")]
-		public string displayShockwave;
-
-		[KSPField(isPersistant = false, guiActive = true, guiName = "Temperature", guiUnits = "C",   guiFormat = "F0")]
-		public float displayTemperature;
-
 		[KSPField(isPersistant = false, guiActive = false, guiName = "Acceleration", guiUnits = "G",   guiFormat = "F3")]
 		public float displayGForce;
 
@@ -141,6 +135,8 @@ namespace RealHeat
         private ModuleParachute parachute = null;
         private PartModule realChute = null;
         private Type rCType = null;
+        private bool hasParachute = false;
+        private ModuleRealHeat heatModule = null;
 
         [KSPEvent(guiName = "No Damage", guiActiveUnfocused = true, externalToEVAOnly = true, guiActive = false, unfocusedRange = 4f)]
 		public void RepairDamage()
@@ -192,7 +188,12 @@ namespace RealHeat
                     realChute = part.Modules["RealChuteModule"];
                     rCType = realChute.GetType();
                 }
+                hasParachute = (parachute != null) || (realChute != null);
             }
+            if (part.Modules.Contains("ModuleRealHeat"))
+                heatModule = (ModuleRealHeat)part.Modules["ModuleRealHeat"];
+            else
+                Debug.Log("*RF* ERROR: Part does not contain ModuleRealHeat");
         }
 
 		public override void OnStart (StartState state)
@@ -212,29 +213,20 @@ namespace RealHeat
             // handle all heat management
             Vector3 velocity = Vector3.zero;
 			deltaTime = TimeWarp.fixedDeltaTime;
-
-            Rigidbody rb = part.Rigidbody;
-            if (rb != null || part.physicalSignificance != Part.PhysicalSignificance.NONE)
-            {
-                if (is_debugging != RealHeatUtils.debugging)
-                {
-                    is_debugging = RealHeatUtils.debugging;
-                    Fields["displayGForce"].guiActive = RealHeatUtils.debugging;
-                    Fields["gExperienced"].guiActive = RealHeatUtils.debugging;
-                }
-
-                velocity = (rb.velocity + RealHeatUtils.frameVelocity);
-
-                if (counter < 5.0)
-                { // avoid Kraken-kill on spawn
-                    counter += TimeWarp.fixedDeltaTime;
-                    lastGForce = 0;
-                    return;
-                }
-
+            if (counter < 5.0)
+            { // avoid Kraken-kill on spawn
+                counter += deltaTime;
+                lastGForce = 0;
+                return;
             }
+            if (is_debugging != RealHeatUtils.debugging)
+            {
+                is_debugging = RealHeatUtils.debugging;
+                Fields["displayGForce"].guiActive = RealHeatUtils.debugging;
+                Fields["gExperienced"].guiActive = RealHeatUtils.debugging;
+            }
+            velocity = part.vessel.orbit.GetVel() - part.vessel.mainBody.getRFrmVel(part.vessel.vesselTransform.position);
 
-            displayTemperature = part.temperature;
             CheckForFire(velocity);
             CheckGeeForces();
 		}
@@ -254,12 +246,6 @@ namespace RealHeat
 			part.crashTolerance = part.partInfo.partPrefab.crashTolerance * (1 - 0.5f * damage);
 			SetDamageLabel ();
 		}
-        public static double crewGClamp = 30;
-        public static double crewGPower = 4;
-        public static double crewGMin = 5;
-        public static double crewGWarn = 300000;
-        public static double crewGLimit = 600000;
-        public static double crewGKillChance = 0.75;
 
         public void CheckGeeForces()
 		{
@@ -282,7 +268,6 @@ namespace RealHeat
                 if (displayGForce < crewGMin)
                     gExperienced = 0;
 
-                //double gTolerance;
                 if (gTolerance < 0)
                 {
                     if (is_engine && damage < 1)
@@ -319,9 +304,9 @@ namespace RealHeat
                     part.explode();
                     return;
                 }
-                if (Math.Max(displayGForce, geeForce) >= crewGMin)
+                if (displayGForce >= crewGMin)
                 {
-                    gExperienced += Math.Pow(Math.Min(Math.Abs(Math.Max(displayGForce, geeForce)), crewGClamp), crewGPower) * deltaTime;
+                    gExperienced += Math.Pow(Math.Min(Math.Abs(displayGForce), crewGClamp), crewGPower) * deltaTime;
                     List<ProtoCrewMember> crew = part.protoModuleCrew; //vessel.GetVesselCrew();
                     if (gExperienced > crewGWarn && crew.Count > 0)
                     {
@@ -366,6 +351,23 @@ namespace RealHeat
                 {
                     if (dead)
                         return;
+                    // deal with parachutes here
+                    if (hasParachute)
+                    {
+                        bool cut = heatModule.ambient - CTOK + Math.Pow(heatModule.density, RealHeatUtils.densityExponent) * heatModule.shockwave * 10f
+                            > part.maxTemp * RealHeatUtils.parachuteTempMult;
+                        if ((object)parachute != null)
+                        {
+                            ModuleParachute p = parachute;
+                            if ((p.deploymentState == ModuleParachute.deploymentStates.DEPLOYED || p.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED) && cut)
+                                p.CutParachute();
+                        }
+                        if ((object)realChute != null)
+                        {
+                            if (!(bool)rCType.GetProperty("anyDeployed").GetValue(realChute, null) && cut)
+                                rCType.GetMethod("GUICut").Invoke(realChute, null);
+                        }
+                    }
                     float damageThreshold;
 
                     if (is_engine && damage < 1)
@@ -420,7 +422,7 @@ namespace RealHeat
                             }
                             foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
                             {
-                                fx.gameObject.SetActive(density > 0.1);
+                                fx.gameObject.SetActive(heatModule.density > 0.1);
                                 fx.gameObject.transform.LookAt(part.transform.position + velocity);
                                 fx.gameObject.transform.Rotate(90, 0, 0);
                             }

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual C# Express 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeadlyReentry", "DeadlyReentry.csproj", "{F6F826CC-5CED-421B-B05F-5758D402976A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealHeat", "RealHeat.csproj", "{F6F826CC-5CED-421B-B05F-5758D402976A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -7,7 +7,7 @@ using KSP;
 
 namespace RealHeat
 {
-    public class ModuleHeat : PartModule
+    public class ModuleRealHeat : PartModule
     {
         UIPartActionWindow _myWindow = null;
         UIPartActionWindow myWindow
@@ -44,17 +44,33 @@ namespace RealHeat
         [KSPField(isPersistant = true)]
         public float adjustCollider = 0;
 
-		[KSPField(isPersistant = false)]
-        public float area = -1f;
+        [KSPField(isPersistant = true)]
+        public float leeConst = 0f; // amount of localShockwave used for radiation for lee-facing area
+
+
+        [KSPField(isPersistant = false)]
+        public bool hasShield = false;
 
         [KSPField(isPersistant = true)]
-        public float heatMass = -1f; // mass to use for heating calculations. Allows one part to be both pod and shield.
+        public float shieldMass = 0f; // Allows one part to be both pod and shield.
 
         [KSPField(isPersistant = true)]
-        public float heatCapacity = 1f; // in J/g-K
+        public float shieldHeatCapacity = 0f;
 
         [KSPField(isPersistant = true)]
-        public float emissiveConst = 0; // coefficient for emission
+        public float shieldEmissiveConst = 0f;
+
+        [KSPField(isPersistant = false)]
+        public float shieldArea = 0f;
+
+        [KSPField(isPersistant = true)]
+        public int deployAnimationController; // for deployable shields
+
+        [KSPField(isPersistant = true)]
+        public FloatCurve loss = new FloatCurve();
+
+        [KSPField(isPersistant = true)]
+        public FloatCurve dissipation = new FloatCurve();
 
         [KSPField(isPersistant = false, guiActive = false, guiName = "angle", guiUnits = " ", guiFormat = "F3")]
         public float dot; // -1....1 = facing opposite direction....facing same direction as airflow
@@ -78,24 +94,42 @@ namespace RealHeat
         public float pyrolysisLoss = -1;
 
         [KSPField(isPersistant = true)]
-        public float ablationTempThresh = 300f;
+        public float ablationTempThresh = 573.15f; // temperature below which ablation is ignored (K)
+
+        [KSPField(isPersistant = true)]
+        public float heatCapacity = 1f; // in J/g-K
+
+        [KSPField(isPersistant = true)]
+        public float emissiveConst = 0; // coefficient for emission
 
         // per-frame shared members
         protected double counter = 0; // for initial delay
 		protected double deltaTime = 0; // seconds since last FixedUpdate
-        protected double ambient = 0; // ambient temperature (C)
-        protected double density = 1.225; // ambient density (kg/m^3)
-        protected double shockwave; // shockwave temperature (C)
+        public double ambient = 0; // ambient temperature (K)
+        public double density = 1.225; // ambient density (kg/m^3)
+        protected bool inAtmo = false;
+        public double shockwave; // shockwave temperature outside all shielding (K)
+        protected double adjustedAmbient; // shockwave temperature experienced by the part(K)
         protected double Cp; // specific heat
-        protected double Cd; // Drag coefficient
-        protected double S; // surface area
+        protected double Cd = 0.2; // Drag coefficient
+        public double S = 2; // surface area (m^2)
+        protected double ballisticCoeff = 600; // kg/m^2
+        protected double mass = 0; // mass this frame (tonnnes)
+        protected double temperature = 0; // part tempterature this frame (K)
         protected Vector3 velocity; // velocity vector in local reference space (m/s)
-        protected double speed; // velocity magnitude (m/s)
+        protected float speed; // velocity magnitude (m/s)
         protected double fluxIn = 0; // heat flux in, kW/m^2
         protected double fluxOut = 0; // heat flux out, kW/m^2
+        protected float temperatutreDelta = 0f; // change in temperature (K)
+        protected double frontalArea = 1;
+        protected double leeArea = 1;
 
         public const double CTOK = 273.15; // convert Celsius to Kelvin
         public const double SIGMA = 5.670373e-8; // Stefan–Boltzmann constant
+        public const double AIREMISS = 0.3;
+
+        public double SOLARLUM = 3.8e+26; // can't be const, since it depends on what Kerbin's SMA is.
+        public const double SOLARCONST = 1370;
 
 
         public float heatConductivity = 0.0f;
@@ -103,34 +137,37 @@ namespace RealHeat
 
         [KSPField]
         private bool is_debugging = false;
-        private ModuleParachute parachute = null;
-        private PartModule realChute = null;
-        private Type rCType = null;
-		private PartModule FARPartModule = null;
+
+        // Interaction
+        private PartModule FARPartModule = null;
+        private bool hasFAR = false;
 
         public Dictionary<string, double> nodeArea;
+
+        public override string GetInfo()
+        {
+            string s;
+            if (hasShield)
+            {
+                s = "Active Heat Shield";
+                if (direction.x != 0 || direction.y != 0 || direction.z != 0)
+                    s += " (directional)";
+            }
+            else
+                s = "Heat by RealHeat";
+            return s;
+        }
 
         public override void OnAwake()
         {
             base.OnAwake();
-            if (part && part.Modules != null) // thanks, FlowerChild!
-            {
-                if (part.Modules.Contains("ModuleParachute"))
-                    parachute = (ModuleParachute)part.Modules["ModuleParachute"];
-                if (part.Modules.Contains("RealChuteModule"))
-                {
-                    realChute = part.Modules["RealChuteModule"];
-                    rCType = realChute.GetType();
-                }
-				FARPartModule = null;
-
-                nodeArea = new Dictionary<string, double>();
-
-            }
+			FARPartModule = null;
+            nodeArea = new Dictionary<string, double>();
         }
 
         public override void OnStart(StartState state)
         {
+            part.heatDissipation = part.heatConductivity = 0f;
             counter = 0;
             if (state == StartState.Editor)
                 return;
@@ -140,12 +177,24 @@ namespace RealHeat
             // exception: FAR.
             if (part.Modules.Contains("FARBasicDragModel"))
             {
-                    FARPartModule = part.Modules["FARBasicDragModel"];
+                FARPartModule = part.Modules["FARBasicDragModel"];
+                hasFAR = true;
             }
             else if (part.Modules.Contains("FARWingAerodynamicModel"))
             {
-                    FARPartModule = part.Modules["FARWingAerodynamicModel"];
+                FARPartModule = part.Modules["FARWingAerodynamicModel"];
+                hasFAR = true;
             }
+
+            if (ablative == null)
+                ablative = "None";
+
+            // calculate Solar luminosity
+            // FIXME: get actual distance from sun.
+            if(FlightGlobals.Bodies[1].referenceBody == FlightGlobals.Bodies[0])
+                SOLARLUM = SOLARCONST * Math.Pow(FlightGlobals.Bodies[1].orbit.semiMajorAxis, 2) * 4 * Math.PI;
+            else
+                SOLARLUM = SOLARCONST * Math.Pow(FlightGlobals.Bodies[1].referenceBody.orbit.semiMajorAxis, 2) * 4 * Math.PI;
         }
 
         private bool GetShieldedStateFromFAR()
@@ -177,9 +226,6 @@ namespace RealHeat
 
         public bool IsShielded(Vector3 direction)
 		{   
-            if (GetShieldedStateFromFAR() == true)
-            	return true;
-            
             Ray ray = new Ray(part.transform.position - direction.normalized * (1.0f+adjustCollider), direction.normalized);
 			RaycastHit[] hits = Physics.RaycastAll (ray, 10);
 			foreach (RaycastHit hit in hits) {
@@ -190,58 +236,158 @@ namespace RealHeat
 			return false;
 		}
 
-        public virtual double CalculateFluxOut()
+        public void CalculateParameters()
         {
-            return 0;
+            inAtmo = false;
+            if (vessel.staticPressure > 0)
+            {
+                inAtmo = true;
+                shockwave = (double)RealHeatUtils.baseTempCurve.EvaluateTempDiffCurve(speed);
+                Cp = RealHeatUtils.baseTempCurve.EvaluateVelCpCurve(speed); // FIXME should be based on adjustedAmbient
+                frontalArea = S * Cd;
+                leeArea = S - frontalArea;
+            }
+            else
+            {
+                shockwave = 0;
+                Cp = 1.4;
+                frontalArea = S;
+                leeArea = 0;
+            }
+            if (GetShieldedStateFromFAR())
+                adjustedAmbient = part.temperature + CTOK; // FIXME: Change to the fairing part's temperature
+            else
+                if (IsShielded(velocity))
+                    adjustedAmbient = Mathf.Lerp((float)ambient, (float)(shockwave + ambient), leeConst);
+                else
+                    adjustedAmbient = shockwave + ambient;
+            fluxIn = 0;
         }
 
-        public virtual double CalculateFluxIn()
+        public float CalculateTemperatureDelta()
         {
-            return 0;
-        }
-
-        public double CalculateTemperatureDelta()
-        {
-            return 0;
+            double flux = fluxIn - fluxOut;
+            double multiplier = (mass - shieldMass) * heatCapacity + shieldMass * shieldHeatCapacity;
+            multiplier *= 1000; // convert J/gK to kJ/tK
+            return (float)(flux / multiplier);
         }
 
         public void FixedUpdate()
         {
-            Rigidbody rb = part.Rigidbody;
-            if (rb == null || part.physicalSignificance == Part.PhysicalSignificance.NONE)
+            if ((object)vessel == null || (object)vessel.flightIntegrator == null)
+                return;
+
+            if (is_debugging != RealHeatUtils.debugging)
             {
-                if (is_debugging != RealHeatUtils.debugging)
-                {
-                    is_debugging = RealHeatUtils.debugging;
-                    Fields["displayShockwave"].guiActive = RealHeatUtils.debugging;
-					Fields["displayAmbient"].guiActive = RealHeatUtils.debugging;
-                	Fields["displayFluxIn"].guiActive = RealHeatUtils.debugging;
-                	Fields["displayFluxOut"].guiActive = RealHeatUtils.debugging;
-                    Fields["displayGForce"].guiActive = RealHeatUtils.debugging;
-                    Fields["gExperienced"].guiActive = RealHeatUtils.debugging;
-                }
-
-                velocity = (rb.velocity + RealHeatUtils.frameVelocity);
-
+                is_debugging = RealHeatUtils.debugging;
+                Fields["displayShockwave"].guiActive = RealHeatUtils.debugging;
+                Fields["displayAmbient"].guiActive = RealHeatUtils.debugging;
+                Fields["displayFluxIn"].guiActive = RealHeatUtils.debugging;
+                Fields["displayFluxOut"].guiActive = RealHeatUtils.debugging;
             }
+
+            deltaTime = TimeWarp.fixedDeltaTime;
+            velocity = part.vessel.orbit.GetVel() - part.vessel.mainBody.getRFrmVel(part.vessel.vesselTransform.position);
+            //(rb.velocity + ReentryPhysics.frameVelocity);
+            speed = velocity.magnitude;
+            ambient = vessel.flightIntegrator.getExternalTemperature() + CTOK;
+            temperature = part.temperature + CTOK;
+            density = RealHeatUtils.CalculateDensity(vessel.mainBody, vessel.staticPressure, ambient);
+
+            // calculate ballistic coefficient for root part, grab from it if other part
+            if (part == vessel.rootPart)
+            {
+                double sumArea = 0;
+                double sumMass = 0;
+                foreach (Part p in vessel.Parts)
+                {
+                    foreach (ModuleRealHeat m in p.Modules.OfType<ModuleRealHeat>())
+                        sumArea += m.S * m.Cd;
+                    sumMass += part.mass + part.GetResourceMass();
+                }
+                ballisticCoeff = sumMass * 1000 / sumArea;
+            }
+            else
+            {
+                ModuleRealHeat m = (ModuleRealHeat)vessel.rootPart.Modules["ModuleRealHeat"];
+                if ((object)m != null)
+                    ballisticCoeff = m.ballisticCoeff;
+            }
+
+            // get mass for thermal calculations
+            if (shieldMass < 0)
+            {
+                if (part.rb != null)
+                    mass = part.rb.mass;
+                mass = Math.Max(part.mass, mass);
+            }
+            else
+                mass = shieldMass;
+
+            // get Cd and surface area from FAR if we can, else use crazy stock stuff
+            if (hasFAR)
+            {
+                try
+                {
+                    FieldInfo fiCd = FARPartModule.GetType().GetField("Cd");
+                    FieldInfo fiS = FARPartModule.GetType().GetField("S");
+                    Cd = ((double)(fiCd.GetValue(FARPartModule)));
+                    S = ((double)(fiS.GetValue(FARPartModule)));
+
+                }
+                catch (Exception e)
+                {
+                    Debug.Log("[RF]: error getting drag area" + e.Message);
+                    S = mass * 8;
+                    Cd = 0.2;
+                }
+            }
+            else
+            {
+                S = mass * 8;
+                Cd = 0.2;
+            }
+
+            // if too soon, abort.
+            if (counter < 5.0)
+            {
+                counter += deltaTime;
+                return;
+            }
+
+            CalculateParameters();
 
             ManageHeatConduction();
             ManageHeatConvection(velocity);
             ManageHeatRadiation();
+            ManageSolarHeat();
 
+            fluxIn *= 0.001 * deltaTime; // convert to kW then to the amount of time passed
+            fluxOut *= 0.001 * deltaTime; // convert to kW then to the amount of time passed
+
+            temperatutreDelta = CalculateTemperatureDelta();
+            part.temperature += temperatutreDelta;
+            
+            if (part.temperature < -253) // clamp to 20K
+                part.temperature = -253;
+
+            displayFluxIn = (float)fluxIn;
+            displayFluxOut = (float)fluxOut;
+            displayAmbient = ambient.ToString("F0") + "C";
             displayTemperature = part.temperature;
         }
 
         public void HeatExchange(Part p)
         {
             //FIXME: This is just KSP's stock heat system.
-            float sqrMagnitude = (this.part.transform.position - p.transform.position).sqrMagnitude;
+            /*float sqrMagnitude = (this.part.transform.position - p.transform.position).sqrMagnitude;
             if (sqrMagnitude < 25f)
             {
                 float num = part.temperature * this.heatConductivity * Time.deltaTime * (1f - sqrMagnitude / 25f);
                 p.temperature += num;
                 part.temperature -= num;
-            }
+            }*/
+            // do nothing, since it's all handled by other stuff
         }
 
         public void ManageHeatConduction()
@@ -285,7 +431,7 @@ namespace RealHeat
                     logLine += " temp " + nodeArea[node.id];
 
                     float d = 1f + (part.transform.position - node.position).magnitude;
-                    float exchange = cFactor * (part.temperature - nodeArea[node.id]) / d;
+                    float exchange = cFactor * (part.temperature - (float)nodeArea[node.id]) / d;
                     accumulatedExchange -= exchange;
                     nodeArea[node.id] += exchange;
 
@@ -299,14 +445,14 @@ namespace RealHeat
                         {   // TODO: Find the nearest two nodes and compute the average temperature.
                             // for now, we'll just exchange directly with the part's CoM.
                             float cFactor2 = radius2 * Time.deltaTime;
-                            float deltaT = (nodeArea[node.id] - p.temperature);
+                            float deltaT = ((float)nodeArea[node.id] - p.temperature);
                             nodeArea[node.id] += deltaT * cFactor2 * heatConductivity * 4f;
                             p.temperature -= deltaT * cFactor2 * heatConductivity * 4f;
                         }
                         else
                         {
                             logLine += " (Node: " + otherNode.id + " + [" + otherNode.size + "m]) ";
-                            ModuleHeatSystem heatModule = (ModuleHeatSystem)p.Modules["ModuleHeatSystem"];
+                            ModuleRealHeat heatModule = (ModuleRealHeat)p.Modules["ModuleRealHeat"];
                             if (heatModule == null)
                             {
                                 // something has gone VERY wrong.
@@ -314,8 +460,8 @@ namespace RealHeat
                             }
                             else if (heatModule.heatConductivity > 0f)
                             {
-                                if (!heatModule.nodeTemperature.ContainsKey(otherNode.id))
-                                    heatModule.nodeTemperature.Add(otherNode.id, p.temperature);
+                                if (!heatModule.nodeArea.ContainsKey(otherNode.id))
+                                    heatModule.nodeArea.Add(otherNode.id, p.temperature);
                                 if (otherNode.size < node.size)
                                 {
                                     radius2 = otherNode.size * otherNode.size;
@@ -324,10 +470,10 @@ namespace RealHeat
                                 }
                                 float cFactor2 = radius2 * Time.deltaTime;
 
-                                float deltaT = (heatModule.nodeTemperature[otherNode.id] - nodeArea[node.id]);
+                                float deltaT = ((float)heatModule.nodeArea[otherNode.id] - (float)nodeArea[node.id]);
 
                                 nodeArea[node.id] += deltaT * cFactor2 * (heatConductivity + heatModule.heatConductivity);
-                                heatModule.nodeTemperature[otherNode.id] -= deltaT * cFactor2 * (heatConductivity + heatModule.heatConductivity);
+                                heatModule.nodeArea[otherNode.id] -= deltaT * cFactor2 * (heatConductivity + heatModule.heatConductivity);
                                 logLine += "flow: " + (deltaT * cFactor2).ToString();
                             }
                         }
@@ -349,27 +495,58 @@ namespace RealHeat
 
         public void ManageHeatConvection(Vector3 velocity)
         {
-            part.temperature += ReentryHeat(velocity);
+            if (inAtmo)
+            {
+                // convective heating in atmosphere
+                double baseFlux = RealHeatUtils.heatMultiplier * Cp * Math.Sqrt(speed) * Math.Sqrt(density);
+                fluxIn += baseFlux * frontalArea * (adjustedAmbient - part.temperature);
+                fluxIn += baseFlux * leeArea * (Mathf.Lerp((float)ambient, (float)adjustedAmbient, leeConst) - part.temperature);
+            }
+        }
 
-            //FIXME: This is just KSP's stock heat system.
-            //part.temperature -= (this.heatDissipation * Time.deltaTime);
+        public void ManageSolarHeat()
+        {
+            double distance = (Planetarium.fetch.Sun.transform.position - vessel.transform.position).sqrMagnitude;
+            double retval = 1.0;
+            if (inAtmo)
+                retval *= 1 - (density / 1.225)*0.38; // 7-900W at sea level
+            retval *= SOLARLUM / (4 * Math.PI * distance);
+            fluxIn += S * 0.5 * retval;
         }
 
         public void ManageHeatRadiation()
         {
+            if (inAtmo)
+            {
+                // radiant heating in atmosphere
+                fluxIn += frontalArea * Math.Pow(adjustedAmbient, 4) * AIREMISS * SIGMA;
+                fluxIn += leeArea * Math.Pow(Mathf.Lerp((float)ambient, (float)adjustedAmbient, leeConst), 4) * AIREMISS * SIGMA;
+            }
+            // radiant cooling
+            fluxOut += (S - shieldArea) * Math.Pow(temperature, 4) * emissiveConst * SIGMA;
+            if (hasShield)
+                fluxOut += shieldArea * Math.Pow(temperature, 4) * shieldEmissiveConst * SIGMA;
         }
 
-    }
+        public void ManageHeatAblation()
+        {
+            if (part.Resources.Contains(ablative) && lossExp > 0 && temperature > ablationTempThresh)
+            {
+                if (direction.magnitude == 0) // an empty vector means the shielding exists on all sides
+                    dot = 1;
+                else // check the angle between the shock front and the shield
+                {
+                    dot = Vector3.Dot(velocity.normalized, part.transform.TransformDirection(direction).normalized);
+                    if (dot < 0f)
+                        dot = 0f;
+                }
+                double ablativeAmount = part.Resources[ablative].amount;
+                double loss = (double)lossConst * Math.Pow(dot, 0.25) * Math.Exp(-lossExp / temperature);
+                loss *= ablativeAmount;
+                part.Resources[ablative].amount -= loss * deltaTime;
+                fluxOut += pyrolysisLoss * loss;
+            }
+        }
 
-    public class ModuleHeatShield : ModuleHeat
-    {
-        [KSPField(isPersistant = true)]
-        public int deployAnimationController; // for deployable shields
-
-        [KSPField(isPersistant = true)]
-        public FloatCurve loss = new FloatCurve();
-
-        [KSPField(isPersistant = true)]
-        public FloatCurve dissipation = new FloatCurve();
     }
 }

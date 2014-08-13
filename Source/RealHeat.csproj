@@ -32,13 +32,15 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Checkers.cs" />
-    <Compile Include="DeadlyReentry.cs">
+    <Compile Include="Utils.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DREAtmData.cs" />
-    <Compile Include="DREAtmTempCurve.cs" />
+    <Compile Include="AtmData.cs" />
+    <Compile Include="AtmTempCurve.cs" />
     <Compile Include="ModuleAnimation2Value.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RealDamage.cs" />
+    <Compile Include="RealHeat.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
