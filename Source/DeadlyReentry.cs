@@ -383,7 +383,7 @@ namespace DeadlyReentry
 
 			float tempDelta = ReentryHeat();
             part.temperature += tempDelta;
-            float fluxFactor = 1f; // compute kW per degree
+            float fluxFactor = 1f; // compute kW/m^2 per degree
             if (!(area > 0)) // i.e. using old reentry heat model rather than the new one
             {
                 // then we need to calculate the flux factor (in terms of kW / m^2 drag area)
