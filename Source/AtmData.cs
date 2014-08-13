@@ -5,12 +5,12 @@ using System.Text;
 using UnityEngine;
 using KSP;
 
-namespace DeadlyReentry
+namespace RealHeat
 {
-    public static class DREAtmDataOrganizer
+    public static class AtmDataOrganizer
     {
-        public static Dictionary<string, DREAtmosphericGasSpecies> idOrganizedListOfGasSpecies;
-        public static Dictionary<CelestialBody, DREAtmosphereComposition> bodyOrganizedListOfAtmospheres;
+        public static Dictionary<string, AtmosphericGasSpecies> idOrganizedListOfGasSpecies;
+        public static Dictionary<CelestialBody, AtmosphereComposition> bodyOrganizedListOfAtmospheres;
         static ConfigNode FARAeroData = null;
         static bool FARFound = false;
 
@@ -24,24 +24,24 @@ namespace DeadlyReentry
 
         public static void LoadConfigNodes()
         {
-            idOrganizedListOfGasSpecies = new Dictionary<string, DREAtmosphericGasSpecies>();
-            bodyOrganizedListOfAtmospheres = new Dictionary<CelestialBody, DREAtmosphereComposition>();
+            idOrganizedListOfGasSpecies = new Dictionary<string, AtmosphericGasSpecies>();
+            bodyOrganizedListOfAtmospheres = new Dictionary<CelestialBody, AtmosphereComposition>();
             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("DRE_ATM_GAS_SPECIES"))
             {
                 foreach (ConfigNode gasSpeciesNode in node.GetNodes("GAS_SPECIES"))
                 {
                     string id = gasSpeciesNode.GetValue("id");
-                    DREAtmosphericGasSpecies newSpecies = new DREAtmosphericGasSpecies(id);
+                    AtmosphericGasSpecies newSpecies = new AtmosphericGasSpecies(id);
 
                     idOrganizedListOfGasSpecies.Add(id, newSpecies);
                 }
             }
-            foreach (KeyValuePair<string, DREAtmosphericGasSpecies> pair in idOrganizedListOfGasSpecies)
+            foreach (KeyValuePair<string, AtmosphericGasSpecies> pair in idOrganizedListOfGasSpecies)
                 pair.Value.Initialize();
 
-            DREAtmosphereComposition defaultOxygenatedRocky = new DREAtmosphereComposition(), 
-                defaultUnoxygenatedRocky = new DREAtmosphereComposition(), 
-                defaultGasGiant = new DREAtmosphereComposition();
+            AtmosphereComposition defaultOxygenatedRocky = new AtmosphereComposition(), 
+                defaultUnoxygenatedRocky = new AtmosphereComposition(), 
+                defaultGasGiant = new AtmosphereComposition();
 
             float gasGiantRadius = 3000;
 
@@ -49,13 +49,13 @@ namespace DeadlyReentry
             {
                 foreach (ConfigNode atmNode in node.GetNodes("ATM_COMPOSITION"))
                 {
-                    DREAtmosphereComposition newComposition = new DREAtmosphereComposition();
+                    AtmosphereComposition newComposition = new AtmosphereComposition();
 
-                    newComposition.gasSpeciesAndMassFractions = new Dictionary<DREAtmosphericGasSpecies, float>();
+                    newComposition.gasSpeciesAndMassFractions = new Dictionary<AtmosphericGasSpecies, float>();
 
                     foreach (ConfigNode gasSpeciesNode in atmNode.GetNodes("GAS_SPECIES"))
                     {
-                        DREAtmosphericGasSpecies decompositionSpecies = DREAtmDataOrganizer.idOrganizedListOfGasSpecies[gasSpeciesNode.GetValue("id")];
+                        AtmosphericGasSpecies decompositionSpecies = AtmDataOrganizer.idOrganizedListOfGasSpecies[gasSpeciesNode.GetValue("id")];
 
                         float massFraction = float.Parse(gasSpeciesNode.GetValue("massFraction"));
                         newComposition.gasSpeciesAndMassFractions.Add(decompositionSpecies, massFraction);
@@ -90,7 +90,7 @@ namespace DeadlyReentry
                                         if (bodyNode.HasValue("gasMolecularWeight"))
                                         {
                                             float.TryParse(bodyNode.GetValue("gasMolecularWeight"), out ftmp);
-                                            newComposition.gasConstant = (float)((double)(DREAtmosphericGasSpecies.UniversalGasConstant) / (double)(ftmp));
+                                            newComposition.gasConstant = (float)((double)(AtmosphericGasSpecies.UniversalGasConstant) / (double)(ftmp));
                                         }
                                     }
                                 }
@@ -99,13 +99,13 @@ namespace DeadlyReentry
                             {
                                 double weight = 0f;
                                 double gamma = 0;
-                                foreach (KeyValuePair<DREAtmosphericGasSpecies, float> kvp in newComposition.gasSpeciesAndMassFractions)
+                                foreach (KeyValuePair<AtmosphericGasSpecies, float> kvp in newComposition.gasSpeciesAndMassFractions)
                                 {
                                     weight += kvp.Key.GetMolecularMass() * kvp.Value;
                                     double Cp = kvp.Key.CalculateCp(newComposition.referenceTemperature);
                                     gamma += (Cp / (Cp - (double)kvp.Key.GetSpecificGasConstant())) * (double)kvp.Value;
                                 }
-                                newComposition.gasConstant = (float)((double)(DREAtmosphericGasSpecies.UniversalGasConstant) / weight);
+                                newComposition.gasConstant = (float)((double)(AtmosphericGasSpecies.UniversalGasConstant) / weight);
                                 newComposition.specHeatRatio = (float)gamma;
 
                             }
@@ -143,7 +143,7 @@ namespace DeadlyReentry
             try
             {
                 tempCurveDataContainer container = (tempCurveDataContainer)o;
-                DREAtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[container.body];
+                AtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[container.body];
                 //Debug.Log("Beginning Temperature Curve Calculation");
                 Curves result = atmosphere.TemperatureAsFunctionOfVelocity(100, 5, atmosphere.maxSimVelocity);
                 container.callingCurve.protoTempCurve = result.temp;
@@ -156,12 +156,12 @@ namespace DeadlyReentry
             {
                 Debug.LogError("DRE Exception in Temperature Curve Calculation: " + e.StackTrace);
             }
-            DREAtmTempCurve.recalculatingCurve = false;
+            AtmTempCurve.recalculatingCurve = false;
         }
 
         public static float GetReferenceTemp(CelestialBody body)
         {
-            DREAtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[body];
+            AtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[body];
 
             return atmosphere.referenceTemperature;
         }
@@ -172,7 +172,7 @@ namespace DeadlyReentry
                 return 0f;
             if (bodyOrganizedListOfAtmospheres.ContainsKey(body))
             {
-                DREAtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[body];
+                AtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[body];
                 return atmosphere.specHeatRatio;
             }
             return 1.4f;
@@ -183,16 +183,16 @@ namespace DeadlyReentry
                 return 0f;
             if (bodyOrganizedListOfAtmospheres.ContainsKey(body))
             {
-                DREAtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[body];
+                AtmosphereComposition atmosphere = bodyOrganizedListOfAtmospheres[body];
                 return atmosphere.gasConstant;
             }
             return 287.103f;
         }
     }
 
-    public class DREAtmosphereComposition
+    public class AtmosphereComposition
     {
-        public Dictionary<DREAtmosphericGasSpecies, float> gasSpeciesAndMassFractions;
+        public Dictionary<AtmosphericGasSpecies, float> gasSpeciesAndMassFractions;
         public float referenceTemperature;
         public float maxSimVelocity;
         public float specHeatRatio;
@@ -203,13 +203,13 @@ namespace DeadlyReentry
             List<CurveData> tempVsVelCurve = new List<CurveData>();
             List<CurveData> velCpCurve = new List<CurveData>();
 
-            Dictionary<DREAtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions = CreateWorkingGasSpeciesAndMassFractionDict();
+            Dictionary<AtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions = CreateWorkingGasSpeciesAndMassFractionDict();
 
             float temp = referenceTemperature;
             float velocity = 0;
 
             //StringBuilder debug = new StringBuilder();
-            float oldCp = CalculateCp(workingGasSpeciesAndMassFractions, temp);
+            //float oldCp = CalculateCp(workingGasSpeciesAndMassFractions, temp);
             while (velocity < maxVel)
             {
                 int i = 0;
@@ -232,7 +232,7 @@ namespace DeadlyReentry
                 i++;
                 temp += dT_dV * dVForIntegration;
                 velocity += dVForIntegration;
-                oldCp = Cp;
+                //oldCp = Cp;
                 //debug.AppendLine("Cp: " + Cp + " dCp_dt: " + dCp_dt + " energyChange: " + energyChange + " vel: " + velocity + " temp: " + temp + " dT_dV: " + dT_dV);
             }
             //Debug.Log(debug.ToString());
@@ -243,34 +243,34 @@ namespace DeadlyReentry
         }
 
         #region dT_dV internal functions
-        private float CalculateCp(Dictionary<DREAtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions, float temp)
+        private float CalculateCp(Dictionary<AtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions, float temp)
         {
             float Cp = 0;
 
-            foreach (KeyValuePair<DREAtmosphericGasSpecies, float[]> pair in workingGasSpeciesAndMassFractions)
+            foreach (KeyValuePair<AtmosphericGasSpecies, float[]> pair in workingGasSpeciesAndMassFractions)
                 Cp += pair.Key.CalculateCp(temp) * pair.Key.CalculatePhi(temp) * pair.Value[0];
 
             return Cp;
         }
 
-        private float Calculate_dCp_dt(Dictionary<DREAtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions, float temp)
+        private float Calculate_dCp_dt(Dictionary<AtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions, float temp)
         {
             float dCp_dt = 0;
 
-            foreach (KeyValuePair<DREAtmosphericGasSpecies, float[]> pair in workingGasSpeciesAndMassFractions)
+            foreach (KeyValuePair<AtmosphericGasSpecies, float[]> pair in workingGasSpeciesAndMassFractions)
                 dCp_dt += (pair.Key.Calculate_dCp_dT(temp) * pair.Key.CalculatePhi(temp) + pair.Key.Calculate_dPhi_dT(temp) * pair.Key.CalculateCp(temp)) * pair.Value[0];
 
             return dCp_dt;
         }
 
-        private float CalculateEnergyLostThroughDecomposition(Dictionary<DREAtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions, float temp)
+        private float CalculateEnergyLostThroughDecomposition(Dictionary<AtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions, float temp)
         {
             float energy = 0;
 
-            foreach (KeyValuePair<DREAtmosphericGasSpecies, float[]> pair in workingGasSpeciesAndMassFractions)
+            foreach (KeyValuePair<AtmosphericGasSpecies, float[]> pair in workingGasSpeciesAndMassFractions)
             {
                 float heatOfFormationDecompositionSpecies = 0;
-                foreach (KeyValuePair<DREAtmosphericGasSpecies, float> pairDecomposition in pair.Key.decompositionSpeciesWithFraction)
+                foreach (KeyValuePair<AtmosphericGasSpecies, float> pairDecomposition in pair.Key.decompositionSpeciesWithFraction)
                 {
                     heatOfFormationDecompositionSpecies += pairDecomposition.Key.GetHeatOfFormation() * pairDecomposition.Value;
                 }
@@ -282,11 +282,11 @@ namespace DeadlyReentry
 
         }
 
-        private void UpdateCompositionDueToDecomposition(Dictionary<DREAtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions, float temp)
+        private void UpdateCompositionDueToDecomposition(Dictionary<AtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions, float temp)
         {
             for (int i = 0; i < workingGasSpeciesAndMassFractions.Count; i++)
             {
-                KeyValuePair<DREAtmosphericGasSpecies, float[]> pair = workingGasSpeciesAndMassFractions.ElementAt(i);
+                KeyValuePair<AtmosphericGasSpecies, float[]> pair = workingGasSpeciesAndMassFractions.ElementAt(i);
                 float currentPhi = pair.Value[0];
 
                 float tempDerivedPhi = pair.Key.CalculatePhi(temp) * pair.Value[0];
@@ -295,7 +295,7 @@ namespace DeadlyReentry
                 workingGasSpeciesAndMassFractions[pair.Key] = new float[] {tempDerivedPhi, pair.Value[1]};
                 for (int j = 0; j < workingGasSpeciesAndMassFractions.Count; j++)
                 {
-                    KeyValuePair<DREAtmosphericGasSpecies, float[]> DecompPair = workingGasSpeciesAndMassFractions.ElementAt(j);
+                    KeyValuePair<AtmosphericGasSpecies, float[]> DecompPair = workingGasSpeciesAndMassFractions.ElementAt(j);
                     if(pair.Key.decompositionSpeciesWithFraction.ContainsKey(DecompPair.Key))
                     {
                         workingGasSpeciesAndMassFractions[DecompPair.Key] = new float[]{DecompPair.Value[0] - phiDiff * pair.Key.decompositionSpeciesWithFraction[DecompPair.Key], DecompPair.Value[1]};
@@ -307,12 +307,12 @@ namespace DeadlyReentry
         #endregion
 
         #region Setup Functions
-        private Dictionary<DREAtmosphericGasSpecies, float[]> CreateWorkingGasSpeciesAndMassFractionDict()
+        private Dictionary<AtmosphericGasSpecies, float[]> CreateWorkingGasSpeciesAndMassFractionDict()
         {
-            Dictionary<DREAtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions = new Dictionary<DREAtmosphericGasSpecies, float[]>();
+            Dictionary<AtmosphericGasSpecies, float[]> workingGasSpeciesAndMassFractions = new Dictionary<AtmosphericGasSpecies, float[]>();
 
             //First, copy over the data from the default atmosphere
-            foreach (KeyValuePair<DREAtmosphericGasSpecies, float> pair in gasSpeciesAndMassFractions)
+            foreach (KeyValuePair<AtmosphericGasSpecies, float> pair in gasSpeciesAndMassFractions)
             {
                 workingGasSpeciesAndMassFractions.Add(pair.Key, new float[]{pair.Value, pair.Value});
             }
@@ -322,9 +322,9 @@ namespace DeadlyReentry
             {
                 for (int i = 0; i < workingGasSpeciesAndMassFractions.Count; i++)
                 {
-                    KeyValuePair<DREAtmosphericGasSpecies, float[]> pair = workingGasSpeciesAndMassFractions.ElementAt(i);
+                    KeyValuePair<AtmosphericGasSpecies, float[]> pair = workingGasSpeciesAndMassFractions.ElementAt(i);
 
-                    foreach (KeyValuePair<DREAtmosphericGasSpecies, float> decompositionSpecies in pair.Key.decompositionSpeciesWithFraction)
+                    foreach (KeyValuePair<AtmosphericGasSpecies, float> decompositionSpecies in pair.Key.decompositionSpeciesWithFraction)
                     {
                         if (!workingGasSpeciesAndMassFractions.ContainsKey(decompositionSpecies.Key))
                             workingGasSpeciesAndMassFractions.Add(decompositionSpecies.Key, new float[]{0, 0});
@@ -337,9 +337,9 @@ namespace DeadlyReentry
             //Set max concentrations
             for (int i = 0; i < workingGasSpeciesAndMassFractions.Count; i++)
             {
-                KeyValuePair<DREAtmosphericGasSpecies, float[]> pair = workingGasSpeciesAndMassFractions.ElementAt(i);
+                KeyValuePair<AtmosphericGasSpecies, float[]> pair = workingGasSpeciesAndMassFractions.ElementAt(i);
 
-                foreach (KeyValuePair<DREAtmosphericGasSpecies, float> decompositionSpecies in pair.Key.decompositionSpeciesWithFraction)
+                foreach (KeyValuePair<AtmosphericGasSpecies, float> decompositionSpecies in pair.Key.decompositionSpeciesWithFraction)
                 {
                     float[] tmp = workingGasSpeciesAndMassFractions[decompositionSpecies.Key];
                     tmp[1] += decompositionSpecies.Value * pair.Value[1];
@@ -349,7 +349,7 @@ namespace DeadlyReentry
 
             StringBuilder debug = new StringBuilder();
             //debug.AppendLine("Gas Species Initialized");
-            //foreach(KeyValuePair<DREAtmosphericGasSpecies, float[]> pair in workingGasSpeciesAndMassFractions)
+            //foreach(KeyValuePair<AtmosphericGasSpecies, float[]> pair in workingGasSpeciesAndMassFractions)
             //{
             //    debug.AppendLine(pair.Key.id + " Mass Fraction: " + pair.Value[0]);
             //}
@@ -360,7 +360,7 @@ namespace DeadlyReentry
         #endregion
     }
 
-    public class DREAtmosphericGasSpecies
+    public class AtmosphericGasSpecies
     {
         public string id;
 
@@ -376,7 +376,7 @@ namespace DeadlyReentry
         private float heatOfFormation;
 
         //Species that this gas decomposes into at high temperatures
-        public Dictionary<DREAtmosphericGasSpecies, float> decompositionSpeciesWithFraction;
+        public Dictionary<AtmosphericGasSpecies, float> decompositionSpeciesWithFraction;
 
         //Temperatures that this gas begins to decompose at and temperature that it ends at, in K
         private float tempBeginDecomposition;
@@ -394,7 +394,7 @@ namespace DeadlyReentry
 
         public const float UniversalGasConstant = 8314.5f;
 
-        public DREAtmosphericGasSpecies(string thisId)
+        public AtmosphericGasSpecies(string thisId)
         {
             id = thisId;
         }
@@ -425,10 +425,10 @@ namespace DeadlyReentry
 
                         heatOfFormation = float.Parse(thisNode.GetValue("heatOfFormation")) / molecularMass * 1000000;
 
-                        decompositionSpeciesWithFraction = new Dictionary<DREAtmosphericGasSpecies, float>();
+                        decompositionSpeciesWithFraction = new Dictionary<AtmosphericGasSpecies, float>();
                         foreach(ConfigNode decompositionGasSpeciesNode in thisNode.GetNodes("DECOMPOSITION_SPECIES"))
                         {
-                            DREAtmosphericGasSpecies decompositionSpecies = DREAtmDataOrganizer.idOrganizedListOfGasSpecies[decompositionGasSpeciesNode.GetValue("id")];
+                            AtmosphericGasSpecies decompositionSpecies = AtmDataOrganizer.idOrganizedListOfGasSpecies[decompositionGasSpeciesNode.GetValue("id")];
                             float massFraction = float.Parse(decompositionGasSpeciesNode.GetValue("massFraction"));
 
                             decompositionSpeciesWithFraction.Add(decompositionSpecies, massFraction);
@@ -572,14 +572,14 @@ namespace DeadlyReentry
 
     public class tempCurveDataContainer
     {
-        public tempCurveDataContainer(CelestialBody body, DREAtmTempCurve callingCurve, bool dumpToText)
+        public tempCurveDataContainer(CelestialBody body, AtmTempCurve callingCurve, bool dumpToText)
         {
             this.body = body;
             this.callingCurve = callingCurve;
             this.dumpToText = dumpToText;
         }
         public CelestialBody body;
-        public DREAtmTempCurve callingCurve;
+        public AtmTempCurve callingCurve;
         public bool dumpToText;
     }
 

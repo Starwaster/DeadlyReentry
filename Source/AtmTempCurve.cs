@@ -5,7 +5,7 @@ using System.Threading;
 using UnityEngine;
 using KSP;
 
-namespace DeadlyReentry
+namespace RealHeat
 {
     /// <summary>
     /// This class contains curves relating stagnation temperature to velocity
@@ -14,7 +14,7 @@ namespace DeadlyReentry
     /// dissocation), methods to develop the curve from atmospheric composition and
     /// the ability to dump the data in a comma delineated format
     /// </summary>
-    public class DREAtmTempCurve
+    public class AtmTempCurve
     {
         public FloatCurve tempAdditionFromVelocity = new FloatCurve();
         public CurveData[] protoTempCurve = null;
@@ -25,15 +25,14 @@ namespace DeadlyReentry
         public static bool recalculatingCurve = false;
 
 
-        public void CalculateNewDREAtmTempCurve(CelestialBody body, bool dumpText)
+        public void CalculateNewAtmTempCurve(CelestialBody body, bool dumpText)
         {
             if (recalculatingCurve)
                 return;
-
-            if (ReentryPhysics.multithreadedTempCurve)
-                ThreadPool.QueueUserWorkItem(DREAtmDataOrganizer.CalculateNewTemperatureCurve, new tempCurveDataContainer(body, this, dumpText));
+            if (RealHeatUtils.multithreadedTempCurve)
+                ThreadPool.QueueUserWorkItem(AtmDataOrganizer.CalculateNewTemperatureCurve, new tempCurveDataContainer(body, this, dumpText));
             else
-                DREAtmDataOrganizer.CalculateNewTemperatureCurve(new tempCurveDataContainer(body, this, dumpText));
+                AtmDataOrganizer.CalculateNewTemperatureCurve(new tempCurveDataContainer(body, this, dumpText));
         }
 
         public float EvaluateTempDiffCurve(float vel)
@@ -67,7 +66,7 @@ namespace DeadlyReentry
         {
             lock (_locker)
             {
-                FileStream fs = File.Open(KSPUtil.ApplicationRootPath.Replace("\\", "/") + "GameData/DeadlyReentry/" + body.bodyName + "_T_vs_V_curve.csv", FileMode.Create, FileAccess.Write);
+                FileStream fs = File.Open(KSPUtil.ApplicationRootPath.Replace("\\", "/") + "GameData/RealHeat/" + body.bodyName + "_T_vs_V_curve.csv", FileMode.Create, FileAccess.Write);
                 StreamWriter sw = new StreamWriter(fs, System.Text.Encoding.UTF8);
 
                 EvaluateTempDiffCurve(0);

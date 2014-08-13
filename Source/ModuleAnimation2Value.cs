@@ -3,7 +3,7 @@ using System.Reflection;
 using UnityEngine;
 using KSP;
 
-namespace DeadlyReentry
+namespace RealHeat
 {
     public class ModuleAnimation2Value : PartModule
     {
