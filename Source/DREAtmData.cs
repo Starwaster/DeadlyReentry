@@ -156,6 +156,7 @@ namespace DeadlyReentry
             {
                 Debug.LogError("DRE Exception in Temperature Curve Calculation: " + e.StackTrace);
             }
+            DREAtmTempCurve.recalculatingCurve = false;
         }
 
         public static float GetReferenceTemp(CelestialBody body)
@@ -220,12 +221,12 @@ namespace DeadlyReentry
                 float dT_dV = Cp + dCp_dt * temp + energyChange;
                 dT_dV = velocity / dT_dV;
 
-                //float dCp_dV = dCp_dt * dT_dV;
-                float dCp_dV = (Cp - oldCp) / dVForIntegration;
+                float dCp_dV = dCp_dt * dT_dV;
+                //float dCp_dV = (Cp - oldCp) / dVForIntegration;
                 if (i <= stepsBetweenCurvePoints)
                 {
                     tempVsVelCurve.Add(new CurveData(velocity, temp - referenceTemperature, dT_dV));
-                    velCpCurve.Add(new CurveData(velocity, Cp, dCp_dt));
+                    velCpCurve.Add(new CurveData(velocity, Cp, dCp_dV));
                 }
 
                 i++;

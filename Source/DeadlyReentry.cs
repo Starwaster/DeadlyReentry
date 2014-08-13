@@ -432,7 +432,7 @@ namespace DeadlyReentry
 			CheckForFire (velocity);
 			CheckGeeForces ();
 
-
+            
 		}
 
 		public void AddDamage(float dmg)
