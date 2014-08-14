@@ -55,7 +55,7 @@ namespace RealHeat
         public float shieldMass = 0f; // Allows one part to be both pod and shield.
 
         [KSPField(isPersistant = true)]
-        public float shieldHeatCapacity = 0f;
+        public float shieldHeatCapacity = 1f;
 
         [KSPField(isPersistant = true)]
         public float shieldEmissiveConst = 0f;
@@ -114,7 +114,7 @@ namespace RealHeat
         protected double Cd = 0.2; // Drag coefficient
         public double S = 2; // surface area (m^2)
         protected double ballisticCoeff = 600; // kg/m^2
-        protected double mass = 0; // mass this frame (tonnnes)
+        protected double mass = 1; // mass this frame (tonnnes)
         protected double temperature = 0; // part tempterature this frame (K)
         protected Vector3 velocity; // velocity vector in local reference space (m/s)
         protected float speed; // velocity magnitude (m/s)
@@ -127,6 +127,7 @@ namespace RealHeat
         public const double CTOK = 273.15; // convert Celsius to Kelvin
         public const double SIGMA = 5.670373e-8; // Stefan–Boltzmann constant
         public const double AIREMISS = 0.3;
+        public const double MASSEPSILON = 1e-20; // small value to offset mass calcs just in case
 
         public double SOLARLUM = 3.8e+26; // can't be const, since it depends on what Kerbin's SMA is.
         public const double SOLARCONST = 1370;
@@ -311,7 +312,7 @@ namespace RealHeat
                         sumArea += m.S * m.Cd;
                     sumMass += part.mass + part.GetResourceMass();
                 }
-                ballisticCoeff = sumMass * 1000 / sumArea;
+                ballisticCoeff = (sumMass + MASSEPSILON) * 1000 / sumArea;
             }
             else
             {
@@ -321,22 +322,20 @@ namespace RealHeat
             }
 
             // get mass for thermal calculations
-            if (shieldMass < 0)
+            if (shieldMass <= 0)
             {
                 if (part.rb != null)
                     mass = part.rb.mass;
-                mass = Math.Max(part.mass, mass);
+                mass = Math.Max(part.mass, mass) + MASSEPSILON;
             }
             else
-                mass = shieldMass;
+                mass = shieldMass + MASSEPSILON;
 
             // get Cd and surface area from FAR if we can, else use crazy stock stuff
             if (hasFAR)
             {
                 try
                 {
-//                    FieldInfo fiCd = FARPartModule.GetType().GetField("Cd");
-//                    FieldInfo fiS = FARPartModule.GetType().GetField("S");
                     Cd = ((double)(fiCd.GetValue(FARPartModule)));
                     S = ((double)(fiS.GetValue(FARPartModule)));
                 }
