@@ -97,7 +97,7 @@ namespace RealHeat
         public float ablationTempThresh = 573.15f; // temperature below which ablation is ignored (K)
 
         [KSPField(isPersistant = true)]
-        public float heatCapacity = 1f; // in J/g-K
+        public float heatCapacity = 480f; // in J/g-K, use default for stainless steel
 
         [KSPField(isPersistant = true)]
         public float emissiveConst = 0; // coefficient for emission
@@ -264,7 +264,7 @@ namespace RealHeat
                 adjustedAmbient = part.temperature + CTOK; // FIXME: Change to the fairing part's temperature
             else
                 if (IsShielded(velocity))
-                    adjustedAmbient = Mathf.Lerp((float)ambient, (float)(shockwave + ambient), leeConst);
+                    adjustedAmbient = ambient + shockwave * leeConst;
                 else
                     adjustedAmbient = shockwave + ambient;
             fluxIn = 0;
@@ -339,9 +339,6 @@ namespace RealHeat
 //                    FieldInfo fiS = FARPartModule.GetType().GetField("S");
                     Cd = ((double)(fiCd.GetValue(FARPartModule)));
                     S = ((double)(fiS.GetValue(FARPartModule)));
-                    S = mass * 8;
-                    Cd = 0.2;
-
                 }
                 catch (Exception e)
                 {
@@ -431,7 +428,7 @@ namespace RealHeat
                 if (node.size == 0)
                     radius2 = 0.25f;
                 logLine += ("\n +-Node: " + node.id + " [" + node.size + "m] ");
-                float cFactor = radius2 * heatConductivity * TimeWarp.fixedDeltaTime;
+                float cFactor = radius2 * heatConductivity;
                 if (part.transform != null)
                 {
                     if (!nodeArea.ContainsKey(node.id))
@@ -490,7 +487,7 @@ namespace RealHeat
                 Debug.Log(logLine + "\n");
             }
 
-            part.temperature += accumulatedExchange;
+            fluxIn = accumulatedExchange;
 
             foreach (Part p in partsToProcess)
             {
@@ -510,6 +507,7 @@ namespace RealHeat
                 fluxIn += baseFlux * frontalArea * (adjustedAmbient - part.temperature);
                 fluxIn += baseFlux * leeArea * (ambient + (adjustedAmbient - ambient) * leeConst) - part.temperature;
             }
+            //Debug.Log("Part: " + part.name + "Convection; Flux out: " + fluxOut + " Flux in: " + fluxIn);
         }
 
         public void ManageSolarHeat()
@@ -520,20 +518,38 @@ namespace RealHeat
                 retval *= 1 - (density * 0.31020408163265306122448979591837); // 7-900W at sea level     this factor is 0.38 / 1.225 to achieve that power from radiation
             retval *= SOLARLUM / (4 * Math.PI * distance);
             fluxIn += S * 0.5 * retval;
+            //Debug.Log("Part: " + part.name + "Solar; Flux out: " + fluxOut + " Flux in: " + fluxIn);
         }
 
         public void ManageHeatRadiation()
         {
+            double temperatureVal = 0;
             if (inAtmo)
             {
                 // radiant heating in atmosphere
-                fluxIn += frontalArea * Math.Pow(adjustedAmbient, 4) * AIREMISS * SIGMA;
-                fluxIn += leeArea * Math.Pow((ambient + (adjustedAmbient - ambient) * leeConst), 4) * AIREMISS * SIGMA;
+                temperatureVal = adjustedAmbient;
+                temperatureVal *= temperatureVal;
+                temperatureVal *= temperatureVal; //Doing it this way results in temp^4 very quickly
+
+                fluxIn += frontalArea * temperatureVal * AIREMISS * SIGMA;
+
+                temperatureVal = (ambient + (adjustedAmbient - ambient) * leeConst);
+                temperatureVal *= temperatureVal;
+                temperatureVal *= temperatureVal; //Doing it this way results in temp^4 very quickly
+
+                fluxIn += leeArea * temperatureVal * AIREMISS * SIGMA;
             }
             // radiant cooling
-            fluxOut += (S - shieldArea) * Math.Pow(temperature, 4) * emissiveConst * SIGMA;
+
+            temperatureVal = temperature;
+            temperatureVal *= temperatureVal;
+            temperatureVal *= temperatureVal; //Doing it this way results in temp^4 very quickly
+
+            fluxOut += (S - shieldArea) * temperatureVal * emissiveConst * SIGMA;
             if (hasShield)
-                fluxOut += shieldArea * Math.Pow(temperature, 4) * shieldEmissiveConst * SIGMA;
+                fluxOut += shieldArea * temperatureVal * shieldEmissiveConst * SIGMA;
+
+            //Debug.Log("Part: " + part.name + "Radiation; Flux out: " + fluxOut + " Flux in: " + fluxIn);
         }
 
         public void ManageHeatAblation()
