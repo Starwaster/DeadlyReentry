@@ -141,6 +141,8 @@ namespace RealHeat
         // Interaction
         private PartModule FARPartModule = null;
         private bool hasFAR = false;
+        FieldInfo fiCd = null;
+        FieldInfo fiS = null;
 
         public Dictionary<string, double> nodeArea;
 
@@ -179,11 +181,15 @@ namespace RealHeat
             {
                 FARPartModule = part.Modules["FARBasicDragModel"];
                 hasFAR = true;
+                fiCd = FARPartModule.GetType().GetField("Cd");
+                fiS = FARPartModule.GetType().GetField("SPlusAttachArea");
             }
             else if (part.Modules.Contains("FARWingAerodynamicModel"))
             {
                 FARPartModule = part.Modules["FARWingAerodynamicModel"];
                 hasFAR = true;
+                fiCd = FARPartModule.GetType().GetField("Cd");
+                fiS = FARPartModule.GetType().GetField("S");
             }
 
             if (ablative == null)
@@ -329,10 +335,12 @@ namespace RealHeat
             {
                 try
                 {
-                    FieldInfo fiCd = FARPartModule.GetType().GetField("Cd");
-                    FieldInfo fiS = FARPartModule.GetType().GetField("S");
-                    Cd = ((double)(fiCd.GetValue(FARPartModule)));
-                    S = ((double)(fiS.GetValue(FARPartModule)));
+//                    FieldInfo fiCd = FARPartModule.GetType().GetField("Cd");
+//                    FieldInfo fiS = FARPartModule.GetType().GetField("S");
+//                    Cd = ((double)(fiCd.GetValue(FARPartModule)));
+//                    S = ((double)(fiS.GetValue(FARPartModule)));
+                    S = mass * 8;
+                    Cd = 0.2;
 
                 }
                 catch (Exception e)
@@ -423,7 +431,7 @@ namespace RealHeat
                 if (node.size == 0)
                     radius2 = 0.25f;
                 logLine += ("\n +-Node: " + node.id + " [" + node.size + "m] ");
-                float cFactor = radius2 * heatConductivity * Time.deltaTime;
+                float cFactor = radius2 * heatConductivity * TimeWarp.fixedDeltaTime;
                 if (part.transform != null)
                 {
                     if (!nodeArea.ContainsKey(node.id))
@@ -444,7 +452,7 @@ namespace RealHeat
                         if (otherNode == null)
                         {   // TODO: Find the nearest two nodes and compute the average temperature.
                             // for now, we'll just exchange directly with the part's CoM.
-                            float cFactor2 = radius2 * Time.deltaTime;
+                            float cFactor2 = radius2 * TimeWarp.fixedDeltaTime;
                             float deltaT = ((float)nodeArea[node.id] - p.temperature);
                             nodeArea[node.id] += deltaT * cFactor2 * heatConductivity * 4f;
                             p.temperature -= deltaT * cFactor2 * heatConductivity * 4f;
@@ -468,7 +476,7 @@ namespace RealHeat
                                     if (otherNode.size == 0)
                                         radius2 = 0.25f;
                                 }
-                                float cFactor2 = radius2 * Time.deltaTime;
+                                float cFactor2 = radius2 * TimeWarp.fixedDeltaTime;
 
                                 float deltaT = ((float)heatModule.nodeArea[otherNode.id] - (float)nodeArea[node.id]);
 
@@ -500,7 +508,7 @@ namespace RealHeat
                 // convective heating in atmosphere
                 double baseFlux = RealHeatUtils.heatMultiplier * Cp * Math.Sqrt(speed) * Math.Sqrt(density);
                 fluxIn += baseFlux * frontalArea * (adjustedAmbient - part.temperature);
-                fluxIn += baseFlux * leeArea * (Mathf.Lerp((float)ambient, (float)adjustedAmbient, leeConst) - part.temperature);
+                fluxIn += baseFlux * leeArea * (ambient + (adjustedAmbient - ambient) * leeConst) - part.temperature;
             }
         }
 
@@ -509,7 +517,7 @@ namespace RealHeat
             double distance = (Planetarium.fetch.Sun.transform.position - vessel.transform.position).sqrMagnitude;
             double retval = 1.0;
             if (inAtmo)
-                retval *= 1 - (density / 1.225)*0.38; // 7-900W at sea level
+                retval *= 1 - (density * 0.31020408163265306122448979591837); // 7-900W at sea level     this factor is 0.38 / 1.225 to achieve that power from radiation
             retval *= SOLARLUM / (4 * Math.PI * distance);
             fluxIn += S * 0.5 * retval;
         }
@@ -520,7 +528,7 @@ namespace RealHeat
             {
                 // radiant heating in atmosphere
                 fluxIn += frontalArea * Math.Pow(adjustedAmbient, 4) * AIREMISS * SIGMA;
-                fluxIn += leeArea * Math.Pow(Mathf.Lerp((float)ambient, (float)adjustedAmbient, leeConst), 4) * AIREMISS * SIGMA;
+                fluxIn += leeArea * Math.Pow((ambient + (adjustedAmbient - ambient) * leeConst), 4) * AIREMISS * SIGMA;
             }
             // radiant cooling
             fluxOut += (S - shieldArea) * Math.Pow(temperature, 4) * emissiveConst * SIGMA;

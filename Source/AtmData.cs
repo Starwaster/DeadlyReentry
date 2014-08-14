@@ -26,7 +26,7 @@ namespace RealHeat
         {
             idOrganizedListOfGasSpecies = new Dictionary<string, AtmosphericGasSpecies>();
             bodyOrganizedListOfAtmospheres = new Dictionary<CelestialBody, AtmosphereComposition>();
-            foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("DRE_ATM_GAS_SPECIES"))
+            foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RH_ATM_GAS_SPECIES"))
             {
                 foreach (ConfigNode gasSpeciesNode in node.GetNodes("GAS_SPECIES"))
                 {
@@ -45,7 +45,7 @@ namespace RealHeat
 
             float gasGiantRadius = 3000;
 
-            foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("DRE_ATM_COMPOSITIONS"))
+            foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RH_ATM_COMPOSITIONS"))
             {
                 foreach (ConfigNode atmNode in node.GetNodes("ATM_COMPOSITION"))
                 {
@@ -401,7 +401,7 @@ namespace RealHeat
 
         public void Initialize()
         {
-            foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("DRE_ATM_GAS_SPECIES"))
+            foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("RH_ATM_GAS_SPECIES"))
             {
                 foreach(ConfigNode gasSpeciesNode in node.GetNodes("GAS_SPECIES"))
                 {
