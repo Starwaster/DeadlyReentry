@@ -120,7 +120,7 @@ namespace RealHeat
         protected float speed; // velocity magnitude (m/s)
         protected double fluxIn = 0; // heat flux in, kW/m^2
         protected double fluxOut = 0; // heat flux out, kW/m^2
-        protected float temperatutreDelta = 0f; // change in temperature (K)
+        protected float temperatureDelta = 0f; // change in temperature (K)
         protected double frontalArea = 1;
         protected double leeArea = 1;
 
@@ -341,7 +341,7 @@ namespace RealHeat
                 }
                 catch (Exception e)
                 {
-                    Debug.Log("[RF]: error getting drag area" + e.Message);
+                    Debug.Log("[RH]: error getting drag area" + e.Message);
                     S = mass * 8;
                     Cd = 0.2;
                 }
@@ -369,8 +369,8 @@ namespace RealHeat
             fluxIn *= 0.001 * deltaTime; // convert to kW then to the amount of time passed
             fluxOut *= 0.001 * deltaTime; // convert to kW then to the amount of time passed
 
-            temperatutreDelta = CalculateTemperatureDelta();
-            part.temperature += temperatutreDelta;
+            temperatureDelta = CalculateTemperatureDelta();
+            part.temperature += temperatureDelta;
             
             if (part.temperature < -253) // clamp to 20K
                 part.temperature = -253;
