@@ -337,8 +337,8 @@ namespace RealHeat
                 {
 //                    FieldInfo fiCd = FARPartModule.GetType().GetField("Cd");
 //                    FieldInfo fiS = FARPartModule.GetType().GetField("S");
-//                    Cd = ((double)(fiCd.GetValue(FARPartModule)));
-//                    S = ((double)(fiS.GetValue(FARPartModule)));
+                    Cd = ((double)(fiCd.GetValue(FARPartModule)));
+                    S = ((double)(fiS.GetValue(FARPartModule)));
                     S = mass * 8;
                     Cd = 0.2;
 
