@@ -22,10 +22,13 @@ namespace RealHeat
         public CurveData[] protoVelCpCurve = null;
         public float referenceTemp = 300;
         private static readonly object _locker = new object();
+        public static bool recalculatingCurve = false;
 
 
         public void CalculateNewAtmTempCurve(CelestialBody body, bool dumpText)
         {
+            if (recalculatingCurve)
+                return;
             if (RealHeatUtils.multithreadedTempCurve)
                 ThreadPool.QueueUserWorkItem(AtmDataOrganizer.CalculateNewTemperatureCurve, new tempCurveDataContainer(body, this, dumpText));
             else
@@ -37,6 +40,7 @@ namespace RealHeat
             if(protoTempCurve != null)
             {
                 tempAdditionFromVelocity = new FloatCurve();
+                Debug.Log("Building Temperature Curve Object...");
                 foreach(CurveData data in protoTempCurve)
                 {
                     tempAdditionFromVelocity.Add(data.x, data.y, data.dy_dx, data.dy_dx);
@@ -50,11 +54,12 @@ namespace RealHeat
             if (protoVelCpCurve != null)
             {
                 velCpCurve = new FloatCurve();
+                Debug.Log("Building Cp Curve Object...");
                 foreach (CurveData data in protoVelCpCurve)
                 {
                     velCpCurve.Add(data.x, data.y, data.dy_dx, data.dy_dx);
                 }
-                protoTempCurve = null;
+                protoVelCpCurve = null;
             }
             return velCpCurve.Evaluate(vel);
         }
