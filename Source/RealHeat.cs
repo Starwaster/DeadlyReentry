@@ -97,7 +97,7 @@ namespace RealHeat
         public float ablationTempThresh = 573.15f; // temperature below which ablation is ignored (K)
 
         [KSPField(isPersistant = true)]
-        public float heatCapacity = 480f; // in J/g-K, use default for stainless steel
+        public float heatCapacity = 480f; // in J/kg-K, use default for stainless steel
 
         [KSPField(isPersistant = true)]
         public float emissiveConst = 0; // coefficient for emission
@@ -275,7 +275,7 @@ namespace RealHeat
         {
             double flux = fluxIn - fluxOut;
             double multiplier = (mass - shieldMass) * heatCapacity + shieldMass * shieldHeatCapacity;
-            multiplier *= 1000; // convert J/gK to kJ/tK
+            //multiplier *= 1000; // convert J/kg K to kJ/t K results in everything cancelling nicely
             return (float)(flux / multiplier);
         }
 
@@ -416,7 +416,7 @@ namespace RealHeat
                 return;
 
             float accumulatedExchange = 0f;
-            string logLine = "Part: " + part.name + " (temp " + part.temperature.ToString() + " / conductivity " + heatConductivity.ToString() + ")";
+            //string logLine = "Part: " + part.name + " (temp " + part.temperature.ToString() + " / conductivity " + heatConductivity.ToString() + ")";
             List<Part> partsToProcess = new List<Part>(part.children);
             if (part.parent != null)
                 partsToProcess.Add(part.parent);
@@ -426,13 +426,13 @@ namespace RealHeat
                 float radius2 = node.size * node.size;
                 if (node.size == 0)
                     radius2 = 0.25f;
-                logLine += ("\n +-Node: " + node.id + " [" + node.size + "m] ");
+                //logLine += ("\n +-Node: " + node.id + " [" + node.size + "m] ");
                 float cFactor = radius2 * heatConductivity;
                 if (part.transform != null)
                 {
                     if (!nodeArea.ContainsKey(node.id))
                         nodeArea.Add(node.id, part.temperature);
-                    logLine += " temp " + nodeArea[node.id];
+                    //logLine += " temp " + nodeArea[node.id];
 
                     float d = 1f + (part.transform.position - node.position).magnitude;
                     float exchange = cFactor * (part.temperature - (float)nodeArea[node.id]) / d;
@@ -442,7 +442,7 @@ namespace RealHeat
                     Part p = node.attachedPart;
                     if (p != null && p.isAttached && part.isAttached)
                     {
-                        logLine += " - " + p.name;
+                        //logLine += " - " + p.name;
                         partsToProcess.Remove(p);
                         AttachNode otherNode = p.findAttachNodeByPart(part);
                         if (otherNode == null)
@@ -455,7 +455,7 @@ namespace RealHeat
                         }
                         else
                         {
-                            logLine += " (Node: " + otherNode.id + " + [" + otherNode.size + "m]) ";
+                            //logLine += " (Node: " + otherNode.id + " + [" + otherNode.size + "m]) ";
                             ModuleRealHeat heatModule = (ModuleRealHeat)p.Modules["ModuleRealHeat"];
                             if (heatModule == null)
                             {
@@ -478,15 +478,15 @@ namespace RealHeat
 
                                 nodeArea[node.id] += deltaT * cFactor2 * (heatConductivity + heatModule.heatConductivity);
                                 heatModule.nodeArea[otherNode.id] -= deltaT * cFactor2 * (heatConductivity + heatModule.heatConductivity);
-                                logLine += "flow: " + (deltaT * cFactor2).ToString();
+                                //logLine += "flow: " + (deltaT * cFactor2).ToString();
                             }
                         }
                     }
                 }
-                Debug.Log(logLine + "\n");
+                //Debug.Log(logLine + "\n");
             }
 
-            fluxIn = accumulatedExchange;
+            fluxOut = accumulatedExchange;
 
             foreach (Part p in partsToProcess)
             {
