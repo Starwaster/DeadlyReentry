@@ -377,7 +377,8 @@ namespace RealHeat
 
             displayFluxIn = (float)fluxIn;
             displayFluxOut = (float)fluxOut;
-            displayAmbient = ambient.ToString("F0") + "C";
+            displayShockwave = (ambient + shockwave - CTOK).ToString("F0") + "C";
+            displayAmbient = (ambient - CTOK).ToString("F0") + "C";
             displayTemperature = part.temperature;
         }
 
@@ -431,11 +432,11 @@ namespace RealHeat
                 if (part.transform != null)
                 {
                     if (!nodeArea.ContainsKey(node.id))
-                        nodeArea.Add(node.id, part.temperature);
+                        nodeArea.Add(node.id, temperature);
                     //logLine += " temp " + nodeArea[node.id];
 
                     float d = 1f + (part.transform.position - node.position).magnitude;
-                    float exchange = cFactor * (part.temperature - (float)nodeArea[node.id]) / d;
+                    float exchange = cFactor * ((float)temperature - (float)nodeArea[node.id]) / d;
                     accumulatedExchange -= exchange;
                     nodeArea[node.id] += exchange;
 
@@ -449,7 +450,7 @@ namespace RealHeat
                         {   // TODO: Find the nearest two nodes and compute the average temperature.
                             // for now, we'll just exchange directly with the part's CoM.
                             float cFactor2 = radius2 * TimeWarp.fixedDeltaTime;
-                            float deltaT = ((float)nodeArea[node.id] - p.temperature);
+                            float deltaT = ((float)nodeArea[node.id] - (p.temperature + (float)CTOK));
                             nodeArea[node.id] += deltaT * cFactor2 * heatConductivity * 4f;
                             p.temperature -= deltaT * cFactor2 * heatConductivity * 4f;
                         }
@@ -486,7 +487,7 @@ namespace RealHeat
                 //Debug.Log(logLine + "\n");
             }
 
-            fluxOut = accumulatedExchange;
+            fluxIn = accumulatedExchange;
 
             foreach (Part p in partsToProcess)
             {
@@ -503,8 +504,8 @@ namespace RealHeat
             {
                 // convective heating in atmosphere
                 double baseFlux = RealHeatUtils.heatMultiplier * Cp * Math.Sqrt(speed) * Math.Sqrt(density);
-                fluxIn += baseFlux * frontalArea * (adjustedAmbient - part.temperature);
-                fluxIn += baseFlux * leeArea * (ambient + (adjustedAmbient - ambient) * leeConst) - part.temperature;
+                fluxIn += baseFlux * frontalArea * (adjustedAmbient - temperature);
+                fluxIn += baseFlux * leeArea * (ambient + (adjustedAmbient - ambient) * leeConst - temperature);
             }
             //Debug.Log("Part: " + part.name + "Convection; Flux out: " + fluxOut + " Flux in: " + fluxIn);
         }

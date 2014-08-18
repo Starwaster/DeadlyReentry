@@ -89,7 +89,7 @@ namespace RealHeat
 
         public static float shockwaveMultiplier = 1.0f;
         public static float shockwaveExponent = 1.0f;
-        public static float heatMultiplier = 20.0f;
+        public static float heatMultiplier = 1.0f;
 		public static float temperatureExponent = 1.0f;
 		public static float densityExponent = 1.0f;
 
