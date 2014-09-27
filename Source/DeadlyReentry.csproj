@@ -14,10 +14,10 @@
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>True</DebugSymbols>
-    <DebugType>full</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
     <Optimize>False</Optimize>
-    <OutputPath>..</OutputPath>
+    <OutputPath>..\DeadlyReentry\Plugins\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -35,8 +35,6 @@
     <Compile Include="DeadlyReentry.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DREAtmData.cs" />
-    <Compile Include="DREAtmTempCurve.cs" />
     <Compile Include="ModuleAnimation2Value.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -52,10 +50,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>rd /s /q ..\..\Source\bin
-rd /s /q ..\..\Source\obj
-del *.pdb
-del "System.Core.dll"</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
