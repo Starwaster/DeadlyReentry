@@ -328,6 +328,8 @@ namespace DeadlyReentry
 
 		public void FixedUpdate ()
 		{
+            if (HighLogic.LoadedSceneIsEditor)
+                return;
 			Rigidbody rb = part.Rigidbody;
             deltaTime = TimeWarp.fixedDeltaTime;
             density = ReentryPhysics.frameDensity; // close enough
