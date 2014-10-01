@@ -23,6 +23,20 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v5.3
+*DRE will now calculate atmospheric density from temperature and pressure, assuming an atmosphere like Earth's.
+*Chute-cutting logic improved; tweakable max chute temperature added.
+*Removed B9 part configs (done by the B9 mod itself).
+*Display ambient temperature in right-click menu.
+*Corrected Celsius/Kelvin conversions, clamp part temperature to absolute zero.
+*Sped up the update loop a fair amount
+*Fixed a shielding raycast bug
+*Avoid some VAB/SPH slowdown/logspam
+*Use vessel velocity as the reference frame, not the part (might help with rotors and wobbling parts)
+*Made burnup FX (when a part is burning up) occur higher in the atmosphere
+*Allow tweaking the reentry FX by applying an exponent to density as used by it. Defaults to 0.7, so they start appearing earlier on reentry than they used to.
+*Tweak part burning rate and damage handling.
+
 v5.2
 *Updated for 0.24.2
 

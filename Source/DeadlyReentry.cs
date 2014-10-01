@@ -499,16 +499,16 @@ namespace DeadlyReentry
                     {
                         // Handle client-side fire stuff.
                         // OH GOD IT'S ON FIRE.
-                        float tempRatio = part.temperature / part.maxTemp;
-                        AddDamage(deltaTime * (damage + 0.05f) * tempRatio / part.mass);
-                        PlaySound(ablationFX, tempRatio * tempRatio);
-
-                        new GameEvents.ExplosionReaction(0, damage);
+                        float tempRatio = (part.temperature / damageThreshold) - 1f;
+                        tempRatio *= (part.temperature / part.maxTemp) * (part.temperature / part.maxTemp) * 4f;
+                        AddDamage(deltaTime * (damage + 1.0f) * tempRatio);
+                        float soundTempRatio = part.temperature / part.maxTemp;
+                        PlaySound(ablationFX, soundTempRatio * soundTempRatio);
 
                         if (is_engine && damage < 1)
                             part.temperature = UnityEngine.Random.Range(0.97f + 0.05f * damage, 0.98f + 0.05f * damage) * part.maxTemp;
                         else if (damage < 1)// non-engines can keep burning
-                            part.temperature = (tempRatio * (1 - damage) + 0.9f * damage) * part.maxTemp;
+                            part.temperature += UnityEngine.Random.Range(0.5f + 0.5f * damage, 1.0f + 0.5f * damage) * (tempRatio * 0.04f * part.maxTemp * deltaTime);
 
                         if (part.temperature > part.maxTemp || damage >= 1.0f)
                         { // has it burnt up completely?
