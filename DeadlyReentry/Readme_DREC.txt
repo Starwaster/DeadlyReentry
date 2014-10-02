@@ -36,6 +36,8 @@ v5.3
 *Made burnup FX (when a part is burning up) occur higher in the atmosphere
 *Allow tweaking the reentry FX by applying an exponent to density as used by it. Defaults to 0.7, so they start appearing earlier on reentry than they used to.
 *Tweak part burning rate and damage handling.
+*Tweak drag etc of inflatable shield (Starwaster)
+*FINAL PRE-STARWASTER EDITION
 
 v5.2
 *Updated for 0.24.2
