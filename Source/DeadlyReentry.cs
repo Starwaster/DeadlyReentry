@@ -11,6 +11,8 @@ namespace DeadlyReentry
 	{
         public const float CTOK = 273.15f;
 
+        protected bool isCompatible = true;
+
 
 		UIPartActionWindow _myWindow = null; 
 		UIPartActionWindow myWindow {
@@ -190,6 +192,11 @@ namespace DeadlyReentry
         public override void OnAwake()
         {
             base.OnAwake();
+            if (!CompatibilityChecker.IsCompatible())
+            {
+                isCompatible = false;
+                return;
+            }
             if (part && part.Modules != null) // thanks, FlowerChild!
             {
                 is_engine = (part.Modules.Contains("ModuleEngines") || part.Modules.Contains("ModuleEnginesFX"));
@@ -232,6 +239,8 @@ namespace DeadlyReentry
 
 		public override void OnStart (StartState state)
 		{
+            if (!isCompatible)
+                return;
             counter = 0;
 			if (state == StartState.Editor)
 				return;
@@ -328,7 +337,7 @@ namespace DeadlyReentry
 
 		public void FixedUpdate ()
 		{
-            if (!HighLogic.LoadedSceneIsFlight)
+            if (!HighLogic.LoadedSceneIsFlight || !isCompatible)
                 return;
 			Rigidbody rb = part.Rigidbody;
             deltaTime = TimeWarp.fixedDeltaTime;
@@ -681,6 +690,9 @@ namespace DeadlyReentry
 	{
 		public void Start()
 		{
+            if (!CompatibilityChecker.IsCompatible())
+                return;
+
 			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS")) {
 				if(node.HasValue("ridiculousMaxTemp")) {
 					float maxTemp;
@@ -737,6 +749,7 @@ namespace DeadlyReentry
 	[KSPAddon(KSPAddon.Startup.Flight, false)]
     public class ReentryPhysics : MonoBehaviour
     {
+        protected bool isCompatible = true;
 		private static AerodynamicsFX _afx;
 
         public static AerodynamicsFX afx {
@@ -781,6 +794,11 @@ namespace DeadlyReentry
 
 		public void Start()
 		{
+            if (!CompatibilityChecker.IsCompatible())
+            {
+                isCompatible = false;
+                return;
+            }
             enabled = true; // 0.24 compatibility
 			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS")) {
                 if(node.HasValue("shockwaveExponent"))
@@ -829,7 +847,7 @@ namespace DeadlyReentry
 
         public void OnGUI()
         {
-            if (debugging)
+            if (isCompatible && debugging)
             {
                 windowPos = GUILayout.Window("DeadlyReentry".GetHashCode(), windowPos, DrawWindow, "Deadly Reentry 2.0 Setup");
             }
@@ -848,6 +866,8 @@ namespace DeadlyReentry
 
 		public void FixedUpdate()
 		{
+            if (!isCompatible)
+                return;
 			FixAeroFX (afx);
 			frameVelocity = Krakensbane.GetFrameVelocityV3f() - Krakensbane.GetLastCorrection() * TimeWarp.fixedDeltaTime;
             if((object)FlightGlobals.ActiveVessel != null) // FIXME only valid for Earthlike atmospheres
@@ -857,11 +877,15 @@ namespace DeadlyReentry
 
 		public void LateUpdate()
 		{
+            if (!isCompatible)
+                return;
 			FixAeroFX (afx);
 		}
 
         public void Update()
         {
+            if (!isCompatible)
+                return;
             if (Input.GetKeyDown(KeyCode.R) && Input.GetKey(KeyCode.LeftAlt) && Input.GetKey(KeyCode.D))
             {
                 debugging = !debugging;
