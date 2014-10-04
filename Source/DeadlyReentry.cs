@@ -313,14 +313,14 @@ namespace DeadlyReentry
                         if (!(bool)rCType.GetProperty("anyDeployed").GetValue(realChute, null))
                             rCType.GetMethod("GUICut").Invoke(realChute, null);
                     }
-                    if (IsShielded(velocity))
-                        displayShockwave = "Shielded";
-                    else
-                    {
-                        if (is_debugging)
-                            displayShockwave = shockwave.ToString("F0") + "C";
-                        return AdjustedHeat(ReentryPhysics.TemperatureDelta(density, shockwave + CTOK, part.temperature + CTOK));
-                    }
+                }
+                if (IsShielded(velocity))
+                    displayShockwave = "Shielded";
+                else
+                {
+                    if (is_debugging)
+                        displayShockwave = shockwave.ToString("F0") + "C";
+                    return AdjustedHeat(ReentryPhysics.TemperatureDelta(density, shockwave + CTOK, part.temperature + CTOK));
                 }
             }
             return 0;
@@ -328,11 +328,12 @@ namespace DeadlyReentry
 
 		public void FixedUpdate ()
 		{
-            if (HighLogic.LoadedSceneIsEditor)
+            if (!HighLogic.LoadedSceneIsFlight)
                 return;
 			Rigidbody rb = part.Rigidbody;
             deltaTime = TimeWarp.fixedDeltaTime;
-            density = ReentryPhysics.frameDensity; // close enough
+            density = (float)(part.vessel.staticPressure * 101325 / (287.058 * (part.vessel.flightIntegrator.getExternalTemperature() + CTOK)));
+            // calc here again, just in case. ReentryPhysics.frameDensity; // close enough
 
 			if (!rb || part.physicalSignificance == Part.PhysicalSignificance.NONE)
 				return;
@@ -850,7 +851,7 @@ namespace DeadlyReentry
 			FixAeroFX (afx);
 			frameVelocity = Krakensbane.GetFrameVelocityV3f() - Krakensbane.GetLastCorrection() * TimeWarp.fixedDeltaTime;
             if((object)FlightGlobals.ActiveVessel != null) // FIXME only valid for Earthlike atmospheres
-                frameDensity = (float)(FlightGlobals.ActiveVessel.staticPressure / (287.058 * (FlightGlobals.ActiveVessel.flightIntegrator.getExternalTemperature() + 273.15)));
+                frameDensity = (float)(FlightGlobals.ActiveVessel.staticPressure *101325 / (287.058 * (FlightGlobals.ActiveVessel.flightIntegrator.getExternalTemperature() + 273.15)));
 
 		}
 

@@ -23,6 +23,9 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v5.3.1
+*Fixed stupid typos (thanks Starwaster). Apologies, folks.
+
 v5.3
 *DRE will now calculate atmospheric density from temperature and pressure, assuming an atmosphere like Earth's.
 *Chute-cutting logic improved; tweakable max chute temperature added.
