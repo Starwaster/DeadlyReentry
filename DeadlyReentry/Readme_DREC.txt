@@ -23,6 +23,10 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v5.3.2
+*Revert to prior adjustCollider functionality; small parts should be shielded again.
+*No longer ignore heating on physics-disabled parts.
+
 v5.3.1
 *Fixed stupid typos (thanks Starwaster). Apologies, folks.
 
