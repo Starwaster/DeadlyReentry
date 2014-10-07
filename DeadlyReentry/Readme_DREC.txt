@@ -1,9 +1,11 @@
-This update is by NathanKell.
-ialdabaoth (who is awesome) created Deadly Reentry 2, based on r4m0n's Deadly Reentry; this is a continuation.
+This update is by Starwaster
+ialdabaoth (who is awesome) created Deadly Reentry 2, based on r4m0n's Deadly Reentry; this is a continuation. This continues NathanKell's work on Deadly Reentry continued, and he might contribute more at times.
 
 License remains CC-BY-SA as modified by ialdabaoth.
-Also included: Module Manager (by sarbian and ialdabaoth). See Module Manager thread for details and license and source: http://http://forum.kerbalspaceprogram.com/threads/55219
+Also included: Module Manager (by sarbian, swamp_ig, and ialdabaoth). See Module Manager thread for details and license and source: http://http://forum.kerbalspaceprogram.com/threads/55219
 Module Manager is required for DREC to work.
+
+Note: Does not support KSP 0.25 Windows x64 release.
 
 A note on settings:
 1. Playing on Stock Kerbin, want traditional DRE functionality: don't change anything.
@@ -23,6 +25,12 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v6.0
+*Support KSP 0.25
+*Reverted to old density exponent
+*Support SPP stock parts
+*Give wings heat shielding
+
 v5.3.2
 *Revert to prior adjustCollider functionality; small parts should be shielded again.
 *No longer ignore heating on physics-disabled parts.
