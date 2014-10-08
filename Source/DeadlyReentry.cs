@@ -192,7 +192,7 @@ namespace DeadlyReentry
         public override void OnAwake()
         {
             base.OnAwake();
-            if (!CompatibilityChecker.IsCompatible())
+            if (!CompatibilityChecker.IsAllCompatible())
             {
                 isCompatible = false;
                 return;
@@ -271,7 +271,7 @@ namespace DeadlyReentry
             if (GetShieldedStateFromFAR() == true)
             	return true;
             
-            Ray ray = new Ray(part.transform.position + direction.normalized * (1.0f+adjustCollider), direction.normalized);
+            Ray ray = new Ray(part.transform.position + direction.normalized * (adjustCollider), direction.normalized);
 			RaycastHit[] hits = Physics.RaycastAll (ray, 10);
 			foreach (RaycastHit hit in hits) {
 				if(hit.rigidbody != null && hit.collider != part.collider && hit.collider.attachedRigidbody != part.Rigidbody) {
@@ -339,13 +339,13 @@ namespace DeadlyReentry
 		{
             if (!HighLogic.LoadedSceneIsFlight || !isCompatible)
                 return;
-			Rigidbody rb = part.Rigidbody;
+			//Rigidbody rb = part.Rigidbody;
             deltaTime = TimeWarp.fixedDeltaTime;
             density = (float)(part.vessel.staticPressure * 101325 / (287.058 * (part.vessel.flightIntegrator.getExternalTemperature() + CTOK)));
             // calc here again, just in case. ReentryPhysics.frameDensity; // close enough
 
-			if (!rb || part.physicalSignificance == Part.PhysicalSignificance.NONE)
-				return;
+			/*if (!rb || part.physicalSignificance == Part.PhysicalSignificance.NONE)
+				return;*/
 
 			if (is_debugging != ReentryPhysics.debugging)
 			{
@@ -690,7 +690,7 @@ namespace DeadlyReentry
 	{
 		public void Start()
 		{
-            if (!CompatibilityChecker.IsCompatible())
+            if (!CompatibilityChecker.IsAllCompatible())
                 return;
 
 			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS")) {
@@ -794,7 +794,7 @@ namespace DeadlyReentry
 
 		public void Start()
 		{
-            if (!CompatibilityChecker.IsCompatible())
+            if (!CompatibilityChecker.IsAllCompatible())
             {
                 isCompatible = false;
                 return;
