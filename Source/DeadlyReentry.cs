@@ -274,7 +274,7 @@ namespace DeadlyReentry
             Ray ray = new Ray(part.transform.position + direction.normalized * (1.0f+adjustCollider), direction.normalized);
 			RaycastHit[] hits = Physics.RaycastAll (ray, 10);
 			foreach (RaycastHit hit in hits) {
-				if(hit.rigidbody != null && hit.collider != part.collider) {
+				if(hit.rigidbody != null && hit.collider != part.collider && hit.collider.attachedRigidbody != part.Rigidbody) {
 					return true;
 				}
 			}

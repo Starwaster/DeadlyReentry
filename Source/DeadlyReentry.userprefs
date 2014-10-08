@@ -1,22 +1,9 @@
 ﻿<Properties>
-  <MonoDevelop.Ide.Workspace ActiveConfiguration="Release" PreferredExecutionTarget="MonoDevelop.Default" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="DeadlyReentry.cs">
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="MonoDevelop.Default" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="DRToolBar.cs">
     <Files>
-      <File FileName="DeadlyReentry.cs" Line="51" Column="13" />
-      <File FileName="ModuleAnimation2Value.cs" Line="1" Column="1" />
-      <File FileName="Properties/AssemblyInfo.cs" Line="1" Column="1" />
+      <File FileName="DRToolBar.cs" Line="102" Column="28" />
     </Files>
-    <Pads>
-      <Pad Id="ProjectPad">
-        <State expanded="True">
-          <Node name="DeadlyReentry" expanded="True">
-            <Node name="References" expanded="True" />
-            <Node name="Properties" expanded="True" />
-            <Node name="DeadlyReentry.cs" selected="True" />
-          </Node>
-        </State>
-      </Pad>
-    </Pads>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
     <BreakpointStore />
