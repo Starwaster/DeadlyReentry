@@ -273,8 +273,10 @@ namespace DeadlyReentry
             
             Ray ray = new Ray(part.transform.position + direction.normalized * (adjustCollider), direction.normalized);
 			RaycastHit[] hits = Physics.RaycastAll (ray, 10);
-			foreach (RaycastHit hit in hits) {
-				if(hit.rigidbody != null && hit.collider != part.collider && hit.collider.attachedRigidbody != part.Rigidbody) {
+			foreach (RaycastHit hit in hits) 
+			{
+				if(hit.rigidbody != null && hit.collider != part.collider && hit.collider.attachedRigidbody != part.Rigidbody) 
+				{
 					return true;
 				}
 			}
@@ -311,17 +313,20 @@ namespace DeadlyReentry
                 {
                     bool cut = ambient + Math.Pow(density, ReentryPhysics.densityExponent) * shockwave * 10f
                     > part.maxTemp * ReentryPhysics.parachuteTempMult;
-                    if ((object)parachute != null)
-                    {
-                        ModuleParachute p = parachute;
-                        if (p.deploymentState == ModuleParachute.deploymentStates.DEPLOYED || p.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED)
-                            p.CutParachute();
-                    }
-                    if ((object)realChute != null)
-                    {
-                        if (!(bool)rCType.GetProperty("anyDeployed").GetValue(realChute, null))
-                            rCType.GetMethod("GUICut").Invoke(realChute, null);
-                    }
+					if (cut)
+					{
+	                    if ((object)parachute != null)
+	                    {
+	                        ModuleParachute p = parachute;
+	                        if (p.deploymentState == ModuleParachute.deploymentStates.DEPLOYED || p.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED)
+	                            p.CutParachute();
+	                    }
+	                    if ((object)realChute != null)
+	                    {
+	                        if (!(bool)rCType.GetProperty("anyDeployed").GetValue(realChute, null))
+	                            rCType.GetMethod("GUICut").Invoke(realChute, null);
+	                    }
+					}
                 }
                 if (IsShielded(velocity))
                     displayShockwave = "Shielded";
