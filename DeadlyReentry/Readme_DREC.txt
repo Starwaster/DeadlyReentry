@@ -25,6 +25,15 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v6.1
+*Fixed typos in SPP.cfg and Wings.cfg (some parts were not getting
+shielded)
+*Additional sanity check when raycasting for parts shielding parts.
+*Added logic check to make sure a chute was actually exposed to
+damaging temperatures when deployed
+*Groundwork for toolbar support. (in-game difficulty per save game
+coming soon)
+
 v6.0
 *Support KSP 0.25
 *Reverted to old density exponent
