@@ -1,15 +1,15 @@
 ﻿<Properties>
-  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Checkers.cs">
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Release" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="DeadlyReentry.cs">
     <Files>
       <File FileName="DRToolBar.cs" Line="60" Column="6" />
-      <File FileName="DeadlyReentry.cs" Line="326" Column="4" />
-      <File FileName="Checkers.cs" Line="68" Column="71" />
+      <File FileName="DeadlyReentry.cs" Line="273" Column="17" />
+      <File FileName="Checkers.cs" Line="152" Column="174" />
     </Files>
     <Pads>
       <Pad Id="ProjectPad">
-        <State expanded="True" selected="True">
-          <Node name="DeadlyReentry" expanded="True" />
+        <State expanded="True">
+          <Node name="DeadlyReentry" expanded="True" selected="True" />
         </State>
       </Pad>
     </Pads>

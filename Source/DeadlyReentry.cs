@@ -10,6 +10,7 @@ namespace DeadlyReentry
 	public class ModuleAeroReentry: PartModule
 	{
         public const float CTOK = 273.15f;
+        public double specificGasConstant = 287.058;
 
         protected bool isCompatible = true;
 
@@ -94,6 +95,9 @@ namespace DeadlyReentry
 		[KSPField(isPersistant = false, guiActive = false, guiName = "Shockwave", guiUnits = "",   guiFormat = "G")]
 		public string displayShockwave;
 
+		[KSPField(isPersistant = false, guiActive = false, guiName = "Density", guiUnits = "",   guiFormat = "G")]
+		public string displayAtmDensity;
+		
 		[KSPField(isPersistant = false, guiActive = true, guiName = "Temperature", guiUnits = "C",   guiFormat = "F0")]
 		public float displayTemperature;
 
@@ -260,7 +264,42 @@ namespace DeadlyReentry
             if ((object)FARPartModule != null)
                 FARField = FARPartModule.GetType().GetField("isShielded");
 
+            if (HighLogic.LoadedSceneIsFlight && FlightGlobals.currentMainBody != null)
+                FindSpecificGasConstant(FlightGlobals.currentMainBody);
+
+			GameEvents.onDominantBodyChange.Add(BodyChanged);
 		}
+
+		public void BodyChanged(GameEvents.FromToAction<CelestialBody, CelestialBody> body)
+		{
+            FindSpecificGasConstant(body.to);
+   		}
+
+        public void FindSpecificGasConstant(CelestialBody body)
+        {
+            switch(body.bodyName)
+            {
+                case "Kerbin":
+                    specificGasConstant = 287.058;
+                    break;
+                case "Duna":
+                    specificGasConstant = 831.2;
+                    break;
+                case "Jool":
+                    specificGasConstant = 3745.18;
+                    break;
+                case "Eve":
+                    specificGasConstant = 850.1;
+                    break;
+                case "Laythe":
+                    specificGasConstant = 287.058;
+                    break;
+                default:
+                    specificGasConstant = 287.058;
+                    break;
+            }
+        }
+
 		public virtual float AdjustedHeat(float temp)
 		{
 			return temp;
@@ -294,7 +333,13 @@ namespace DeadlyReentry
                 shockwave = Mathf.Pow(shockwave, ReentryPhysics.shockwaveExponent);
                 shockwave *= ReentryPhysics.shockwaveMultiplier;
             }
+            
+            if (is_debugging)
+                displayAtmDensity = density.ToString ("F4") + " kg/m3";
+
             ambient = vessel.flightIntegrator.getExternalTemperature();
+            if (ambient < -CTOK)
+                ambient = -CTOK;
             if (shockwave < ambient)
             {
                 shockwave = ambient;
@@ -319,12 +364,19 @@ namespace DeadlyReentry
 	                    {
 	                        ModuleParachute p = parachute;
 	                        if (p.deploymentState == ModuleParachute.deploymentStates.DEPLOYED || p.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED)
+							{
 	                            p.CutParachute();
-	                    }
-	                    if ((object)realChute != null)
+								FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] " + part.partInfo.title + " chute failure! (excessive heat)");
+							}
+
+						}
+						if ((object)realChute != null)
 	                    {
 	                        if (!(bool)rCType.GetProperty("anyDeployed").GetValue(realChute, null))
+							{
 	                            rCType.GetMethod("GUICut").Invoke(realChute, null);
+								FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] " + part.partInfo.title + " chute failure! (excessive heat)");
+							}
 	                    }
 					}
                 }
@@ -333,7 +385,9 @@ namespace DeadlyReentry
                 else
                 {
                     if (is_debugging)
+					{
                         displayShockwave = shockwave.ToString("F0") + "C";
+					}
                     return AdjustedHeat(ReentryPhysics.TemperatureDelta(density, shockwave + CTOK, part.temperature + CTOK));
                 }
             }
@@ -346,7 +400,8 @@ namespace DeadlyReentry
                 return;
 			//Rigidbody rb = part.Rigidbody;
             deltaTime = TimeWarp.fixedDeltaTime;
-            density = (float)(part.vessel.staticPressure * 101325 / (287.058 * (part.vessel.flightIntegrator.getExternalTemperature() + CTOK)));
+            // Arbitrarily capped at -160 for stock. This will have to change for RSS and non-legacy atmospheres.
+            density = (float)((part.vessel.staticPressure * 101325.0) / (specificGasConstant * (Math.Max(-160.0, part.vessel.flightIntegrator.getExternalTemperature()) + CTOK)));
             // calc here again, just in case. ReentryPhysics.frameDensity; // close enough
 
 			/*if (!rb || part.physicalSignificance == Part.PhysicalSignificance.NONE)
@@ -358,6 +413,7 @@ namespace DeadlyReentry
 				Fields ["displayShockwave"].guiActive = ReentryPhysics.debugging;
 				Fields ["displayGForce"].guiActive = ReentryPhysics.debugging;
 	            Fields["gExperienced"].guiActive = ReentryPhysics.debugging;
+				Fields["displayAtmDensity"].guiActive = ReentryPhysics.debugging;
 			}
 
             // fix for parts that animate/etc: all parts will use vessel velocity.
@@ -372,7 +428,7 @@ namespace DeadlyReentry
             }
 
 			part.temperature += ReentryHeat();
-            if (part.temperature < -CTOK) // clamp to Absolute Zero
+            if (part.temperature < -CTOK || float.IsNaN (part.temperature)) // clamp to Absolute Zero
                 part.temperature = -CTOK;
 			displayTemperature = part.temperature;
 			CheckForFire();
@@ -876,7 +932,10 @@ namespace DeadlyReentry
 			FixAeroFX (afx);
 			frameVelocity = Krakensbane.GetFrameVelocityV3f() - Krakensbane.GetLastCorrection() * TimeWarp.fixedDeltaTime;
             if((object)FlightGlobals.ActiveVessel != null) // FIXME only valid for Earthlike atmospheres
-                frameDensity = (float)(FlightGlobals.ActiveVessel.staticPressure *101325 / (287.058 * (FlightGlobals.ActiveVessel.flightIntegrator.getExternalTemperature() + 273.15)));
+			{
+			    // Arbitrarily capped at -160 for stock. This will have to change for RSS and non-legacy atmospheres.
+				frameDensity = (float)(FlightGlobals.ActiveVessel.staticPressure * 101325 / (287.058 * (Math.Max (-160.0, FlightGlobals.ActiveVessel.flightIntegrator.getExternalTemperature()) + 273.15)));
+			}
 
 		}
 

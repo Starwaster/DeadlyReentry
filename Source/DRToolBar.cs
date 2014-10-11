@@ -56,8 +56,8 @@ namespace DeadlyReentry
 		public void Awake() 
 		{
 			// Set up the stock toolbar
-			//GameEvents.onGUIApplicationLauncherReady.Add(OnGUIAppLauncherReady);
-			//GameEvents.onGUIApplicationLauncherDestroyed.Add(OnGUIAppLauncherDestroyed);			
+			GameEvents.onGUIApplicationLauncherReady.Add(OnGUIAppLauncherReady);
+			GameEvents.onGUIApplicationLauncherDestroyed.Add(OnGUIAppLauncherDestroyed);			
 		}
 		
 		public void Start() 
