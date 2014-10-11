@@ -25,6 +25,16 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v6.2
+*Fixed issue with Jool NaN temperature. (capped low end of getExternalTemperature() to -160)
+*Capped low end of ambientTemperature to absolute zero.
+*NaN protection for part.temperature
+*Added density field to debug GUI
+*Replaced hard coded gas constant with per-planet specificGasConstant. (to-do: move that data to config files)
+*ReentryPhysics still uses hard coded 287.058 value
+*Added flight event logging for parachute failures.
+*Added legacyAero config file option. If present and true then density retrieved from vessel.atmDensity
+
 v6.1
 *Fixed typos in SPP.cfg and Wings.cfg (some parts were not getting
 shielded)
