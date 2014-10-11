@@ -401,9 +401,10 @@ namespace DeadlyReentry
 			//Rigidbody rb = part.Rigidbody;
             deltaTime = TimeWarp.fixedDeltaTime;
             // Arbitrarily capped at -160 for stock. This will have to change for RSS and non-legacy atmospheres.
-            density = (float)((part.vessel.staticPressure * 101325.0) / (specificGasConstant * (Math.Max(-160.0, part.vessel.flightIntegrator.getExternalTemperature()) + CTOK)));
-            // calc here again, just in case. ReentryPhysics.frameDensity; // close enough
-
+            if (!ReentryPhysics.legacyAero)
+                density = (float)((part.vessel.staticPressure * 101325.0) / (specificGasConstant * (Math.Max(-160.0, part.vessel.flightIntegrator.getExternalTemperature()) + CTOK)));
+            else
+                density = (float)part.vessel.atmDensity;
 			/*if (!rb || part.physicalSignificance == Part.PhysicalSignificance.NONE)
 				return;*/
 
@@ -840,6 +841,7 @@ namespace DeadlyReentry
 
         public static float gToleranceMult = 6.0f;
         public static float parachuteTempMult = 0.25f;
+        public static bool legacyAero;
 
         public static bool debugging = false;
         protected Rect windowPos = new Rect(100, 100, 0, 0);
@@ -902,6 +904,8 @@ namespace DeadlyReentry
 
 				if(node.HasValue("debugging"))
 					bool.TryParse (node.GetValue ("debugging"), out debugging);
+                if(node.HasValue("legacyAero"))
+                    bool.TryParse(node.GetValue("legacyAero"), out legacyAero);
 				break;
 			};
 		}
@@ -934,7 +938,11 @@ namespace DeadlyReentry
             if((object)FlightGlobals.ActiveVessel != null) // FIXME only valid for Earthlike atmospheres
 			{
 			    // Arbitrarily capped at -160 for stock. This will have to change for RSS and non-legacy atmospheres.
-				frameDensity = (float)(FlightGlobals.ActiveVessel.staticPressure * 101325 / (287.058 * (Math.Max (-160.0, FlightGlobals.ActiveVessel.flightIntegrator.getExternalTemperature()) + 273.15)));
+                if (!legacyAero)
+				    frameDensity = (float)(FlightGlobals.ActiveVessel.staticPressure * 101325 / (287.058 * (Math.Max (-160.0, FlightGlobals.ActiveVessel.flightIntegrator.getExternalTemperature()) + 273.15)));
+                else
+                    frameDensity = (float)FlightGlobals.ActiveVessel.atmDensity;
+
 			}
 
 		}
