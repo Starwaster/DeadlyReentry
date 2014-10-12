@@ -506,6 +506,12 @@ namespace DeadlyReentry
                     dead = true;
                     FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
                                                 + part.partInfo.title + " exceeded g-force tolerance.");
+
+                    if ( part is StrutConnector )
+                    {
+                        ((StrutConnector)part).BreakJoint();
+                    }
+
                     part.explode();
                     return;
                 }
@@ -593,6 +599,12 @@ namespace DeadlyReentry
                                 dead = true;
                                 FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
                                                            + part.partInfo.title + " burned up from overheating.");
+
+                                if ( part is StrutConnector )
+                                {
+                                    ((StrutConnector)part).BreakJoint();
+                                }
+
                                 part.explode();
                                 return;
                             }
