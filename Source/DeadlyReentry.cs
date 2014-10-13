@@ -875,7 +875,8 @@ namespace DeadlyReentry
                 return;
             }
             enabled = true; // 0.24 compatibility
-			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS")) {
+			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
+            {
                 if(node.HasValue("shockwaveExponent"))
                     float.TryParse(node.GetValue("shockwaveExponent"), out shockwaveExponent);
                 if (node.HasValue("shockwaveMultiplier"))
@@ -921,6 +922,56 @@ namespace DeadlyReentry
 				break;
 			};
 		}
+
+        public void SaveSettings()
+        {
+            foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
+            {
+                if(node.HasValue("shockwaveExponent"))
+                    node.SetValue("shockwaveExponent", shockwaveExponent.ToString());
+                if (node.HasValue("shockwaveMultiplier"))
+                    node.SetValue("shockwaveMultiplier", shockwaveMultiplier.ToString());
+                if(node.HasValue("heatMultiplier"))
+                    node.SetValue ("heatMultiplier", heatMultiplier.ToString());
+                if(node.HasValue("startThermal"))
+                    node.SetValue ("startThermal", startThermal.ToString());
+                if(node.HasValue("fullThermal"))
+                    node.SetValue ("fullThermal", fullThermal.ToString());
+                if (node.HasValue("afxDensityExponent"))
+                    node.SetValue("afxDensityExponent", afxDensityExponent.ToString());
+                if(node.HasValue("temperatureExponent"))
+                    node.SetValue ("temperatureExponent", temperatureExponent.ToString());
+                if(node.HasValue("densityExponent"))
+                    node.SetValue ("densityExponent", densityExponent.ToString());
+                
+                if (node.HasValue("gToleranceMult"))
+                    node.SetValue("gToleranceMult", gToleranceMult.ToString());
+                
+                if (node.HasValue("parachuteTempMult"))
+                    node.SetValue("parachuteTempMult", parachuteTempMult.ToString());
+                
+                
+                if (node.HasValue("crewGClamp"))
+                    node.SetValue("crewGClamp", ModuleAeroReentry.crewGClamp.ToString());
+                if (node.HasValue("crewGPower"))
+                    node.SetValue("crewGPower", ModuleAeroReentry.crewGPower.ToString());
+                if (node.HasValue("crewGMin"))
+                    node.SetValue("crewGMin", ModuleAeroReentry.crewGMin.ToString());
+                if (node.HasValue("crewGWarn"))
+                    node.SetValue("crewGWarn", ModuleAeroReentry.crewGWarn.ToString());
+                if (node.HasValue("crewGLimit"))
+                    node.SetValue("crewGLimit", ModuleAeroReentry.crewGLimit.ToString());
+                if (node.HasValue("crewGKillChance"))
+                    node.SetValue("crewGKillChance", ModuleAeroReentry.crewGKillChance.ToString());
+                
+                
+                if(node.HasValue("debugging"))
+                    node.SetValue("debugging", debugging.ToString());
+                if(node.HasValue("legacyAero"))
+                    node.SetValue("legacyAero", legacyAero.ToString());
+                break;
+            }
+        }
 
         public void OnGUI()
         {
@@ -1100,7 +1151,8 @@ namespace DeadlyReentry
             GUILayout.EndHorizontal();
 
 			GUILayout.BeginHorizontal();
-			if (GUILayout.Button ("Save")) {
+			if (GUILayout.Button ("Save"))
+            {
 				ConfigNode node = new ConfigNode("@REENTRY_EFFECTS[Default]:Final");
 				ConfigNode savenode = new ConfigNode();
                 node.AddValue ("@shockwaveExponent", shockwaveExponent.ToString());
@@ -1123,6 +1175,8 @@ namespace DeadlyReentry
 				
                 savenode.AddNode (node);
 				savenode.Save (KSPUtil.ApplicationRootPath.Replace ("\\", "/") + "GameData/DeadlyReentry/custom.cfg");
+
+                SaveSettings();
 			}
 			GUILayout.EndHorizontal();
 
