@@ -132,7 +132,7 @@ namespace DeadlyReentry
         public static double crewGMin = 5;
         public static double crewGWarn = 300000;
         public static double crewGLimit = 600000;
-        public static double crewGKillChance = 0.75;
+        public static float crewGKillChance = 0.75f;
 
         protected float deltaTime = 0f;
         [KSPField(isPersistant = false, guiActive = true, guiName = "Ambient", guiUnits = "C", guiFormat = "F2")]
@@ -372,7 +372,7 @@ namespace DeadlyReentry
 						}
 						if ((object)realChute != null)
 	                    {
-	                        if (!(bool)rCType.GetProperty("anyDeployed").GetValue(realChute, null))
+	                        if ((bool)rCType.GetProperty("anyDeployed").GetValue(realChute, null))
 							{
 	                            rCType.GetMethod("GUICut").Invoke(realChute, null);
 								FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] " + part.partInfo.title + " chute failure! (excessive heat)");
@@ -527,7 +527,7 @@ namespace DeadlyReentry
                         else
                         {
                             // borrowed from TAC Life Support
-                            if (UnityEngine.Random.Range(0, 1) < crewGKillChance)
+                            if (UnityEngine.Random.Range(0f, 1f) < crewGKillChance)
                             {
                                 int crewMemberIndex = UnityEngine.Random.Range(0, crew.Count - 1);
                                 if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA)
@@ -911,7 +911,7 @@ namespace DeadlyReentry
                 if (node.HasValue("crewGLimit"))
                     double.TryParse(node.GetValue("crewGLimit"), out ModuleAeroReentry.crewGLimit);
                 if (node.HasValue("crewGKillChance"))
-                    double.TryParse(node.GetValue("crewGKillChance"), out ModuleAeroReentry.crewGKillChance);
+                    float.TryParse(node.GetValue("crewGKillChance"), out ModuleAeroReentry.crewGKillChance);
 
 
 				if(node.HasValue("debugging"))
@@ -1112,7 +1112,7 @@ namespace DeadlyReentry
 				node.AddValue ("@temperatureExponent", temperatureExponent.ToString ());
 				node.AddValue ("@densityExponent", densityExponent.ToString ());
                 node.AddValue("@gToleranceMult", gToleranceMult.ToString());
-                node.AddValue("@parachuteTempMult", gToleranceMult.ToString());
+                node.AddValue("@parachuteTempMult", parachuteTempMult.ToString());
 
                 node.AddValue("@crewGClamp", ModuleAeroReentry.crewGClamp.ToString());
                 node.AddValue("@crewGPower", ModuleAeroReentry.crewGPower.ToString());
