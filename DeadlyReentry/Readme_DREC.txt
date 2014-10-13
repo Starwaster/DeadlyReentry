@@ -25,6 +25,16 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v6.2.1
+*Debug Menu saves survive quick load and reverting. (added extra save
+function to update the loaded REENTRY_EFFECTS ConfigNode)
+*Changed crewGKillChance from double to float. (fixes error in debug
+menu when changing this field)
+*Fixed bug with RealChutes not cutting and/or spamming FlightLog
+*FixedparachuteTempMult not saving from debug menu.
+*Added FlowerChild's fix for StrutConnectors not destructing their
+reinforcing joints when they explode.
+
 v6.2
 *Fixed issue with Jool NaN temperature. (capped low end of getExternalTemperature() to -160)
 *Capped low end of ambientTemperature to absolute zero.
