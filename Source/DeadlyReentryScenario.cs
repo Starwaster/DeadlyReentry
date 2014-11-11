@@ -15,7 +15,7 @@ namespace DeadlyReentry
 		
 		public static DeadlyReentryScenario Instance;
 		
-		private int difficultySetting;
+		private int difficultySetting = 1;
 		
 		public int DifficultySetting
 		{
@@ -25,14 +25,34 @@ namespace DeadlyReentry
 			}
 			set
 			{
-				this.difficultySetting = value;
+                if (this.difficultySetting != value)
+                {
+     				this.difficultySetting = value;
+                    DeadlyReentry.ReentryPhysics.LoadSettings();
+                }
 			}
 		}
+
+        private static string[] difficultyName = {"Easy", "Default", "Hard"};
+
+        public string DifficultyName
+        {
+            get
+            {
+                return difficultyName[this.difficultySetting];
+            }
+        }
 		
 		public override void OnAwake ()
 		{
 			DeadlyReentryScenario.Instance = this;
+            this.difficultySetting = 1;
 		}
+
+        //public override void OnStart()
+        //{
+        //    ReentryPhysics.LoadSettings();
+        //}
 		
 		public override void OnSave(ConfigNode node)
 		{
@@ -43,6 +63,7 @@ namespace DeadlyReentry
 		{
 			if (node.HasValue ("difficultySetting"))
 				difficultySetting = int.Parse (node.GetValue ("difficultySetting"));
+            DeadlyReentry.ReentryPhysics.LoadSettings();
 		}
 	}
 }

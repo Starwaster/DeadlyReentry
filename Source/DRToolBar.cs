@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace DeadlyReentry
 {
-	[KSPAddon(KSPAddon.Startup.SpaceCentre, false)]
+	[KSPAddon(KSPAddon.Startup.EveryScene, false)]
 	public class DRToolbar : UnityEngine.MonoBehaviour
 	{
 		private static Rect windowPosition = new Rect(0,0,360,480);
@@ -17,7 +17,7 @@ namespace DeadlyReentry
 		private GUISkin skins = HighLogic.Skin;
 		private int id = Guid.NewGuid().GetHashCode();
 		//private bool visible = false, showing = true;
-		private Rect window = new Rect(), button = new Rect();
+		//private Rect window = new Rect(), button = new Rect();
 		private Texture2D buttonTexture = new Texture2D(1, 1);
 		#endregion
 		
@@ -65,7 +65,7 @@ namespace DeadlyReentry
 			// Debug.Log("CLSAddon:Start");
 			
 			windowStyle = new GUIStyle (HighLogic.Skin.window);
-			
+
 			try 
 			{
 				RenderingManager.RemoveFromPostDrawQueue (0, OnDraw);
@@ -92,7 +92,7 @@ namespace DeadlyReentry
 				                                                                       DummyVoid,
 				                                                                       DummyVoid,
 				                                                                       DummyVoid,
-				                                                                       ApplicationLauncher.AppScenes.SPACECENTER,
+				                                                                       ApplicationLauncher.AppScenes.ALWAYS,
 				                                                                       (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/DR_icon_off", false));
 			}
 		}
@@ -130,7 +130,7 @@ namespace DeadlyReentry
 				//Set the GUI Skin
 				//GUI.skin = HighLogic.Skin;
 				
-				windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry Settings", windowStyle,GUILayout.MinHeight(20),GUILayout.ExpandHeight(true));
+				windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry Settings", windowStyle);
 			}
 		}
 		public void OnDestroy()
@@ -145,13 +145,37 @@ namespace DeadlyReentry
 		private void OnWindow(int windowID)
 		{
 			string[] difficulties = {"Easy", "Normal", "Hard"};
-			DeadlyReentryScenario.Instance.DifficultySetting = GUILayout.SelectionGrid (DeadlyReentryScenario.Instance.DifficultySetting, difficulties, 4);
-			GUILayout.BeginHorizontal();
-			GUILayout.FlexibleSpace();
-			GUILayout.FlexibleSpace();
+
+            GUILayout.BeginHorizontal();
+            DeadlyReentryScenario.Instance.DifficultySetting = GUILayout.SelectionGrid (DeadlyReentryScenario.Instance.DifficultySetting, difficulties,3);
 			GUILayout.EndHorizontal();
-			
-			GUI.DragWindow();
+
+            GUILayout.BeginHorizontal();
+            DeadlyReentry.ReentryPhysics.legacyAero = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.legacyAero, "Use Legacy Aerothermodynamics.");
+            GUILayout.EndHorizontal();
+            
+            GUILayout.BeginHorizontal();
+            DeadlyReentry.ReentryPhysics.dissipationCap = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.dissipationCap, "Clamp Heat Shield Temp to max");
+            GUILayout.EndHorizontal();
+
+            if (HighLogic.LoadedSceneIsFlight)
+            {
+                GUILayout.BeginHorizontal();
+                DeadlyReentry.ReentryPhysics.debugging = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.debugging, "Open Debugging Menu (flight only)");
+                GUILayout.EndHorizontal();
+            }
+            //useAlternateDensity
+            
+            GUILayout.BeginHorizontal();
+            DeadlyReentry.ReentryPhysics.useAlternateDensity = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.useAlternateDensity, "Alternate Density calc (ignores densityExponent)");
+            GUILayout.EndHorizontal();
+            
+            GUI.DragWindow();
+            if (GUI.changed)
+            {
+                DeadlyReentry.ReentryPhysics.SaveSettings();
+                DeadlyReentry.ReentryPhysics.SaveCustomSettings();
+            }
 		}
 	}
 }

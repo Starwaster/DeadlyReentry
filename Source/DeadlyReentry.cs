@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
@@ -14,9 +14,12 @@ namespace DeadlyReentry
 
         protected bool isCompatible = true;
 
+        // I got nothing...
+        EventData<GameEvents.ExplosionReaction> ReentryReaction = GameEvents.onPartExplode;
 
 		UIPartActionWindow _myWindow = null; 
-		UIPartActionWindow myWindow {
+		UIPartActionWindow myWindow 
+        {
 			get {
 				if(_myWindow == null) {
 					foreach(UIPartActionWindow window in FindObjectsOfType (typeof(UIPartActionWindow))) {
@@ -51,7 +54,8 @@ namespace DeadlyReentry
 
 		}
 		FXGroup _gForceFX = null;
-		FXGroup gForceFX {
+		FXGroup gForceFX 
+        {
 			get {
 				if(_gForceFX == null) {
 					_gForceFX = new FXGroup (part.partName + "_Crushing");
@@ -65,7 +69,8 @@ namespace DeadlyReentry
 			}
 		}
 		FXGroup _ablationSmokeFX = null;
-		FXGroup ablationSmokeFX {
+		FXGroup ablationSmokeFX 
+        {
 			get {
 				if(_ablationSmokeFX == null) {
 					_ablationSmokeFX = new FXGroup (part.partName + "_Smoking");
@@ -76,7 +81,8 @@ namespace DeadlyReentry
 		}
 
 		FXGroup _ablationFX = null;
-		FXGroup ablationFX {
+		FXGroup ablationFX 
+        {
 			get {
 				if(_ablationFX == null) {
 					_ablationFX = new FXGroup (part.partName + "_Burning");
@@ -134,6 +140,9 @@ namespace DeadlyReentry
         public static double crewGLimit = 600000;
         public static float crewGKillChance = 0.75f;
 
+        public ScreenMessage chuteWarningMsg;
+        public ScreenMessage crewGWarningMsg;
+
         protected float deltaTime = 0f;
         [KSPField(isPersistant = false, guiActive = true, guiName = "Ambient", guiUnits = "C", guiFormat = "F2")]
         protected float ambient = 0f; // ambient temperature (C)
@@ -187,8 +196,9 @@ namespace DeadlyReentry
                 else
                     Events["RepairDamage"].guiName = "No Damage";
             }
-            catch
+            catch (Exception e)
             {
+                Debug.Log("ModuleAeroReentry.SetDamageLabel(): Caught Exception: " + e.Message);
             }
 
 		}
@@ -268,7 +278,14 @@ namespace DeadlyReentry
                 FindSpecificGasConstant(FlightGlobals.currentMainBody);
 
 			GameEvents.onDominantBodyChange.Add(BodyChanged);
-		}
+            chuteWarningMsg.message = "Warning: Chute deployment unsafe!";
+            chuteWarningMsg.duration = 3f;
+            chuteWarningMsg.style =ScreenMessageStyle.UPPER_CENTER;
+
+            crewGWarningMsg.message = "Reaching Crew G limit!";
+            crewGWarningMsg.duration = 3f;
+            crewGWarningMsg.style =ScreenMessageStyle.UPPER_CENTER;
+        }
 
 		public void BodyChanged(GameEvents.FromToAction<CelestialBody, CelestialBody> body)
 		{
@@ -322,6 +339,13 @@ namespace DeadlyReentry
 			return false;
 		}
 
+        public float AdjustedDensity()
+        {
+            if (ReentryPhysics.useAlternateDensity)
+                return (float)Math.Pow(density, ReentryPhysics.densityExponent) / 10f;
+            else
+                return (float)Math.Pow(density, ReentryPhysics.densityExponent);
+        }
 
         public float ReentryHeat()
         {
@@ -356,18 +380,22 @@ namespace DeadlyReentry
                 // deal with parachutes here
                 if (hasParachute)
                 {
-                    bool cut = ambient + Math.Pow(density, ReentryPhysics.densityExponent) * shockwave * 10f
-                    > part.maxTemp * ReentryPhysics.parachuteTempMult;
-					if (cut)
+                    //bool cut = ambient + Math.Pow(density, ReentryPhysics.densityExponent) * shockwave * 10f
+                    //    > part.maxTemp * ReentryPhysics.parachuteTempMult;
+                    // ambient term as it doesn't contribute meaningfully
+                    bool cut = Math.Pow(density, ReentryPhysics.densityExponent) * shockwave * 10f
+                        > part.maxTemp * ReentryPhysics.parachuteTempMult;
+					if (cut && (object)chuteWarningMsg != null)
 					{
+                        ScreenMessages.PostScreenMessage(chuteWarningMsg, false);
 	                    if ((object)parachute != null)
 	                    {
 	                        ModuleParachute p = parachute;
 	                        if (p.deploymentState == ModuleParachute.deploymentStates.DEPLOYED || p.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED)
 							{
 	                            p.CutParachute();
-								FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] " + part.partInfo.title + " chute failure! (excessive heat)");
-							}
+                                FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] " + part.partInfo.title + " chute failure! (too fast or too hot)");
+                            }
 
 						}
 						if ((object)realChute != null)
@@ -375,7 +403,7 @@ namespace DeadlyReentry
 	                        if ((bool)rCType.GetProperty("anyDeployed").GetValue(realChute, null))
 							{
 	                            rCType.GetMethod("GUICut").Invoke(realChute, null);
-								FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] " + part.partInfo.title + " chute failure! (excessive heat)");
+								FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] " + part.partInfo.title + " chute failure! (too fast or too hot)");
 							}
 	                    }
 					}
@@ -388,7 +416,7 @@ namespace DeadlyReentry
 					{
                         displayShockwave = shockwave.ToString("F0") + "C";
 					}
-                    return AdjustedHeat(ReentryPhysics.TemperatureDelta(density, shockwave + CTOK, part.temperature + CTOK));
+                    return AdjustedHeat(ReentryPhysics.TemperatureDelta(AdjustedDensity(), shockwave + CTOK, part.temperature + CTOK));
                 }
             }
             return 0;
@@ -411,8 +439,8 @@ namespace DeadlyReentry
 			if (is_debugging != ReentryPhysics.debugging)
 			{
 				is_debugging = ReentryPhysics.debugging;
-				Fields ["displayShockwave"].guiActive = ReentryPhysics.debugging;
-				Fields ["displayGForce"].guiActive = ReentryPhysics.debugging;
+				Fields["displayShockwave"].guiActive = ReentryPhysics.debugging;
+				Fields["displayGForce"].guiActive = ReentryPhysics.debugging;
 	            Fields["gExperienced"].guiActive = ReentryPhysics.debugging;
 				Fields["displayAtmDensity"].guiActive = ReentryPhysics.debugging;
 			}
@@ -432,10 +460,13 @@ namespace DeadlyReentry
             if (part.temperature < -CTOK || float.IsNaN (part.temperature)) // clamp to Absolute Zero
                 part.temperature = -CTOK;
 			displayTemperature = part.temperature;
+            if (this.part.vessel == FlightGlobals.ActiveVessel && part.temperature > 100f)
+            {
+                float severity = Mathf.Pow(part.temperature / (part.maxTemp * 0.85f), 0.5f);
+                ReentryReaction.Fire(new GameEvents.ExplosionReaction(0f, severity));
+            }
 			CheckForFire();
 			CheckGeeForces();
-
-
 		}
 
 		public void AddDamage(float dmg)
@@ -522,8 +553,8 @@ namespace DeadlyReentry
                     if (gExperienced > crewGWarn && crew.Count > 0)
                     {
                             
-                        if (gExperienced < crewGLimit)
-                                ScreenMessages.PostScreenMessage("Reaching Crew G limit!", 3f, ScreenMessageStyle.UPPER_CENTER);
+                        if (gExperienced < crewGLimit && (object)crewGWarningMsg != null)
+                                ScreenMessages.PostScreenMessage(crewGWarningMsg, false);
                         else
                         {
                             // borrowed from TAC Life Support
@@ -624,6 +655,9 @@ namespace DeadlyReentry
                                 fx.gameObject.transform.LookAt(part.transform.position + velocity);
                                 fx.gameObject.transform.Rotate(90, 0, 0);
                             }
+                            float severity = (this.part.maxTemp * 0.85f) / this.part.maxTemp;
+                            float distance = Vector3.Distance(this.part.partTransform.position, FlightGlobals.ActiveVessel.vesselTransform.position);
+                            ReentryReaction.Fire(new GameEvents.ExplosionReaction(distance, severity));
                         }
                     }
                     else if (is_on_fire)
@@ -633,12 +667,12 @@ namespace DeadlyReentry
                             fx.gameObject.SetActive(false);
                         foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
                             fx.gameObject.SetActive(false);
-
                     }
                 }
             }
 		}
-		public GameObject Emitter(string fxName) {
+		public GameObject Emitter(string fxName)
+        {
 			GameObject fx = (GameObject)UnityEngine.Object.Instantiate (UnityEngine.Resources.Load ("Effects/" + fxName));
 
 			fx.transform.parent = part.transform;
@@ -686,36 +720,43 @@ namespace DeadlyReentry
 		[KSPField(isPersistant = false, guiActive = false, guiName = "angle", guiUnits = " ", guiFormat = "F3")]
 		public float dot;
 
-
 		[KSPField(isPersistant = true)]
 		public int deployAnimationController;
 
-		[KSPField(isPersistant = true)]
+		[KSPField(isPersistant = false)]
 		public Vector3 direction;
 
-		[KSPField(isPersistant = true)]
+		[KSPField(isPersistant = false)]
 		public float reflective;
 
 		[KSPField(isPersistant = true)]
 		public string ablative;
 
-		[KSPField(isPersistant = true)]
+		[KSPField(isPersistant = false)]
 		public float area;
 
-		[KSPField(isPersistant = true)]
+		[KSPField(isPersistant = false)]
 		public float thickness;
 
-		[KSPField(isPersistant = true)]
+		[KSPField(isPersistant = false)]
 		public FloatCurve loss = new FloatCurve();
 
-		[KSPField(isPersistant = true)]
+		[KSPField(isPersistant = false)]
 		public FloatCurve dissipation = new FloatCurve();
+
+        [KSPField(isPersistant = false)]
+        public float conductivity = 0.05f;
 
 		public override void OnStart (StartState state)
 		{
 			base.OnStart (state);
+
 			if (ablative == null)
 				ablative = "None";
+
+            part.heatConductivity = conductivity;
+            if (ReentryPhysics.dissipationCap)
+                dissipation.Add(this.part.maxTemp * 0.85f, this.part.maxTemp * 2.0f, 0f, 0f);
 		}
 		public override string GetInfo()
 		{
@@ -741,7 +782,7 @@ namespace DeadlyReentry
 					// ablate away some shielding
 					float ablation = (float) (dot 
 					                          * loss.Evaluate((float) Math.Pow (shockwave, ReentryPhysics.temperatureExponent)) 
-					                          * Math.Pow (density, ReentryPhysics.densityExponent) 
+					                          * AdjustedDensity()
 					                          * deltaTime);
 
                     float disAmount = dissipation.Evaluate(part.temperature) * ablation * (1 - damage) * (1 - damage);
@@ -751,6 +792,8 @@ namespace DeadlyReentry
                             ablation = (float)part.Resources[ablative].amount;
                         // wick away some heat with the shielding
                         part.Resources[ablative].amount -= ablation;
+                        //dissipation.evaluate(dissipation.maxtime)
+                        //temp -= dissipation.Evaluate(dissipation.maxTime) * ablation * (1 - damage) * (1 - damage);
                         temp -= dissipation.Evaluate(part.temperature) * ablation * (1 - damage) * (1 - damage);
                     }
 				}
@@ -766,14 +809,17 @@ namespace DeadlyReentry
 		{
             if (!CompatibilityChecker.IsAllCompatible())
                 return;
-
-			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS")) {
-				if(node.HasValue("ridiculousMaxTemp")) {
+            Debug.Log("FixMaxTemps: Fixing Temps");
+			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
+            {
+                if(node.HasValue("name") && node.GetValue("name") == "Default" && node.HasValue("ridiculousMaxTemp"))
+                {
 					float maxTemp;
 					float scale = 0.5f;
 					if(node.HasValue ("maxTempScale"))
 						float.TryParse(node.GetValue("maxTempScale"), out scale);
-					if(scale > 0 && float.TryParse(node.GetValue("ridiculousMaxTemp"), out maxTemp)) {
+					if(scale > 0 && float.TryParse(node.GetValue("ridiculousMaxTemp"), out maxTemp))
+                    {
                         if (PartLoader.LoadedPartsList != null)
                         {
                             foreach (AvailablePart part in PartLoader.LoadedPartsList)
@@ -784,15 +830,12 @@ namespace DeadlyReentry
                                     {
                                         float oldTemp = part.partPrefab.maxTemp;
                                         bool changed = false;
+                                        //if (part.partPrefab.Modules.Contains("ModuleEngines") || part.partPrefab.Modules.Contains("ModuleEnginesFX"))
+                                        //    maxTemp *= 2.075f;
                                         if (part.partPrefab.maxTemp > maxTemp)
                                         {
-                                            part.partPrefab.maxTemp *= scale;
+                                            part.partPrefab.maxTemp = Mathf.Min(part.partPrefab.maxTemp * scale, maxTemp);
                                             changed = true;
-                                        }
-                                        if (part.partPrefab.maxTemp > maxTemp)
-                                        {
-                                            changed = true;
-                                            part.partPrefab.maxTemp = maxTemp;
                                         }
                                         if (changed)
                                         {
@@ -823,6 +866,9 @@ namespace DeadlyReentry
 	[KSPAddon(KSPAddon.Startup.Flight, false)]
     public class ReentryPhysics : MonoBehaviour
     {
+        static System.Version         DREVersion = Assembly.GetExecutingAssembly().GetName().Version;
+
+
         protected bool isCompatible = true;
 		private static AerodynamicsFX _afx;
 
@@ -853,19 +899,57 @@ namespace DeadlyReentry
 
         public static float gToleranceMult = 6.0f;
         public static float parachuteTempMult = 0.25f;
-        public static bool legacyAero;
 
+        public static bool legacyAero = false;
+        public static bool dissipationCap = true;
         public static bool debugging = false;
+        public static bool useAlternateDensity;
+
+        public bool LegacyAero
+        {
+            get
+            {
+                return legacyAero;
+            }
+            set
+            {
+                legacyAero = value;
+            }
+        }
+        public bool DissipationCap
+        {
+            get
+            {
+                return dissipationCap;
+            }
+            set
+            {
+                dissipationCap = value;
+            }
+        }
+        public bool Debugging
+        {
+            get
+            {
+                return debugging;
+            }
+            set
+            {
+                debugging = value;
+            }
+        }
+
         protected Rect windowPos = new Rect(100, 100, 0, 0);
 
-		public static float TemperatureDelta(double density, float shockwaveK, float partTempK)
+        public static float TemperatureDelta(double density, float shockwaveK, float partTempK)
 		{
 			if (shockwaveK < partTempK || density == 0 || shockwaveK < 0)
 				return 0;
 			return (float) ( Math.Pow (Math.Abs(shockwaveK - partTempK), temperatureExponent) 
-						   * Math.Pow (density, densityExponent)
+                           * density
 						   * heatMultiplier * TimeWarp.fixedDeltaTime);
 		}
+
 
 		public void Start()
 		{
@@ -875,109 +959,130 @@ namespace DeadlyReentry
                 return;
             }
             enabled = true; // 0.24 compatibility
-			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
-            {
-                if(node.HasValue("shockwaveExponent"))
-                    float.TryParse(node.GetValue("shockwaveExponent"), out shockwaveExponent);
-                if (node.HasValue("shockwaveMultiplier"))
-                    float.TryParse(node.GetValue("shockwaveMultiplier"), out shockwaveMultiplier);
-                if(node.HasValue("heatMultiplier"))
-					float.TryParse (node.GetValue ("heatMultiplier"), out heatMultiplier);
-				if(node.HasValue("startThermal"))
-					float.TryParse (node.GetValue ("startThermal"), out startThermal);
-				if(node.HasValue("fullThermal"))
-					float.TryParse (node.GetValue ("fullThermal"), out fullThermal);
-                if (node.HasValue("afxDensityExponent"))
-                    float.TryParse(node.GetValue("afxDensityExponent"), out afxDensityExponent);
-				if(node.HasValue("temperatureExponent"))
-					float.TryParse (node.GetValue ("temperatureExponent"), out temperatureExponent);
-				if(node.HasValue("densityExponent"))
-					float.TryParse (node.GetValue ("densityExponent"), out densityExponent);
-
-                if (node.HasValue("gToleranceMult"))
-                    float.TryParse(node.GetValue("gToleranceMult"), out gToleranceMult);
-
-                if (node.HasValue("parachuteTempMult"))
-                    float.TryParse(node.GetValue("parachuteTempMult"), out parachuteTempMult);
-
-
-                if (node.HasValue("crewGClamp"))
-                    double.TryParse(node.GetValue("crewGClamp"), out ModuleAeroReentry.crewGClamp);
-                if (node.HasValue("crewGPower"))
-                    double.TryParse(node.GetValue("crewGPower"), out ModuleAeroReentry.crewGPower);
-                if (node.HasValue("crewGMin"))
-                    double.TryParse(node.GetValue("crewGMin"), out ModuleAeroReentry.crewGMin);
-                if (node.HasValue("crewGWarn"))
-                    double.TryParse(node.GetValue("crewGWarn"), out ModuleAeroReentry.crewGWarn);
-                if (node.HasValue("crewGLimit"))
-                    double.TryParse(node.GetValue("crewGLimit"), out ModuleAeroReentry.crewGLimit);
-                if (node.HasValue("crewGKillChance"))
-                    float.TryParse(node.GetValue("crewGKillChance"), out ModuleAeroReentry.crewGKillChance);
-
-
-				if(node.HasValue("debugging"))
-					bool.TryParse (node.GetValue ("debugging"), out debugging);
-                if(node.HasValue("legacyAero"))
-                    bool.TryParse(node.GetValue("legacyAero"), out legacyAero);
-				break;
-			};
+            Debug.Log("[DRE] - ReentryPhysics.Start(): LoadSettings(), Difficulty: " + DeadlyReentryScenario.Instance.DifficultyName);
+            LoadSettings(); // Moved loading of REENTRY_EFFECTS into a generic loader which uses new difficulty settings
 		}
 
-        public void SaveSettings()
+        public static void LoadSettings()
         {
             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
             {
-                if(node.HasValue("shockwaveExponent"))
-                    node.SetValue("shockwaveExponent", shockwaveExponent.ToString());
-                if (node.HasValue("shockwaveMultiplier"))
-                    node.SetValue("shockwaveMultiplier", shockwaveMultiplier.ToString());
-                if(node.HasValue("heatMultiplier"))
-                    node.SetValue ("heatMultiplier", heatMultiplier.ToString());
-                if(node.HasValue("startThermal"))
-                    node.SetValue ("startThermal", startThermal.ToString());
-                if(node.HasValue("fullThermal"))
-                    node.SetValue ("fullThermal", fullThermal.ToString());
-                if (node.HasValue("afxDensityExponent"))
-                    node.SetValue("afxDensityExponent", afxDensityExponent.ToString());
-                if(node.HasValue("temperatureExponent"))
-                    node.SetValue ("temperatureExponent", temperatureExponent.ToString());
-                if(node.HasValue("densityExponent"))
-                    node.SetValue ("densityExponent", densityExponent.ToString());
-                
-                if (node.HasValue("gToleranceMult"))
-                    node.SetValue("gToleranceMult", gToleranceMult.ToString());
-                
-                if (node.HasValue("parachuteTempMult"))
-                    node.SetValue("parachuteTempMult", parachuteTempMult.ToString());
-                
-                
-                if (node.HasValue("crewGClamp"))
-                    node.SetValue("crewGClamp", ModuleAeroReentry.crewGClamp.ToString());
-                if (node.HasValue("crewGPower"))
-                    node.SetValue("crewGPower", ModuleAeroReentry.crewGPower.ToString());
-                if (node.HasValue("crewGMin"))
-                    node.SetValue("crewGMin", ModuleAeroReentry.crewGMin.ToString());
-                if (node.HasValue("crewGWarn"))
-                    node.SetValue("crewGWarn", ModuleAeroReentry.crewGWarn.ToString());
-                if (node.HasValue("crewGLimit"))
-                    node.SetValue("crewGLimit", ModuleAeroReentry.crewGLimit.ToString());
-                if (node.HasValue("crewGKillChance"))
-                    node.SetValue("crewGKillChance", ModuleAeroReentry.crewGKillChance.ToString());
-                
-                
-                if(node.HasValue("debugging"))
-                    node.SetValue("debugging", debugging.ToString());
-                if(node.HasValue("legacyAero"))
-                    node.SetValue("legacyAero", legacyAero.ToString());
-                break;
+                if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.Instance.DifficultyName)
+                {
+                    if(node.HasValue("shockwaveExponent"))
+                        float.TryParse(node.GetValue("shockwaveExponent"), out shockwaveExponent);
+                    if (node.HasValue("shockwaveMultiplier"))
+                        float.TryParse(node.GetValue("shockwaveMultiplier"), out shockwaveMultiplier);
+                    if(node.HasValue("heatMultiplier"))
+                        float.TryParse (node.GetValue ("heatMultiplier"), out heatMultiplier);
+                    if(node.HasValue("startThermal"))
+                        float.TryParse (node.GetValue ("startThermal"), out startThermal);
+                    if(node.HasValue("fullThermal"))
+                        float.TryParse (node.GetValue ("fullThermal"), out fullThermal);
+                    if (node.HasValue("afxDensityExponent"))
+                        float.TryParse(node.GetValue("afxDensityExponent"), out afxDensityExponent);
+                    if(node.HasValue("temperatureExponent"))
+                        float.TryParse (node.GetValue ("temperatureExponent"), out temperatureExponent);
+                    if(node.HasValue("densityExponent"))
+                        float.TryParse (node.GetValue ("densityExponent"), out densityExponent);
+                    
+                    if (node.HasValue("gToleranceMult"))
+                        float.TryParse(node.GetValue("gToleranceMult"), out gToleranceMult);
+                    
+                    if (node.HasValue("parachuteTempMult"))
+                        float.TryParse(node.GetValue("parachuteTempMult"), out parachuteTempMult);
+                    
+                    
+                    if (node.HasValue("crewGClamp"))
+                        double.TryParse(node.GetValue("crewGClamp"), out ModuleAeroReentry.crewGClamp);
+                    if (node.HasValue("crewGPower"))
+                        double.TryParse(node.GetValue("crewGPower"), out ModuleAeroReentry.crewGPower);
+                    if (node.HasValue("crewGMin"))
+                        double.TryParse(node.GetValue("crewGMin"), out ModuleAeroReentry.crewGMin);
+                    if (node.HasValue("crewGWarn"))
+                        double.TryParse(node.GetValue("crewGWarn"), out ModuleAeroReentry.crewGWarn);
+                    if (node.HasValue("crewGLimit"))
+                        double.TryParse(node.GetValue("crewGLimit"), out ModuleAeroReentry.crewGLimit);
+                    if (node.HasValue("crewGKillChance"))
+                        float.TryParse(node.GetValue("crewGKillChance"), out ModuleAeroReentry.crewGKillChance);
+                    
+                    
+                    if(node.HasValue("debugging"))
+                        bool.TryParse (node.GetValue ("debugging"), out debugging);
+                    if(node.HasValue("legacyAero"))
+                        bool.TryParse(node.GetValue("legacyAero"), out legacyAero);
+                    if (node.HasValue("dissipationCap"))
+                        bool.TryParse(node.GetValue("dissipationCap"), out dissipationCap);
+                    Debug.Log("[DRE] - debugging = " + debugging.ToString());
+                    Debug.Log("[DRE] - legacyAero = " + legacyAero.ToString());
+                    Debug.Log("[DRE] - dissipationCap = " + dissipationCap.ToString());
+                    break;
+                }
             }
+        }
+
+        public static void SaveSettings()
+        {
+            foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
+            {
+                if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.Instance.DifficultyName)
+                {
+                    if(node.HasValue("shockwaveExponent"))
+                        node.SetValue("shockwaveExponent", shockwaveExponent.ToString());
+                    if (node.HasValue("shockwaveMultiplier"))
+                        node.SetValue("shockwaveMultiplier", shockwaveMultiplier.ToString());
+                    if(node.HasValue("heatMultiplier"))
+                        node.SetValue ("heatMultiplier", heatMultiplier.ToString());
+                    if(node.HasValue("startThermal"))
+                        node.SetValue ("startThermal", startThermal.ToString());
+                    if(node.HasValue("fullThermal"))
+                        node.SetValue ("fullThermal", fullThermal.ToString());
+                    if (node.HasValue("afxDensityExponent"))
+                        node.SetValue("afxDensityExponent", afxDensityExponent.ToString());
+                    if(node.HasValue("temperatureExponent"))
+                        node.SetValue ("temperatureExponent", temperatureExponent.ToString());
+                    if(node.HasValue("densityExponent"))
+                        node.SetValue ("densityExponent", densityExponent.ToString());
+                    
+                    if (node.HasValue("gToleranceMult"))
+                        node.SetValue("gToleranceMult", gToleranceMult.ToString());
+                    
+                    if (node.HasValue("parachuteTempMult"))
+                        node.SetValue("parachuteTempMult", parachuteTempMult.ToString());
+                    
+                    
+                    if (node.HasValue("crewGClamp"))
+                        node.SetValue("crewGClamp", ModuleAeroReentry.crewGClamp.ToString());
+                    if (node.HasValue("crewGPower"))
+                        node.SetValue("crewGPower", ModuleAeroReentry.crewGPower.ToString());
+                    if (node.HasValue("crewGMin"))
+                        node.SetValue("crewGMin", ModuleAeroReentry.crewGMin.ToString());
+                    if (node.HasValue("crewGWarn"))
+                        node.SetValue("crewGWarn", ModuleAeroReentry.crewGWarn.ToString());
+                    if (node.HasValue("crewGLimit"))
+                        node.SetValue("crewGLimit", ModuleAeroReentry.crewGLimit.ToString());
+                    if (node.HasValue("crewGKillChance"))
+                        node.SetValue("crewGKillChance", ModuleAeroReentry.crewGKillChance.ToString());
+                    
+                    Debug.Log("debugging, legacyAero, dissipationCap = " + debugging + ", " + legacyAero + ", " + dissipationCap);
+                    if(node.HasValue("debugging"))
+                        node.SetValue("debugging", debugging.ToString());
+                    if(node.HasValue("legacyAero"))
+                        node.SetValue("legacyAero", legacyAero.ToString());
+                    if(node.HasValue("dissipationCap"))
+                        node.SetValue("dissipationCap", dissipationCap.ToString());
+
+                    break;
+                }
+            }
+            SaveCustomSettings();
         }
 
         public void OnGUI()
         {
             if (isCompatible && debugging)
             {
-                windowPos = GUILayout.Window("DeadlyReentry".GetHashCode(), windowPos, DrawWindow, "Deadly Reentry 2.0 Setup");
+                windowPos = GUILayout.Window("DeadlyReentry".GetHashCode(), windowPos, DrawWindow, "Deadly Reentry " + DREVersion.ToString() + " Setup");
             }
         }
 
@@ -1153,29 +1258,6 @@ namespace DeadlyReentry
 			GUILayout.BeginHorizontal();
 			if (GUILayout.Button ("Save"))
             {
-				ConfigNode node = new ConfigNode("@REENTRY_EFFECTS[Default]:Final");
-				ConfigNode savenode = new ConfigNode();
-                node.AddValue ("@shockwaveExponent", shockwaveExponent.ToString());
-                node.AddValue ("@shockwaveMultiplier", shockwaveMultiplier.ToString());
-				node.AddValue ("@heatMultiplier", heatMultiplier.ToString ());
-				node.AddValue ("@startThermal", startThermal.ToString ());
-				node.AddValue ("@fullThermal", fullThermal.ToString ());
-                node.AddValue("@afxDensityExponent", afxDensityExponent.ToString());
-				node.AddValue ("@temperatureExponent", temperatureExponent.ToString ());
-				node.AddValue ("@densityExponent", densityExponent.ToString ());
-                node.AddValue("@gToleranceMult", gToleranceMult.ToString());
-                node.AddValue("@parachuteTempMult", parachuteTempMult.ToString());
-
-                node.AddValue("@crewGClamp", ModuleAeroReentry.crewGClamp.ToString());
-                node.AddValue("@crewGPower", ModuleAeroReentry.crewGPower.ToString());
-                node.AddValue("@crewGMin", ModuleAeroReentry.crewGMin.ToString());
-                node.AddValue("@crewGWarn", ModuleAeroReentry.crewGWarn.ToString());
-                node.AddValue("@crewGLimit", ModuleAeroReentry.crewGLimit.ToString());
-                node.AddValue("@crewGKillChance", ModuleAeroReentry.crewGKillChance.ToString());
-				
-                savenode.AddNode (node);
-				savenode.Save (KSPUtil.ApplicationRootPath.Replace ("\\", "/") + "GameData/DeadlyReentry/custom.cfg");
-
                 SaveSettings();
 			}
 			GUILayout.EndHorizontal();
@@ -1186,6 +1268,7 @@ namespace DeadlyReentry
 
             if (GUI.changed)
             {
+                //print("GUI CHANGED!!!111oneone");
                 float newValue;
                 if (float.TryParse(newShockwaveMultiplier, out newValue))
                 {
@@ -1257,6 +1340,126 @@ namespace DeadlyReentry
                     ModuleAeroReentry.crewGKillChance = newValue;
 				}
 			}
+        }
+
+        public static void SaveCustomSettings()
+        {
+            string[] difficultyNames = {"Easy", "Default", "Hard"};
+            bool btmp;
+            float ftmp;
+            double dtmp;
+
+            ConfigNode savenode = new ConfigNode();
+            foreach(string difficulty in difficultyNames)
+            {
+                foreach (ConfigNode settingNode in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
+                {
+                    if (settingNode.HasValue("name") && settingNode.GetValue("name") == difficulty)
+                    {
+                        ConfigNode node = new ConfigNode("@REENTRY_EFFECTS[" + difficulty + "]:Final");
+
+                        if(settingNode.HasValue("shockwaveExponent"))
+                        {
+                            float.TryParse(settingNode.GetValue("shockwaveExponent"), out ftmp);
+                            node.AddValue ("@shockwaveExponent", ftmp);
+                        }
+                        if (settingNode.HasValue("shockwaveMultiplier"))
+                        {
+                            float.TryParse(settingNode.GetValue("shockwaveMultiplier"), out ftmp);
+                            node.AddValue ("@shockwaveMultiplier", ftmp);
+                        }
+                        if(settingNode.HasValue("heatMultiplier"))
+                        {
+                            float.TryParse (settingNode.GetValue ("heatMultiplier"), out ftmp);
+                            node.AddValue ("@heatMultiplier", ftmp);
+                        }
+                        if(settingNode.HasValue("startThermal"))
+                        {
+                            float.TryParse (settingNode.GetValue ("startThermal"), out ftmp);
+                            node.AddValue ("@startThermal", ftmp);
+                        }
+                        if(settingNode.HasValue("fullThermal"))
+                        {
+                            float.TryParse (settingNode.GetValue ("fullThermal"), out ftmp);
+                            node.AddValue ("@fullThermal", ftmp);
+                        }
+                        if (settingNode.HasValue("afxDensityExponent"))
+                        {
+                            float.TryParse(settingNode.GetValue("afxDensityExponent"), out ftmp);
+                            node.AddValue ("@afxDensityExponent", ftmp);
+                        }
+                        if(settingNode.HasValue("temperatureExponent"))
+                        {
+                            float.TryParse (settingNode.GetValue ("temperatureExponent"), out ftmp);
+                            node.AddValue ("@temperatureExponent", ftmp);
+                        }
+                        if(settingNode.HasValue("densityExponent"))
+                        {
+                            float.TryParse (settingNode.GetValue ("densityExponent"), out ftmp);
+                            node.AddValue ("@densityExponent", ftmp);
+                        }
+                        
+                        if (settingNode.HasValue("gToleranceMult"))
+                        {
+                            float.TryParse(settingNode.GetValue("gToleranceMult"), out ftmp);
+                            node.AddValue ("@gToleranceMult", ftmp);
+                        }
+                        
+                        if (settingNode.HasValue("parachuteTempMult"))
+                        {
+                            float.TryParse(settingNode.GetValue("parachuteTempMult"), out ftmp);
+                            node.AddValue ("@parachuteTempMult", ftmp);
+                        }
+                        if (settingNode.HasValue("crewGKillChance"))
+                        {
+                            float.TryParse(settingNode.GetValue("crewGKillChance"), out ftmp);
+                            node.AddValue ("@crewGKillChance", ftmp);
+                        }
+
+                        
+                        if (settingNode.HasValue("crewGClamp"))
+                        {
+                            double.TryParse(settingNode.GetValue("crewGClamp"), out dtmp);
+                            node.AddValue ("@crewGClamp", dtmp);
+                        }
+                        if (settingNode.HasValue("crewGPower"))
+                        {
+                            double.TryParse(settingNode.GetValue("crewGPower"), out dtmp);
+                            node.AddValue ("@crewGPower", dtmp);
+                        }
+                        if (settingNode.HasValue("crewGMin"))
+                        {
+                            double.TryParse(settingNode.GetValue("crewGMin"), out dtmp);
+                            node.AddValue ("@crewGMin", dtmp);
+                        }
+                        if (settingNode.HasValue("crewGWarn"))
+                        {
+                            double.TryParse(settingNode.GetValue("crewGWarn"), out dtmp);
+                            node.AddValue ("@crewGWarn", dtmp);
+                        }
+                        if (settingNode.HasValue("crewGLimit"))
+                        {
+                            double.TryParse(settingNode.GetValue("crewGLimit"), out dtmp);
+                            node.AddValue ("@crewGLimit", dtmp);
+                        }
+                        
+                        if(settingNode.HasValue("legacyAero"))
+                        {
+                            bool.TryParse(settingNode.GetValue("legacyAero"), out btmp);
+                            Debug.Log("[DRE] - legacyAero = " + btmp);
+                            node.AddValue ("@legacyAero", btmp.ToString());
+                        }
+                        if (settingNode.HasValue("dissipationCap"))
+                        {
+                            bool.TryParse(settingNode.GetValue("dissipationCap"), out btmp);
+                            node.AddValue("@dissipationCap", btmp.ToString());
+                        }
+                        savenode.AddNode (node);
+                        break;
+                    }
+                }
+            }
+            savenode.Save (KSPUtil.ApplicationRootPath.Replace ("\\", "/") + "GameData/DeadlyReentry/custom.cfg");
         }
     }
 }

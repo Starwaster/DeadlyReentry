@@ -181,7 +181,7 @@ Global
 		$29.MessageStyle = $30
 		$30.LineAlign = 0
 		$29.inheritsSet = Mono
-		version = 6.1
+		version = 6.2.1
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
