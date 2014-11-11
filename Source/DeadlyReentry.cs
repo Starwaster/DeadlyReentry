@@ -324,7 +324,7 @@ namespace DeadlyReentry
 
 		public bool IsShielded(Vector3 direction)
 		{   
-            if (GetShieldedStateFromFAR() == true)
+            if (part.ShieldedFromAirstream || GetShieldedStateFromFAR() == true)
             	return true;
             
             Ray ray = new Ray(part.transform.position + direction.normalized * (adjustCollider), direction.normalized);
@@ -756,7 +756,8 @@ namespace DeadlyReentry
 
             part.heatConductivity = conductivity;
             if (ReentryPhysics.dissipationCap)
-                dissipation.Add(this.part.maxTemp * 0.85f, this.part.maxTemp * 2.0f, 0f, 0f);
+                // key = 1350 3600.0 14.06186 0 - Maybe increase value higher...
+                dissipation.Add(this.part.maxTemp * 0.85f, this.part.maxTemp * 2.0f, 14.06186f, 0f);
 		}
 		public override string GetInfo()
 		{

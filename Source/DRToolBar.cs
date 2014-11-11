@@ -154,9 +154,12 @@ namespace DeadlyReentry
             DeadlyReentry.ReentryPhysics.legacyAero = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.legacyAero, "Use Legacy Aerothermodynamics.");
             GUILayout.EndHorizontal();
             
-            GUILayout.BeginHorizontal();
-            DeadlyReentry.ReentryPhysics.dissipationCap = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.dissipationCap, "Clamp Heat Shield Temp to max");
-            GUILayout.EndHorizontal();
+            if (!HighLogic.LoadedSceneIsFlight) // Would require exit to Space Center if changed in flight
+            {
+                GUILayout.BeginHorizontal();
+                DeadlyReentry.ReentryPhysics.dissipationCap = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.dissipationCap, "Damp Heat Shield Temp to maxTemp");
+                GUILayout.EndHorizontal();
+            }
 
             if (HighLogic.LoadedSceneIsFlight)
             {
