@@ -1,0 +1,25 @@
+- Chute failure message made more generic
+- Moved most on screen messages to ScreenMessage
+- Added unsafe chute deployment warning messages
+- Moved density / densityExponent to AdjustedDensity() (for alternate density effect calculation)
+- Current alternate density divides density by 10 before doing heat transfer calculations.
+- nonessential heat shield fields made non-persistant. (changes to shield config now apply to existing shields for direction, reflective, loss and dissipation)
+- Shields now insulate attached parts by setting heatConductivity
+- Added assembly version to debug window.
+- Reentry awareness
+- Added soft heat cap to heat shields. (increased dissipation as it approaches destruction temperatures)
+- Implemented difficulty levels (Easy, Normal, Hard) on a per save game basis. (can set Hard mode for one save game and Easy for another)
+- Difficulty can be changed per save game.
+- Debug menu changes apply only to current difficulty level.
+- Added toolbar button (icons courtesy of lajoswinkler)
+- Revamped node saving / loading to accomodate difficulty system.
+- Added LeadBallast resource if RealFuels is not present.
+- Added LeadBallast resource to the inflatable heatshield. (0 quantity by default. Increase as desired to stabilize the heatshield and prevent flipping)
+- Changed stock and RealChute defaults to be Kerbin friendly. Will not deploy any earlier than 7km. Parts containing both drogue and main chutes have had their deployment altitudes altered using the Apollo missions as a base.
+
+New Toolbar Menu:
+- Easy, Normal and Hard settings (still WIP; settings subject to change and open to player feedback before final release)
+- Easy access to Debug Menu
+- Legacy Aerodynamics (no per-planet gas constant. Density and heating same for all planets)
+- Heatshield temperature damping (as temperature approaches maxTemp, DRE will try to damp further heating)
+- Alternate Density (density will be divided by 10 AFTER applying the densityExponent: USE CAREFULLY. Intended for creation of hard settings to keep upper   atmosphere from being excessively lethal and to reduce launch heating. VERY MUCH A WORK IN PROGRESS. Should not be used with high exponents as it will seriously nerf heating. Intent is to allow shifting of heating to the upper atmosphere while keeping lower atmospheric flight from overheating

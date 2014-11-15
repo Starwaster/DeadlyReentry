@@ -745,7 +745,7 @@ namespace DeadlyReentry
 		public FloatCurve dissipation = new FloatCurve();
 
         [KSPField(isPersistant = false)]
-        public float conductivity = 0.05f;
+        public float conductivity = 0.01f;
 
 		public override void OnStart (StartState state)
 		{
@@ -853,8 +853,9 @@ namespace DeadlyReentry
                                         }
                                     }
                                 }
-                                catch
+                                catch (Exception e)
                                 {
+                                    Debug.Log(e.Message);
                                 }
                             }
                         }
@@ -867,7 +868,7 @@ namespace DeadlyReentry
 	[KSPAddon(KSPAddon.Startup.Flight, false)]
     public class ReentryPhysics : MonoBehaviour
     {
-        static System.Version         DREVersion = Assembly.GetExecutingAssembly().GetName().Version;
+        static System.Version DREVersion = Assembly.GetExecutingAssembly().GetName().Version;
 
 
         protected bool isCompatible = true;
@@ -1014,6 +1015,8 @@ namespace DeadlyReentry
                         bool.TryParse(node.GetValue("legacyAero"), out legacyAero);
                     if (node.HasValue("dissipationCap"))
                         bool.TryParse(node.GetValue("dissipationCap"), out dissipationCap);
+                    if (node.HasValue("useAlternateDensity"))
+                        bool.TryParse(node.GetValue("useAlternateDensity"), out useAlternateDensity);
                     Debug.Log("[DRE] - debugging = " + debugging.ToString());
                     Debug.Log("[DRE] - legacyAero = " + legacyAero.ToString());
                     Debug.Log("[DRE] - dissipationCap = " + dissipationCap.ToString());
@@ -1072,6 +1075,8 @@ namespace DeadlyReentry
                         node.SetValue("legacyAero", legacyAero.ToString());
                     if(node.HasValue("dissipationCap"))
                         node.SetValue("dissipationCap", dissipationCap.ToString());
+                    if(node.HasValue("useAlternateDensity"))
+                        node.SetValue("useAlternateDensity", useAlternateDensity.ToString());
 
                     break;
                 }
@@ -1083,7 +1088,7 @@ namespace DeadlyReentry
         {
             if (isCompatible && debugging)
             {
-                windowPos = GUILayout.Window("DeadlyReentry".GetHashCode(), windowPos, DrawWindow, "Deadly Reentry " + DREVersion.ToString() + " Setup");
+                windowPos = GUILayout.Window("DeadlyReentry".GetHashCode(), windowPos, DrawWindow, "Deadly Reentry 6.3.1 Debug Menu");
             }
         }
 
@@ -1454,6 +1459,11 @@ namespace DeadlyReentry
                         {
                             bool.TryParse(settingNode.GetValue("dissipationCap"), out btmp);
                             node.AddValue("@dissipationCap", btmp.ToString());
+                        }
+                        if (settingNode.HasValue("useAlternateDensity"))
+                        {
+                            bool.TryParse(settingNode.GetValue("useAlternateDensity"), out btmp);
+                            node.AddValue("@useAlternateDensity", btmp.ToString());
                         }
                         savenode.AddNode (node);
                         break;
