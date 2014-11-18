@@ -25,6 +25,35 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v6.2.1
+*Debug Menu saves survive quick load and reverting. (added extra save
+function to update the loaded REENTRY_EFFECTS ConfigNode)
+*Changed crewGKillChance from double to float. (fixes error in debug
+menu when changing this field)
+*Fixed bug with RealChutes not cutting and/or spamming FlightLog
+*FixedparachuteTempMult not saving from debug menu.
+*Added FlowerChild's fix for StrutConnectors not destructing their
+reinforcing joints when they explode.
+
+v6.2
+*Fixed issue with Jool NaN temperature. (capped low end of getExternalTemperature() to -160)
+*Capped low end of ambientTemperature to absolute zero.
+*NaN protection for part.temperature
+*Added density field to debug GUI
+*Replaced hard coded gas constant with per-planet specificGasConstant. (to-do: move that data to config files)
+*ReentryPhysics still uses hard coded 287.058 value
+*Added flight event logging for parachute failures.
+*Added legacyAero config file option. If present and true then density retrieved from vessel.atmDensity
+
+v6.1
+*Fixed typos in SPP.cfg and Wings.cfg (some parts were not getting
+shielded)
+*Additional sanity check when raycasting for parts shielding parts.
+*Added logic check to make sure a chute was actually exposed to
+damaging temperatures when deployed
+*Groundwork for toolbar support. (in-game difficulty per save game
+coming soon)
+
 v6.0
 *Support KSP 0.25
 *Reverted to old density exponent
