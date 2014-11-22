@@ -165,6 +165,7 @@ namespace DeadlyReentry
 
         protected PartModule FARPartModule = null;
         protected FieldInfo FARField = null;
+        protected bool FARSearched = false;
 
 		[KSPEvent (guiName = "No Damage", guiActiveUnfocused = true, externalToEVAOnly = true, guiActive = false, unfocusedRange = 4f)]
 		public void RepairDamage()
@@ -251,30 +252,20 @@ namespace DeadlyReentry
 			}
 		}
 
-		public override void OnStart (StartState state)
+		public void Start()
 		{
             if (!isCompatible)
                 return;
             counter = 0;
-			if (state == StartState.Editor)
+			if (!HighLogic.LoadedSceneIsFlight)
 				return;
 			SetDamageLabel ();
 			if (myWindow != null)
 				myWindow.displayDirty = true;
 			// moved part detection logic to OnAWake
-            // exception: FAR
-            if (part.Modules.Contains("FARBasicDragModel"))
-            {
-                FARPartModule = part.Modules["FARBasicDragModel"];
-            }
-            else if (part.Modules.Contains("FARWingAerodynamicModel"))
-            {
-                FARPartModule = part.Modules["FARWingAerodynamicModel"];
-            }
-            if ((object)FARPartModule != null)
-                FARField = FARPartModule.GetType().GetField("isShielded");
+            
 
-            if (HighLogic.LoadedSceneIsFlight && FlightGlobals.currentMainBody != null)
+            if (FlightGlobals.currentMainBody != null)
                 FindSpecificGasConstant(FlightGlobals.currentMainBody);
 
 			GameEvents.onDominantBodyChange.Add(BodyChanged);
@@ -324,7 +315,7 @@ namespace DeadlyReentry
 
 		public bool IsShielded(Vector3 direction)
 		{   
-            if (part.ShieldedFromAirstream || GetShieldedStateFromFAR() == true)
+            if (part.ShieldedFromAirstream || GetShieldedStateFromFAR())
             	return true;
             
             Ray ray = new Ray(part.transform.position + direction.normalized * (adjustCollider), direction.normalized);
@@ -454,6 +445,32 @@ namespace DeadlyReentry
                 counter += deltaTime;
                 lastGForce = 0;
                 return;
+            }
+            if (!FARSearched)
+            {
+                if (part.Modules.Contains("FARBasicDragModel"))
+                {
+                    FARPartModule = part.Modules["FARBasicDragModel"];
+                    Debug.Log("*DRE* Found FAR basic drag model for part " + part.name);
+                }
+                else if (part.Modules.Contains("FARWingAerodynamicModel"))
+                {
+                    FARPartModule = part.Modules["FARWingAerodynamicModel"];
+                    Debug.Log("*DRE* Found FAR wing model for part " + part.name);
+                }
+                else if (part.Modules.Contains("FARControllableSurface"))
+                {
+                    FARPartModule = part.Modules["FARControllableSurface"];
+                    Debug.Log("*DRE* Found FAR control surface model for part " + part.name);
+                }
+                else
+                {
+                    Debug.Log("*DRE* No FAR module found for part " + part.name);
+                }
+                if ((object)FARPartModule != null)
+                    FARField = FARPartModule.GetType().GetField("isShielded");
+
+                FARSearched = true;
             }
 
 			part.temperature += ReentryHeat();
