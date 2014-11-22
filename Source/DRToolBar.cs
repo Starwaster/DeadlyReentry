@@ -62,7 +62,8 @@ namespace DeadlyReentry
 		
 		public void Start() 
 		{
-    		// Debug.Log("CLSAddon:Start");
+			// Debug.Log("CLSAddon:Start");
+			
 			windowStyle = new GUIStyle (HighLogic.Skin.window);
 
 			try 
