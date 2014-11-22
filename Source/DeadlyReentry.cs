@@ -259,32 +259,48 @@ namespace DeadlyReentry
 			if (state == StartState.Editor)
 				return;
 			SetDamageLabel ();
-			if (myWindow != null)
+			if ((object)myWindow != null)
 				myWindow.displayDirty = true;
 			// moved part detection logic to OnAWake
             // exception: FAR
-            if (part.Modules.Contains("FARBasicDragModel"))
+            try
             {
-                FARPartModule = part.Modules["FARBasicDragModel"];
+                if (part.Modules.Contains("FARBasicDragModel"))
+                {
+                    FARPartModule = part.Modules["FARBasicDragModel"];
+                }
+                else if (part.Modules.Contains("FARWingAerodynamicModel"))
+                {
+                    FARPartModule = part.Modules["FARWingAerodynamicModel"];
+                }
+                if ((object)FARPartModule != null)
+                    FARField = FARPartModule.GetType().GetField("isShielded");
             }
-            else if (part.Modules.Contains("FARWingAerodynamicModel"))
+            catch (Exception e)
             {
-                FARPartModule = part.Modules["FARWingAerodynamicModel"];
+                Debug.Log("[DRE] Error in OnStart() initializing FAR support");
+                Debug.Log(e.Message);
             }
-            if ((object)FARPartModule != null)
-                FARField = FARPartModule.GetType().GetField("isShielded");
-
-            if (HighLogic.LoadedSceneIsFlight && FlightGlobals.currentMainBody != null)
+            if (HighLogic.LoadedSceneIsFlight && (object)FlightGlobals.currentMainBody != null)
                 FindSpecificGasConstant(FlightGlobals.currentMainBody);
 
 			GameEvents.onDominantBodyChange.Add(BodyChanged);
-            chuteWarningMsg.message = "Warning: Chute deployment unsafe!";
-            chuteWarningMsg.duration = 3f;
-            chuteWarningMsg.style =ScreenMessageStyle.UPPER_CENTER;
 
-            crewGWarningMsg.message = "Reaching Crew G limit!";
-            crewGWarningMsg.duration = 3f;
-            crewGWarningMsg.style =ScreenMessageStyle.UPPER_CENTER;
+            try
+            {
+                chuteWarningMsg.message = "Warning: Chute deployment unsafe!";
+                chuteWarningMsg.duration = 3f;
+                chuteWarningMsg.style =ScreenMessageStyle.UPPER_CENTER;
+
+                crewGWarningMsg.message = "Reaching Crew G limit!";
+                crewGWarningMsg.duration = 3f;
+                crewGWarningMsg.style =ScreenMessageStyle.UPPER_CENTER;
+            }
+            catch (Exception e)
+            {
+                Debug.Log("[DRE] Error in OnStart() initializing warning messages");
+                Debug.Log(e.Message);
+            }
         }
 
 		public void BodyChanged(GameEvents.FromToAction<CelestialBody, CelestialBody> body)
@@ -460,7 +476,7 @@ namespace DeadlyReentry
             if (part.temperature < -CTOK || float.IsNaN (part.temperature)) // clamp to Absolute Zero
                 part.temperature = -CTOK;
 			displayTemperature = part.temperature;
-            if (this.part.vessel == FlightGlobals.ActiveVessel && part.temperature > 100f)
+            if (!(part.Modules.Contains("ModuleEngines") || part.Modules.Contains("ModuleEnginesFX")) && this.part.vessel == FlightGlobals.ActiveVessel && part.temperature > 100f)
             {
                 float severity = Mathf.Pow(part.temperature / (part.maxTemp * 0.85f), 0.5f);
                 ReentryReaction.Fire(new GameEvents.ExplosionReaction(0f, severity));

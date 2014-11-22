@@ -56,7 +56,8 @@ namespace DeadlyReentry
 		
 		public override void OnSave(ConfigNode node)
 		{
-			node.AddValue ("difficultySetting", difficultySetting);
+            if ((object)DeadlyReentryScenario.Instance != null)
+                node.AddValue ("difficultySetting", difficultySetting);
 		}
 		
 		public override void OnLoad(ConfigNode node)

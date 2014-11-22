@@ -1,9 +1,9 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="DRToolBar.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="DeadlyReentry.cs">
     <Files>
-      <File FileName="DeadlyReentry.cs" Line="1267" Column="29" />
-      <File FileName="DRToolBar.cs" Line="133" Column="90" />
+      <File FileName="DeadlyReentry.cs" Line="485" Column="21" />
+      <File FileName="DRToolBar.cs" Line="65" Column="5" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
