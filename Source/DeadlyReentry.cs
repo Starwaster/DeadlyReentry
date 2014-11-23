@@ -764,10 +764,14 @@ namespace DeadlyReentry
         [KSPField(isPersistant = false)]
         public float conductivity = 0.01f;
 
-		public override void OnStart (StartState state)
-		{
-			base.OnStart (state);
+        [KSPField]
+        public string techRequired = "";
 
+        protected bool canShield = true;
+
+		public void Start()
+		{
+            base.Start();
 			if (ablative == null)
 				ablative = "None";
 
@@ -775,12 +779,17 @@ namespace DeadlyReentry
             if (ReentryPhysics.dissipationCap)
                 // key = 1350 3600.0 14.06186 0 - Maybe increase value higher...
                 dissipation.Add(this.part.maxTemp * 0.85f, this.part.maxTemp * 2.0f, 14.06186f, 0f);
+
+            if (HighLogic.CurrentGame.Mode != Game.Modes.SANDBOX && !techRequired.Equals("") && ResearchAndDevelopment.GetTechnologyState(techRequired) != RDTech.State.Available)
+                canShield = false;
 		}
 		public override string GetInfo()
 		{
 			string s = "Active Heat Shield";
 			if (direction.x != 0 || direction.y != 0 || direction.z != 0)
 				s += " (directional)";
+            if (techRequired != "")
+                s += " NOTE: Requires technology " + techRequired;
 			return s;
 		}
 
@@ -791,7 +800,7 @@ namespace DeadlyReentry
 			else // check the angle between the shock front and the shield
 				dot = Vector3.Dot (velocity.normalized, part.transform.TransformDirection(direction).normalized);
 			
-			if (dot > 0 && temp > 0) {
+			if (canShield && dot > 0 && temp > 0) {
 				//radiate away some heat
 				float rad = temp * dot * reflective;
 				temp -= rad  * (1 - damage) * (1 - damage);
