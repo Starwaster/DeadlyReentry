@@ -62,8 +62,6 @@ namespace DeadlyReentry
 		
 		public void Start() 
 		{
-			// Debug.Log("CLSAddon:Start");
-			
 			windowStyle = new GUIStyle (HighLogic.Skin.window);
 
 			try 
@@ -72,14 +70,9 @@ namespace DeadlyReentry
 			} 
 			catch 
 			{
-				// This is generally not a problem - do not log it.
-				// Debug.LogException(ex);
 			}
 			
-			//if (HighLogic.LoadedScene.Equals( SpaceCenter) )
-			//{
 			RenderingManager.AddToPostDrawQueue (0, OnDraw);
-			//}
 		}
 		
 		void OnGUIAppLauncherReady()
