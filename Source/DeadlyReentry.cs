@@ -282,7 +282,7 @@ namespace DeadlyReentry
             }
             catch (Exception e)
             {
-                Debug.Log("[DRE] Error in OnStart() initializing FAR support");
+                Debug.Log("[DRE] Error in Start() initializing FAR support");
                 Debug.Log(e.Message);
             }
 
@@ -304,7 +304,7 @@ namespace DeadlyReentry
             }
             catch (Exception e)
             {
-                Debug.Log("[DRE] Error in OnStart() initializing warning messages");
+                Debug.Log("[DRE] Error in Start() initializing warning messages");
                 Debug.Log(e.Message);
             }
         }
