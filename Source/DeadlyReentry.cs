@@ -1182,7 +1182,9 @@ namespace DeadlyReentry
 		{
             if (!isCompatible)
                 return;
-			FixAeroFX (afx);
+            // Only do this in FixedUpdate() from now on. (new system should be immune from flickering)
+            // Spoiler alert: it doesn't work at all when used only in FixedUpdate, even using yield.
+            FixAeroFX (afx);
 		}
 
         public void Update()
@@ -1198,18 +1200,18 @@ namespace DeadlyReentry
             {
                 if ((afx != null))
                 {
-					FixAeroFX(afx);
+                    // Only do this in FixedUpdate() from now on. (new system should be immune from flickering)
+                    FixAeroFX(afx);
 				
 					foreach (Vessel vessel in FlightGlobals.Vessels) 
 					{
 						if(vessel.loaded)// && afx.FxScalar > 0)
 						{
-		                    foreach (Part p in vessel.Parts)
-		                    {
+                            foreach (Part p in vessel.Parts)
+                            {
                                 if (!(p.Modules.Contains("ModuleAeroReentry") || p.Modules.Contains("ModuleHeatShield")))
                                     p.AddModule("ModuleAeroReentry"); // thanks a.g.!
-
-							}
+                            }
                         }
                     }
                 }

@@ -53,6 +53,9 @@
       <HintPath>..\..\..\..\..\..\Games\KSP_win.0.25.0\KSP_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="DeadlyReentry">
+      <HintPath>DeadlyReentry.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
