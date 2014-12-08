@@ -141,7 +141,10 @@ namespace DeadlyReentry
         public static double crewGLimit = 600000;
         public static float crewGKillChance = 0.75f;
 
-        public ScreenMessage chuteWarningMsg;
+        //chuteWarningMsg.message = "Warning: Chute deployment unsafe!";
+        //chuteWarningMsg.duration = 3f;
+        //chuteWarningMsg.style = ScreenMessageStyle.UPPER_CENTER;
+        public ScreenMessage chuteWarningMsg = new ScreenMessage("Warning: Chute deployment unsafe!", 3f, ScreenMessageStyle.UPPER_CENTER);
         public ScreenMessage crewGWarningMsg;
 
         protected float deltaTime = 0f;
@@ -253,7 +256,7 @@ namespace DeadlyReentry
 			}
 		}
 
-		public void Start()
+		public virtual void Start()
 		{
             if (!isCompatible)
                 return;
@@ -294,9 +297,9 @@ namespace DeadlyReentry
             try
             {
                 //chuteWarningMsg = ScreenMessage("Warning: Chute deployment unsafe!", 1f, ScreenMessageStyle.UPPER_CENTER);
-                chuteWarningMsg.message = "Warning: Chute deployment unsafe!";
-                chuteWarningMsg.duration = 3f;
-                chuteWarningMsg.style = ScreenMessageStyle.UPPER_CENTER;
+                //chuteWarningMsg.message = "Warning: Chute deployment unsafe!";
+                //chuteWarningMsg.duration = 3f;
+                //chuteWarningMsg.style = ScreenMessageStyle.UPPER_CENTER;
 
                 crewGWarningMsg.message = "Reaching Crew G limit!";
                 crewGWarningMsg.duration = 3f;
@@ -800,7 +803,7 @@ namespace DeadlyReentry
 
         protected bool canShield = true;
 
-		public void Start()
+		public override void Start()
 		{
             base.Start();
 			if (ablative == null)
@@ -839,10 +842,12 @@ namespace DeadlyReentry
                 if(loss.Evaluate(part.temperature) > 0
                    && part.Resources.Contains (ablative)) {
 					// ablate away some shielding
-					float ablation = (float) (dot 
-                                              * loss.Evaluate((float) Math.Pow (shockwave, ReentryPhysics.temperatureExponent)) 
-                                              * AdjustedDensity()
-					                          * deltaTime);
+                    float ablation = (float) (loss.Evaluate(part.temperature)
+                                              //loss.Evaluate((float) Math.Pow (shockwave, ReentryPhysics.temperatureExponent)) 
+                                              //* dot
+                                              //* AdjustedDensity()
+					                          * deltaTime
+                                              * 0.0015); // This last is to scale down ablation rate to survive up to 10 minutes of reentry
 
                     float disAmount = dissipation.Evaluate(part.temperature) * ablation * (1 - damage) * (1 - damage);
                     if (disAmount > 0)
@@ -1146,7 +1151,7 @@ namespace DeadlyReentry
         {
             if (isCompatible && debugging)
             {
-                windowPos = GUILayout.Window("DeadlyReentry".GetHashCode(), windowPos, DrawWindow, "Deadly Reentry 6.3.1 Debug Menu");
+                windowPos = GUILayout.Window("DeadlyReentry".GetHashCode(), windowPos, DrawWindow, "Deadly Reentry 6.3.3 Debug Menu");
             }
         }
 
