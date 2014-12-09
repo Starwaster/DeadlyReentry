@@ -141,9 +141,6 @@ namespace DeadlyReentry
         public static double crewGLimit = 600000;
         public static float crewGKillChance = 0.75f;
 
-        public ScreenMessage chuteWarningMsg;
-        public ScreenMessage crewGWarningMsg;
-
         protected float deltaTime = 0f;
         [KSPField(isPersistant = false, guiActive = true, guiName = "Ambient", guiUnits = "C", guiFormat = "F2")]
         protected float ambient = 0f; // ambient temperature (C)
@@ -253,7 +250,7 @@ namespace DeadlyReentry
 			}
 		}
 
-		public void Start()
+		public virtual void Start()
 		{
             if (!isCompatible)
                 return;
@@ -290,23 +287,6 @@ namespace DeadlyReentry
                 FindSpecificGasConstant(FlightGlobals.currentMainBody);
 
 			GameEvents.onDominantBodyChange.Add(BodyChanged);
-
-            try
-            {
-                //chuteWarningMsg = ScreenMessage("Warning: Chute deployment unsafe!", 1f, ScreenMessageStyle.UPPER_CENTER);
-                chuteWarningMsg.message = "Warning: Chute deployment unsafe!";
-                chuteWarningMsg.duration = 3f;
-                chuteWarningMsg.style = ScreenMessageStyle.UPPER_CENTER;
-
-                crewGWarningMsg.message = "Reaching Crew G limit!";
-                crewGWarningMsg.duration = 3f;
-                crewGWarningMsg.style = ScreenMessageStyle.UPPER_CENTER;
-            }
-            catch (Exception e)
-            {
-                Debug.Log("[DRE] Error in Start() initializing warning messages");
-                Debug.Log(e.Message);
-            }
         }
 
 		public void BodyChanged(GameEvents.FromToAction<CelestialBody, CelestialBody> body)
@@ -407,9 +387,11 @@ namespace DeadlyReentry
                     // ambient term as it doesn't contribute meaningfully
                     bool cut = Math.Pow(density, ReentryPhysics.densityExponent) * shockwave * 10f
                         > part.maxTemp * ReentryPhysics.parachuteTempMult;
-					if (cut && (object)chuteWarningMsg != null)
+					if (cut)
 					{
-                        ScreenMessages.PostScreenMessage(chuteWarningMsg, false);
+                        if ((object)ReentryPhysics.chuteWarningMsg != null)
+                            ScreenMessages.PostScreenMessage(ReentryPhysics.chuteWarningMsg, false);
+
 	                    if ((object)parachute != null)
 	                    {
 	                        ModuleParachute p = parachute;
@@ -601,8 +583,8 @@ namespace DeadlyReentry
                     if (gExperienced > crewGWarn && crew.Count > 0)
                     {
                             
-                        if (gExperienced < crewGLimit && (object)crewGWarningMsg != null)
-                                ScreenMessages.PostScreenMessage(crewGWarningMsg, false);
+                        if (gExperienced < crewGLimit)
+                                ScreenMessages.PostScreenMessage(ReentryPhysics.crewGWarningMsg, false);
                         else
                         {
                             // borrowed from TAC Life Support
@@ -800,7 +782,7 @@ namespace DeadlyReentry
 
         protected bool canShield = true;
 
-		public void Start()
+		public override void Start()
 		{
             base.Start();
 			if (ablative == null)
@@ -946,6 +928,8 @@ namespace DeadlyReentry
 
 		public static Vector3 frameVelocity;
         public static float frameDensity = 0f;
+        public static ScreenMessage chuteWarningMsg = new ScreenMessage("Warning: Chute deployment unsafe!", 1f, ScreenMessageStyle.UPPER_CENTER);
+        public static ScreenMessage crewGWarningMsg = new ScreenMessage("Reaching Crew G limit!", 1f, ScreenMessageStyle.UPPER_CENTER);
 
         public static float shockwaveMultiplier = 1.0f;
         public static float shockwaveExponent = 1.0f;
@@ -1150,10 +1134,17 @@ namespace DeadlyReentry
             }
         }
 
-		IEnumerator FixAeroFX(AerodynamicsFX aeroFX)
+        //public IEnumerator AeroFixer ()
+        //{
+         //   yield return new WaitForFixedUpdate();
+         //   FixAeroFX();
+         //   yield break;
+        //}
+
+        public IEnumerator FixAeroFX()
 		{
             yield return new WaitForFixedUpdate();
-            aeroFX.airDensity = (float)(Math.Pow(frameDensity, afxDensityExponent));
+            afx.airDensity = (float)(Math.Pow(frameDensity, afxDensityExponent));
 			if (afx.velocity.magnitude < startThermal) // approximate speed where shockwaves begin visibly glowing
 				afx.state = 0;
 			else if (afx.velocity.magnitude >= fullThermal)
@@ -1162,43 +1153,48 @@ namespace DeadlyReentry
 				afx.state = (afx.velocity.magnitude - startThermal) / (fullThermal - startThermal);
 		}
 
-		public void FixedUpdate()
-		{
-            if (!isCompatible)
+        public void FixedUpdate ()
+        {
+            if (!this.isCompatible)
+            {
                 return;
-			frameVelocity = Krakensbane.GetFrameVelocityV3f() - Krakensbane.GetLastCorrection() * TimeWarp.fixedDeltaTime;
-            if((object)FlightGlobals.ActiveVessel != null) // FIXME only valid for Earthlike atmospheres
-			{
-			    // Arbitrarily capped at -160 for stock. This will have to change for RSS and non-legacy atmospheres.
-                if (!legacyAero)
-				    frameDensity = (float)(FlightGlobals.ActiveVessel.staticPressure * 101325 / (287.058 * (Math.Max (-160.0, FlightGlobals.ActiveVessel.flightIntegrator.getExternalTemperature()) + 273.15)));
+            }
+            ReentryPhysics.frameVelocity = Krakensbane.GetFrameVelocityV3f () - Krakensbane.GetLastCorrection () * (double)TimeWarp.fixedDeltaTime;
+            if (FlightGlobals.ActiveVessel != null)
+            {
+                if (!ReentryPhysics.legacyAero)
+                {
+                    ReentryPhysics.frameDensity = (float)(FlightGlobals.ActiveVessel.staticPressure * 101325.0 / (287.058 * (Math.Max (-160.0, (double)FlightGlobals.ActiveVessel.flightIntegrator.getExternalTemperature()) + 273.15)));
+                }
                 else
-                    frameDensity = (float)FlightGlobals.ActiveVessel.atmDensity;
-			}
-            FixAeroFX(afx);
-		}
+                {
+                    ReentryPhysics.frameDensity = (float)FlightGlobals.ActiveVessel.atmDensity;
+                }
+            }
+            StartCoroutine (this.FixAeroFX());
+        }
 
 		public void LateUpdate()
 		{
             if (!isCompatible)
                 return;
-			FixAeroFX (afx);
+//            AeroFixer ();
 		}
 
         public void Update()
         {
             if (!isCompatible)
                 return;
-            if (Input.GetKeyDown(KeyCode.R) && Input.GetKey(KeyCode.LeftAlt) && Input.GetKey(KeyCode.D))
-            {
-                debugging = !debugging;
-            }
+            //if (Input.GetKeyDown(KeyCode.R) && Input.GetKey(KeyCode.LeftAlt) && Input.GetKey(KeyCode.D))
+            //{
+            //    debugging = !debugging;
+            //}
 
             if (FlightGlobals.ready)
             {
                 if ((afx != null))
                 {
-					FixAeroFX(afx);
+  //                  AeroFixer();
 				
 					foreach (Vessel vessel in FlightGlobals.Vessels) 
 					{
