@@ -1523,7 +1523,7 @@ namespace DeadlyReentry
                     }
                 }
             }
-            savenode.Save (KSPUtil.ApplicationRootPath.Replace ("\\", "/") + "GameData/DeadlyReentry/Plugins/PluginData/custom.cfg");
+            savenode.Save (KSPUtil.ApplicationRootPath.Replace ("\\", "/") + "GameData/DeadlyReentry/custom.cfg");
         }
     }
 }

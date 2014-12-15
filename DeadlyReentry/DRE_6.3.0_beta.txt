@@ -22,4 +22,6 @@ New Toolbar Menu:
 - Easy access to Debug Menu
 - Legacy Aerodynamics (no per-planet gas constant. Density and heating same for all planets)
 - Heatshield temperature damping (as temperature approaches maxTemp, DRE will try to damp further heating)
-- Alternate Density (density will be divided by 10 AFTER applying the densityExponent: USE CAREFULLY. Intended for creation of hard settings to keep upper   atmosphere from being excessively lethal and to reduce launch heating. VERY MUCH A WORK IN PROGRESS. Should not be used with high exponents as it will seriously nerf heating. Intent is to allow shifting of heating to the upper atmosphere while keeping lower atmospheric flight from overheating
+- Alternate Density (density will be divided by 10 AFTER applying the densityExponent: USE CAREFULLY. Intended for creation of hard settings to keep upper   
+  atmosphere from being excessively lethal and to reduce launch heating. VERY MUCH A WORK IN PROGRESS. Should not be used with high exponents as it will seriously nerf heating. 
+  Intent is to allow shifting of heating to the upper atmosphere while keeping lower atmospheric flight from overheating

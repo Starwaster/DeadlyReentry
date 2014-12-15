@@ -1,8 +1,8 @@
 ﻿<Properties>
-  <MonoDevelop.Ide.Workspace ActiveConfiguration="Release" />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Release" PreferredExecutionTarget="MonoDevelop.Default" />
   <MonoDevelop.Ide.Workbench ActiveDocument="DeadlyReentry.cs">
     <Files>
-      <File FileName="DeadlyReentry.cs" Line="1526" Column="121" />
+      <File FileName="DeadlyReentry.cs" Line="820" Column="15" />
     </Files>
     <Pads>
       <Pad Id="ProjectPad">
