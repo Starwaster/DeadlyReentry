@@ -1130,7 +1130,7 @@ namespace DeadlyReentry
         {
             if (isCompatible && debugging)
             {
-                windowPos = GUILayout.Window("DeadlyReentry".GetHashCode(), windowPos, DrawWindow, "Deadly Reentry 6.3.1 Debug Menu");
+                windowPos = GUILayout.Window("DeadlyReentry".GetHashCode(), windowPos, DrawWindow, "Deadly Reentry 6.3.3 Debug Menu");
             }
         }
 
