@@ -67,12 +67,11 @@ namespace DeadlyReentry
 			try 
 			{
 				RenderingManager.RemoveFromPostDrawQueue (0, OnDraw);
-			} 
+                RenderingManager.AddToPostDrawQueue (0, OnDraw);
+            } 
 			catch 
 			{
-			}
-			
-			RenderingManager.AddToPostDrawQueue (0, OnDraw);
+			}			
 		}
 		
 		void OnGUIAppLauncherReady()
@@ -123,7 +122,7 @@ namespace DeadlyReentry
 				//Set the GUI Skin
 				//GUI.skin = HighLogic.Skin;
 				
-				windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry 6.3.3 Settings", windowStyle);
+				windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry 6.4.0 Settings", windowStyle);
 			}
 		}
 		public void OnDestroy()

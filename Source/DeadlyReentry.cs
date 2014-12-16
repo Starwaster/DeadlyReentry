@@ -11,7 +11,6 @@ namespace DeadlyReentry
 	public class ModuleAeroReentry: PartModule
 	{
         public const float CTOK = 273.15f;
-        public double specificGasConstant = 287.058;
 
         protected bool isCompatible = true;
 
@@ -282,41 +281,6 @@ namespace DeadlyReentry
                 Debug.Log("[DRE] Error in Start() initializing FAR support");
                 Debug.Log(e.Message);
             }
-
-            if (HighLogic.LoadedSceneIsFlight && (object)FlightGlobals.currentMainBody != null)
-                FindSpecificGasConstant(FlightGlobals.currentMainBody);
-
-			GameEvents.onDominantBodyChange.Add(BodyChanged);
-        }
-
-		public void BodyChanged(GameEvents.FromToAction<CelestialBody, CelestialBody> body)
-		{
-            FindSpecificGasConstant(body.to);
-   		}
-
-        public void FindSpecificGasConstant(CelestialBody body)
-        {
-            switch(body.bodyName)
-            {
-                case "Kerbin":
-                    specificGasConstant = 287.058;
-                    break;
-                case "Duna":
-                    specificGasConstant = 831.2;
-                    break;
-                case "Jool":
-                    specificGasConstant = 3745.18;
-                    break;
-                case "Eve":
-                    specificGasConstant = 850.1;
-                    break;
-                case "Laythe":
-                    specificGasConstant = 287.058;
-                    break;
-                default:
-                    specificGasConstant = 287.058;
-                    break;
-            }
         }
 
 		public virtual float AdjustedHeat(float temp)
@@ -432,11 +396,8 @@ namespace DeadlyReentry
                 return;
 			//Rigidbody rb = part.Rigidbody;
             deltaTime = TimeWarp.fixedDeltaTime;
-            // Arbitrarily capped at -160 for stock. This will have to change for RSS and non-legacy atmospheres.
-            if (!ReentryPhysics.legacyAero)
-                density = (float)((part.vessel.staticPressure * 101325.0) / (specificGasConstant * (Math.Max(-160.0, part.vessel.flightIntegrator.getExternalTemperature()) + CTOK)));
-            else
-                density = (float)part.vessel.atmDensity;
+
+            density = (float)ReentryPhysics.frameDensity;
 			/*if (!rb || part.physicalSignificance == Part.PhysicalSignificance.NONE)
 				return;*/
 
@@ -927,9 +888,13 @@ namespace DeadlyReentry
 		}
 
 		public static Vector3 frameVelocity;
-        public static float frameDensity = 0f;
-        public static ScreenMessage chuteWarningMsg = new ScreenMessage("Warning: Chute deployment unsafe!", 1f, ScreenMessageStyle.UPPER_CENTER);
-        public static ScreenMessage crewGWarningMsg = new ScreenMessage("Reaching Crew G limit!", 1f, ScreenMessageStyle.UPPER_CENTER);
+
+        public static GUIStyle warningMessageStyle = new GUIStyle();
+
+        public static ScreenMessage chuteWarningMsg = new ScreenMessage("Warning: Chute deployment unsafe!", 1f, ScreenMessageStyle.UPPER_CENTER, warningMessageStyle);
+        public static ScreenMessage crewGWarningMsg = new ScreenMessage("Reaching Crew G limit!", 1f, ScreenMessageStyle.UPPER_CENTER, warningMessageStyle);
+
+        public static double specificGasConstant = 287.058;
 
         public static float shockwaveMultiplier = 1.0f;
         public static float shockwaveExponent = 1.0f;
@@ -949,6 +914,38 @@ namespace DeadlyReentry
         public static bool debugging = false;
         public static bool useAlternateDensity;
 
+        public static float frameDensity = 0f;
+
+        public void BodyChanged(GameEvents.FromToAction<CelestialBody, CelestialBody> body)
+        {
+            FindSpecificGasConstant(body.to);
+        }
+        
+        public void FindSpecificGasConstant(CelestialBody body)
+        {
+            switch(body.bodyName)
+            {
+                case "Kerbin":
+                    specificGasConstant = 287.058;
+                    break;
+                case "Duna":
+                    specificGasConstant = 831.2;
+                    break;
+                case "Jool":
+                    specificGasConstant = 3745.18;
+                    break;
+                case "Eve":
+                    specificGasConstant = 850.1;
+                    break;
+                case "Laythe":
+                    specificGasConstant = 287.058;
+                    break;
+                default:
+                    specificGasConstant = 287.058;
+                    break;
+            }
+        }
+        
         public bool LegacyAero
         {
             get
@@ -1005,7 +1002,16 @@ namespace DeadlyReentry
             enabled = true; // 0.24 compatibility
             Debug.Log("[DRE] - ReentryPhysics.Start(): LoadSettings(), Difficulty: " + DeadlyReentryScenario.Instance.DifficultyName);
             LoadSettings(); // Moved loading of REENTRY_EFFECTS into a generic loader which uses new difficulty settings
-		}
+
+            warningMessageStyle.normal.textColor = Color.red;
+            warningMessageStyle.fontSize = 20;
+            warningMessageStyle.alignment = TextAnchor.UpperCenter;
+
+            if (HighLogic.LoadedSceneIsFlight && (object)FlightGlobals.currentMainBody != null)
+                FindSpecificGasConstant(FlightGlobals.currentMainBody);
+            
+            GameEvents.onDominantBodyChange.Add(BodyChanged);
+        }
 
         public static void LoadSettings()
         {
@@ -1130,7 +1136,7 @@ namespace DeadlyReentry
         {
             if (isCompatible && debugging)
             {
-                windowPos = GUILayout.Window("DeadlyReentry".GetHashCode(), windowPos, DrawWindow, "Deadly Reentry 6.3.3 Debug Menu");
+                windowPos = GUILayout.Window("DeadlyReentry".GetHashCode(), windowPos, DrawWindow, "Deadly Reentry 6.4.0 Debug Menu");
             }
         }
 
@@ -1164,7 +1170,7 @@ namespace DeadlyReentry
             {
                 if (!ReentryPhysics.legacyAero)
                 {
-                    ReentryPhysics.frameDensity = (float)(FlightGlobals.ActiveVessel.staticPressure * 101325.0 / (287.058 * (Math.Max (-160.0, (double)FlightGlobals.ActiveVessel.flightIntegrator.getExternalTemperature()) + 273.15)));
+                    ReentryPhysics.frameDensity = (float)(FlightGlobals.ActiveVessel.staticPressure * 101325.0 / (specificGasConstant * (Math.Max (-160.0, (double)FlightGlobals.ActiveVessel.flightIntegrator.getExternalTemperature()) + 273.15)));
                 }
                 else
                 {

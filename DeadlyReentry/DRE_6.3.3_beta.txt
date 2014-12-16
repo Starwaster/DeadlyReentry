@@ -1,6 +1,0 @@
-- ModuleManager 2.5.3 compatibility change: Moved difficulty and settings related files to DeadlyReentry/Plugins/PluginData (EasySettings.cfg, DefaultSettings.cfg, HardSettings.cfg and Custom.cfg)
-- Added virtual keyword to ModuleAeroReentry.Start()
-- Added override keyword to ModuleHeatShield.Start()
-- Fixed FixAeroFX() fixes. (was not properly calling coroutine)
-- Moved crew/chute warning messages to ReentryPhysics
-- Updated ModuleManager file to 2.5.3
