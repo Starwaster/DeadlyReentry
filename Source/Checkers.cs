@@ -198,7 +198,7 @@ namespace DeadlyReentry
 
         public static bool IsAllCompatible()
         {
-            return IsCompatible() && IsUnityCompatible() && !IsWin64();
+            return IsCompatible() && IsUnityCompatible();
         }
 
         private static IEnumerable<Type> getAllTypes()
