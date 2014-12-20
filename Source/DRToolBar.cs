@@ -159,6 +159,10 @@ namespace DeadlyReentry
             GUILayout.BeginHorizontal();
             DeadlyReentry.ReentryPhysics.useAlternateDensity = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.useAlternateDensity, "Alternate Density calc (ignores densityExponent)");
             GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            DeadlyReentry.ReentryPhysics.displayParachuteWarning = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.displayParachuteWarning, "Warn when it is unsave to deploy parachutes due to heating.");
+            GUILayout.EndHorizontal();
             
             GUI.DragWindow();
             if (GUI.changed)
