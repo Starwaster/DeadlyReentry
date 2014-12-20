@@ -62,16 +62,11 @@ namespace DeadlyReentry
 		
 		public void Start() 
 		{
-			windowStyle = new GUIStyle (HighLogic.Skin.window);
-
-			try 
-			{
-				RenderingManager.RemoveFromPostDrawQueue (0, OnDraw);
-                RenderingManager.AddToPostDrawQueue (0, OnDraw);
-            } 
-			catch 
-			{
-			}			
+			if (HighLogic.LoadedScene >= GameScenes.SPACECENTER
+				&& HighLogic.LoadedScene <= GameScenes.TRACKSTATION) {
+				windowStyle = new GUIStyle (HighLogic.Skin.window);
+				RenderingManager.AddToPostDrawQueue (0, OnDraw);
+			}
 		}
 		
 		void OnGUIAppLauncherReady()
