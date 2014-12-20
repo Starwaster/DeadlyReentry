@@ -181,24 +181,16 @@ namespace DeadlyReentry
 		{
             if (Events == null)
                 return;
-            try
-            {
-                if (damage > 0.5)
-                    Events[""].guiName = "Repair Critical Damage";
-                else if (damage > 0.25)
-                    Events["RepairDamage"].guiName = "Repair Heavy Damage";
-                else if (damage > 0.125)
-                    Events["RepairDamage"].guiName = "Repair Moderate Damage";
-                else if (damage > 0)
-                    Events["RepairDamage"].guiName = "Repair Light Damage";
-                else
-                    Events["RepairDamage"].guiName = "No Damage";
-            }
-            catch (Exception e)
-            {
-                Debug.Log("ModuleAeroReentry.SetDamageLabel(): Caught Exception: " + e.Message);
-            }
-
+			if (damage > 0.5)
+				Events["RepairDamage"].guiName = "Repair Critical Damage";
+			else if (damage > 0.25)
+				Events["RepairDamage"].guiName = "Repair Heavy Damage";
+			else if (damage > 0.125)
+				Events["RepairDamage"].guiName = "Repair Moderate Damage";
+			else if (damage > 0)
+				Events["RepairDamage"].guiName = "Repair Light Damage";
+			else
+				Events["RepairDamage"].guiName = "No Damage";
 		}
 
         public override void OnAwake()
