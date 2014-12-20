@@ -161,7 +161,7 @@ namespace DeadlyReentry
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            DeadlyReentry.ReentryPhysics.displayParachuteWarning = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.displayParachuteWarning, "Warn when it is unsave to deploy parachutes due to heating.");
+            DeadlyReentry.ReentryPhysics.displayParachuteWarning = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.displayParachuteWarning, "Warn when it is unsafe to deploy parachutes due to heating.");
             GUILayout.EndHorizontal();
             
             GUI.DragWindow();
