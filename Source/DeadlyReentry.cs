@@ -814,6 +814,7 @@ namespace DeadlyReentry
 						float.TryParse(node.GetValue("maxTempScale"), out scale);
 					if(scale > 0 && float.TryParse(node.GetValue("ridiculousMaxTemp"), out maxTemp))
                     {
+                        Debug.Log("Using ridiculousMaxTemp = " + maxTemp.ToString() + " / maxTempScale =" + scale.ToString());
                         if (PartLoader.LoadedPartsList != null)
                         {
                             foreach (AvailablePart part in PartLoader.LoadedPartsList)
@@ -824,9 +825,9 @@ namespace DeadlyReentry
                                     {
                                         float oldTemp = part.partPrefab.maxTemp;
                                         bool changed = false;
-                                        if (part.partPrefab.Modules.Contains("ModuleEngines") || part.partPrefab.Modules.Contains("ModuleEnginesFX"))
-                                            maxTemp *= 2f;
-                                        if (part.partPrefab.maxTemp > maxTemp)
+                                        // if (part.partPrefab.Modules.Contains("ModuleEngines") || part.partPrefab.Modules.Contains("ModuleEnginesFX"))
+                                        //    maxTemp *= 2f;
+                                        if (part.partPrefab.maxTemp > maxTemp && !(part.partPrefab.Modules.Contains("ModuleEngines") || part.partPrefab.Modules.Contains("ModuleEnginesFX")))
                                         {
                                             part.partPrefab.maxTemp = Mathf.Min(part.partPrefab.maxTemp * scale, maxTemp);
                                             changed = true;
