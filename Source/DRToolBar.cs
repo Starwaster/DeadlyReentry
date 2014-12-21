@@ -62,16 +62,11 @@ namespace DeadlyReentry
 		
 		public void Start() 
 		{
-			windowStyle = new GUIStyle (HighLogic.Skin.window);
-
-			try 
-			{
-				RenderingManager.RemoveFromPostDrawQueue (0, OnDraw);
-                RenderingManager.AddToPostDrawQueue (0, OnDraw);
-            } 
-			catch 
-			{
-			}			
+			if (HighLogic.LoadedScene >= GameScenes.SPACECENTER
+				&& HighLogic.LoadedScene <= GameScenes.TRACKSTATION) {
+				windowStyle = new GUIStyle (HighLogic.Skin.window);
+				RenderingManager.AddToPostDrawQueue (0, OnDraw);
+			}
 		}
 		
 		void OnGUIAppLauncherReady()
@@ -163,6 +158,11 @@ namespace DeadlyReentry
             
             GUILayout.BeginHorizontal();
             DeadlyReentry.ReentryPhysics.useAlternateDensity = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.useAlternateDensity, "Alternate Density calc (ignores densityExponent)");
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(20.0f);
+            GUILayout.BeginHorizontal();
+            DeadlyReentryScenario.displayParachuteWarning = GUILayout.Toggle(DeadlyReentryScenario.displayParachuteWarning, "Warn when it is unsafe to deploy parachutes due to heating.");
             GUILayout.EndHorizontal();
             
             GUI.DragWindow();
