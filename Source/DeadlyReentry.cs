@@ -345,7 +345,7 @@ namespace DeadlyReentry
                         > part.maxTemp * ReentryPhysics.parachuteTempMult;
 					if (cut)
 					{
-                        if (ReentryPhysics.displayParachuteWarning && (object)ReentryPhysics.chuteWarningMsg != null)
+                        if (DeadlyReentryScenario.displayParachuteWarning && (object)ReentryPhysics.chuteWarningMsg != null)
                             ScreenMessages.PostScreenMessage(ReentryPhysics.chuteWarningMsg, false);
 
 	                    if ((object)parachute != null)
@@ -900,7 +900,6 @@ namespace DeadlyReentry
 
         public static float gToleranceMult = 6.0f;
         public static float parachuteTempMult = 0.25f;
-        public static bool displayParachuteWarning = true;
 
         public static bool legacyAero = false;
         public static bool dissipationCap = true;
@@ -1059,9 +1058,6 @@ namespace DeadlyReentry
                     if (node.HasValue("useAlternateDensity"))
                         bool.TryParse(node.GetValue("useAlternateDensity"), out useAlternateDensity);
 
-                    if (node.HasValue("displayParachuteWarning"))
-                        bool.TryParse(node.GetValue("displayParachuteWarning"), out displayParachuteWarning);
-
                     Debug.Log("[DRE] - debugging = " + debugging.ToString());
                     Debug.Log("[DRE] - legacyAero = " + legacyAero.ToString());
                     Debug.Log("[DRE] - dissipationCap = " + dissipationCap.ToString());
@@ -1122,8 +1118,6 @@ namespace DeadlyReentry
                         node.SetValue("dissipationCap", dissipationCap.ToString());
                     if(node.HasValue("useAlternateDensity"))
                         node.SetValue("useAlternateDensity", useAlternateDensity.ToString());
-                    if(node.HasValue("displayParachuteWarning"))
-                        node.SetValue("displayParachuteWarning", displayParachuteWarning.ToString());
 
                     break;
                 }
@@ -1522,11 +1516,6 @@ namespace DeadlyReentry
                         {
                             bool.TryParse(settingNode.GetValue("useAlternateDensity"), out btmp);
                             node.AddValue("@useAlternateDensity", btmp.ToString());
-                        }
-                        if (settingNode.HasValue("displayParachuteWarning"))
-                        {
-                            bool.TryParse(settingNode.GetValue("displayParachuteWarning"), out btmp);
-                            node.AddValue("@displayParachuteWarning", btmp.ToString());
                         }
                         savenode.AddNode (node);
                         break;
