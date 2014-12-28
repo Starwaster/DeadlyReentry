@@ -25,6 +25,23 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v6.4
+*Added toolbar button (for stock toolbar)
+*Added Easy, Normal and Hard difficulty settings accessible from new menu
+*Difficulty settings are per-save game!!! Use Easy for sandbox and Hard for Career! (if you want)
+*Alternate lower density calculation (for use with Hard mode to prevent excessive heating for high speed aircraft)
+*Fix for stuttering AeroFX cases. (thanks to Motokid600, Chezburgar7300, Zeenobit and Noio for feedback and/or testing)
+*Reworked warning messages for visibility and/or optimization
+*Optimized density calculations (moved all into ReentryPhysics; no more per-part calculations)
+*Lowered part max-temperature cap to 1250 (other parts may be even lower)
+*Heat shields now insulate attached parts against conducted heat
+*Low grade heat shielding added to nose cones and fairings. (also to parachute 'cone' parts. Deploying chutes 'jettisons' the shield)
+*Kerbals now react to reentry events such as overheating. (may need tweaking; even Jebediah gets scared now. Can't have that)
+*Merged in fixes from NathanKell for FAR detection
+*Merged in changes from NathanKell to support R&D / Technology requirements
+*Added support for (currently unused)stock KSP airstream shielding
+*Trapping and checking for of null reference errors in events.
+
 v6.2.1
 *Debug Menu saves survive quick load and reverting. (added extra save
 function to update the loaded REENTRY_EFFECTS ConfigNode)

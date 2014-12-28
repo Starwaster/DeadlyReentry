@@ -14,6 +14,7 @@ namespace DeadlyReentry
 		}
 		
 		public static DeadlyReentryScenario Instance;
+		public static bool displayParachuteWarning = true;
 		
 		private int difficultySetting = 1;
 		
@@ -56,14 +57,18 @@ namespace DeadlyReentry
 		
 		public override void OnSave(ConfigNode node)
 		{
-            if ((object)DeadlyReentryScenario.Instance != null)
-                node.AddValue ("difficultySetting", difficultySetting);
+			node.AddValue ("difficultySetting", difficultySetting);
+			node.AddValue ("displayParachuteWarning", displayParachuteWarning);
 		}
 		
 		public override void OnLoad(ConfigNode node)
 		{
 			if (node.HasValue ("difficultySetting"))
 				difficultySetting = int.Parse (node.GetValue ("difficultySetting"));
+
+			if (node.HasValue("displayParachuteWarning"))
+				bool.TryParse(node.GetValue("displayParachuteWarning"), out displayParachuteWarning);
+
             DeadlyReentry.ReentryPhysics.LoadSettings();
 		}
 	}
