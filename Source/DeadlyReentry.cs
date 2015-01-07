@@ -443,9 +443,9 @@ namespace DeadlyReentry
             if (part.temperature < -CTOK || float.IsNaN (part.temperature)) // clamp to Absolute Zero
                 part.temperature = -CTOK;
 			displayTemperature = part.temperature;
-            if (!(part.Modules.Contains("ModuleEngines") || part.Modules.Contains("ModuleEnginesFX")) && this.part.vessel == FlightGlobals.ActiveVessel && part.temperature > 100f)
+            if (!(part.Modules.Contains("ModuleEngines") || part.Modules.Contains("ModuleEnginesFX")) && this.part.vessel == FlightGlobals.ActiveVessel && part.temperature > part.maxTemp * 0.85f)
             {
-                float severity = Mathf.Pow(part.temperature / (part.maxTemp * 0.85f), 0.5f);
+                float severity = part.temperature / (part.maxTemp * 0.85f);
                 ReentryReaction.Fire(new GameEvents.ExplosionReaction(0f, severity));
             }
 			CheckForFire();
@@ -799,7 +799,10 @@ namespace DeadlyReentry
 	[KSPAddon(KSPAddon.Startup.MainMenu, false)] // fixed
 	public class FixMaxTemps : MonoBehaviour
 	{
-		public void Start()
+        protected PartModule RFEngineConfig = null;
+        protected FieldInfo RFEConfigs = null;
+        
+        public void Start()
 		{
             if (!CompatibilityChecker.IsAllCompatible())
                 return;
@@ -827,7 +830,7 @@ namespace DeadlyReentry
                                         bool changed = false;
                                         // if (part.partPrefab.Modules.Contains("ModuleEngines") || part.partPrefab.Modules.Contains("ModuleEnginesFX"))
                                         //    maxTemp *= 2f;
-                                        if (part.partPrefab.maxTemp > maxTemp && !(part.partPrefab.Modules.Contains("ModuleEngines") || part.partPrefab.Modules.Contains("ModuleEnginesFX")))
+                                        if (part.partPrefab.maxTemp > maxTemp)
                                         {
                                             part.partPrefab.maxTemp = Mathf.Min(part.partPrefab.maxTemp * scale, maxTemp);
                                             changed = true;
@@ -844,6 +847,14 @@ namespace DeadlyReentry
                                             {
                                                 module.heatProduction *= curScale;
                                             }
+
+                                            if (part.partPrefab.Modules.Contains("ModuleEngineConfigs"))
+                                            {
+                                                RFEngineConfig = part.partPrefab.Modules["ModuleEngineConfigs"];
+                                                RFEConfigs = RFEngineConfig.GetType().GetFields("CONFIG");
+                                            }
+                                            else
+                                                RFEngineConfig = null;
                                         }
                                     }
                                 }
