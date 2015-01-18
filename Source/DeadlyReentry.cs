@@ -369,7 +369,11 @@ namespace DeadlyReentry
 					}
                 }
                 if (IsShielded(velocity))
+                {
                     displayShockwave = "Shielded";
+                    if (part.ShieldedFromAirstream)
+                        displayShockwave += " (stock)";
+                }
                 else
                 {
                     if (is_debugging)
@@ -848,13 +852,13 @@ namespace DeadlyReentry
                                                 module.heatProduction *= curScale;
                                             }
 
-                                            if (part.partPrefab.Modules.Contains("ModuleEngineConfigs"))
-                                            {
-                                                RFEngineConfig = part.partPrefab.Modules["ModuleEngineConfigs"];
-                                                RFEConfigs = RFEngineConfig.GetType().GetFields("CONFIG");
-                                            }
-                                            else
-                                                RFEngineConfig = null;
+                                            //if (part.partPrefab.Modules.Contains("ModuleEngineConfigs"))
+                                            //{
+                                            //    RFEngineConfig = part.partPrefab.Modules["ModuleEngineConfigs"];
+                                            //    RFEConfigs = RFEngineConfig.GetType().GetFields("CONFIG");
+                                            //}
+                                            //else
+                                            //    RFEngineConfig = null;
                                         }
                                     }
                                 }
