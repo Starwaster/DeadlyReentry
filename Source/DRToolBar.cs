@@ -157,7 +157,12 @@ namespace DeadlyReentry
             //useAlternateDensity
             
             GUILayout.BeginHorizontal();
-            DeadlyReentry.ReentryPhysics.useAlternateDensity = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.useAlternateDensity, "Alternate Density calc (ignores densityExponent)");
+            DeadlyReentry.ReentryPhysics.useAlternateDensity = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.useAlternateDensity, "Alternate Density calc");
+            GUILayout.EndHorizontal();
+
+            // useAlternateHeatModel
+            GUILayout.BeginHorizontal();
+            DeadlyReentry.ReentryPhysics.useAlternateHeatModel = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.useAlternateHeatModel, "Alternate Heating Model");
             GUILayout.EndHorizontal();
 
             GUILayout.Space(20.0f);

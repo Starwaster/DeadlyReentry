@@ -380,7 +380,11 @@ namespace DeadlyReentry
 					{
                         displayShockwave = shockwave.ToString("F0") + "C";
 					}
-                    return AdjustedHeat(ReentryPhysics.TemperatureDelta(AdjustedDensity(), shockwave + CTOK, part.temperature + CTOK));
+                    if (ReentryPhysics.useAlternateHeatModel)
+                        return AdjustedHeat(ReentryPhysics.AltTemperatureDelta(AdjustedDensity(), shockwave + CTOK, part.temperature + CTOK));
+                    else
+                        return AdjustedHeat(ReentryPhysics.TemperatureDelta(AdjustedDensity(), shockwave + CTOK, part.temperature + CTOK));
+
                 }
             }
             return 0;
@@ -783,7 +787,7 @@ namespace DeadlyReentry
                                               //* dot
                                               //* AdjustedDensity()
 					                          * deltaTime
-                                              * 0.0015); // This last is to scale down ablation rate to survive up to 10 minutes of reentry
+                                              * ReentryPhysics.ablationMetric); // This last is to scale down ablation rate to survive up to x minutes  of reentry (ablationMetric = 1 / x * 60)
 
                     float disAmount = dissipation.Evaluate(part.temperature) * ablation * (1 - damage) * (1 - damage);
                     if (disAmount > 0)
@@ -915,6 +919,7 @@ namespace DeadlyReentry
 		public static float startThermal = 800.0f;
 		public static float fullThermal = 1150.0f;
         public static float afxDensityExponent = 0.7f;
+        public static float ablationMetric = 0.0066666666666667f;
 
         public static float gToleranceMult = 6.0f;
         public static float parachuteTempMult = 0.25f;
@@ -923,6 +928,7 @@ namespace DeadlyReentry
         public static bool dissipationCap = true;
         public static bool debugging = false;
         public static bool useAlternateDensity;
+        public static bool useAlternateHeatModel;
 
         public static float frameDensity = 0f;
 
@@ -991,6 +997,14 @@ namespace DeadlyReentry
         }
 
         protected Rect windowPos = new Rect(100, 100, 0, 0);
+
+        public static float AltTemperatureDelta(double density, float shockwaveK, float partTempK)
+        {
+            if (shockwaveK < partTempK || density == 0 || shockwaveK < 0)
+                return 0;
+            double watts = 0.000183 * Math.Pow(frameVelocity.magnitude, 3) * Math.Sqrt(density);
+            return (float) (watts * 0.0005265650665 * heatMultiplier * TimeWarp.fixedDeltaTime);
+        }
 
         public static float TemperatureDelta(double density, float shockwaveK, float partTempK)
 		{
@@ -1065,6 +1079,8 @@ namespace DeadlyReentry
                         double.TryParse(node.GetValue("crewGLimit"), out ModuleAeroReentry.crewGLimit);
                     if (node.HasValue("crewGKillChance"))
                         float.TryParse(node.GetValue("crewGKillChance"), out ModuleAeroReentry.crewGKillChance);
+                    if (node.HasValue("ablationMetric"))
+                        float.TryParse(node.GetValue("ablationMetric"), out ablationMetric);
                     
                     
                     if(node.HasValue("debugging"))
@@ -1075,10 +1091,10 @@ namespace DeadlyReentry
                         bool.TryParse(node.GetValue("dissipationCap"), out dissipationCap);
                     if (node.HasValue("useAlternateDensity"))
                         bool.TryParse(node.GetValue("useAlternateDensity"), out useAlternateDensity);
+                    //useAlternateHeatModel
+                    if (node.HasValue("useAlternateHeatModel"))
+                        bool.TryParse(node.GetValue("useAlternateHeatModel"), out useAlternateHeatModel);
 
-                    Debug.Log("[DRE] - debugging = " + debugging.ToString());
-                    Debug.Log("[DRE] - legacyAero = " + legacyAero.ToString());
-                    Debug.Log("[DRE] - dissipationCap = " + dissipationCap.ToString());
                     break;
                 }
             }
@@ -1127,7 +1143,6 @@ namespace DeadlyReentry
                     if (node.HasValue("crewGKillChance"))
                         node.SetValue("crewGKillChance", ModuleAeroReentry.crewGKillChance.ToString());
                     
-                    Debug.Log("debugging, legacyAero, dissipationCap = " + debugging + ", " + legacyAero + ", " + dissipationCap);
                     if(node.HasValue("debugging"))
                         node.SetValue("debugging", debugging.ToString());
                     if(node.HasValue("legacyAero"))
@@ -1136,6 +1151,8 @@ namespace DeadlyReentry
                         node.SetValue("dissipationCap", dissipationCap.ToString());
                     if(node.HasValue("useAlternateDensity"))
                         node.SetValue("useAlternateDensity", useAlternateDensity.ToString());
+                    if(node.HasValue("useAlternateHeatModel"))
+                        node.SetValue("useAlternateHeatModel", useAlternateHeatModel.ToString());
 
                     break;
                 }
@@ -1434,7 +1451,7 @@ namespace DeadlyReentry
                 {
                     if (settingNode.HasValue("name") && settingNode.GetValue("name") == difficulty)
                     {
-                        ConfigNode node = new ConfigNode("@REENTRY_EFFECTS[" + difficulty + "]:Final");
+                        ConfigNode node = new ConfigNode("@REENTRY_EFFECTS[" + difficulty + "]:AFTER[DeadlyReentry]");
 
                         if(settingNode.HasValue("shockwaveExponent"))
                         {
@@ -1537,6 +1554,12 @@ namespace DeadlyReentry
                             bool.TryParse(settingNode.GetValue("useAlternateDensity"), out btmp);
                             node.AddValue("@useAlternateDensity", btmp.ToString());
                         }
+                        if (settingNode.HasValue("useAlternateDensity"))
+                        {
+                            bool.TryParse(settingNode.GetValue("useAlternateHeatModel"), out btmp);
+                            node.AddValue("@useAlternateHeatModel", btmp.ToString());
+                        }
+
                         savenode.AddNode (node);
                         break;
                     }
