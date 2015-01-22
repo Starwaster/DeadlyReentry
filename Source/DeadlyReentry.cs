@@ -834,7 +834,9 @@ namespace DeadlyReentry
                             {
                                 try
                                 {
-                                    if (part.partPrefab != null && !part.partPrefab.Modules.Contains("ModuleHeatShield")) // allow heat sinks
+                                    // allow heat sinks. Also ignore engines until RF engine situation is finally sorted
+                                    if (part.partPrefab != null && !part.partPrefab.Modules.Contains("ModuleHeatShield")
+                                        && !(part.partPrefab.Modules.Contains("ModuleEngines") || part.partPrefab.Modules.Contains("ModuleEnginesFX")))
                                     {
                                         float oldTemp = part.partPrefab.maxTemp;
                                         bool changed = false;
@@ -1003,7 +1005,7 @@ namespace DeadlyReentry
             if (shockwaveK < partTempK || density == 0 || shockwaveK < 0)
                 return 0;
             double watts = 0.000183 * Math.Pow(frameVelocity.magnitude, 3) * Math.Sqrt(density);
-            return (float) (watts * 0.0005265650665 * heatMultiplier * TimeWarp.fixedDeltaTime);
+            return (float) (watts * 0.0005265650665 * heatMultiplier * TimeWarp.fixedDeltaTime) - partTempK;
         }
 
         public static float TemperatureDelta(double density, float shockwaveK, float partTempK)
