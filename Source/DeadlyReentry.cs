@@ -345,7 +345,7 @@ namespace DeadlyReentry
                         > part.maxTemp * ReentryPhysics.parachuteTempMult;
 					if (cut)
 					{
-                        if (DeadlyReentryScenario.displayParachuteWarning && (object)ReentryPhysics.chuteWarningMsg != null)
+                        if (DeadlyReentryScenario.Instance.displayParachuteWarning && (object)ReentryPhysics.chuteWarningMsg != null)
                             ScreenMessages.PostScreenMessage(ReentryPhysics.chuteWarningMsg, false);
 
 	                    if ((object)parachute != null)
@@ -390,7 +390,7 @@ namespace DeadlyReentry
             return 0;
         }
 
-		public void FixedUpdate ()
+		public void FixedUpdate()
 		{
             if (!HighLogic.LoadedSceneIsFlight || !isCompatible)
                 return;
@@ -543,10 +543,9 @@ namespace DeadlyReentry
                     List<ProtoCrewMember> crew = part.protoModuleCrew; //vessel.GetVesselCrew();
                     if (gExperienced > crewGWarn && crew.Count > 0)
                     {
-                            
-                        if (gExperienced < crewGLimit)
-                                ScreenMessages.PostScreenMessage(ReentryPhysics.crewGWarningMsg, false);
-                        else
+                        if (DeadlyReentryScenario.Instance.displayCrewGForceWarning)
+                            ScreenMessages.PostScreenMessage(ReentryPhysics.crewGWarningMsg, false);
+                        if (gExperienced > crewGLimit)
                         {
                             // borrowed from TAC Life Support
                             if (UnityEngine.Random.Range(0f, 1f) < crewGKillChance)
@@ -1005,7 +1004,7 @@ namespace DeadlyReentry
             if (shockwaveK < partTempK || density == 0 || shockwaveK < 0)
                 return 0;
             double watts = 0.000183 * Math.Pow(frameVelocity.magnitude, 3) * Math.Sqrt(density);
-            return (float) (watts * 0.0005265650665 * heatMultiplier * TimeWarp.fixedDeltaTime) - partTempK;
+            return (float) (watts * 0.0005265650665 * heatMultiplier * TimeWarp.fixedDeltaTime);
         }
 
         public static float TemperatureDelta(double density, float shockwaveK, float partTempK)
@@ -1189,7 +1188,7 @@ namespace DeadlyReentry
 				afx.state = (afx.velocity.magnitude - startThermal) / (fullThermal - startThermal);
 		}
 
-        public void FixedUpdate ()
+        public void FixedUpdate()
         {
             if (!this.isCompatible)
             {
@@ -1214,9 +1213,6 @@ namespace DeadlyReentry
 		{
             if (!isCompatible)
                 return;
-            // Only do this in FixedUpdate() from now on. (new system should be immune from flickering)
-            // Spoiler alert: it doesn't work at all when used only in FixedUpdate, even using yield.
-//            AeroFixer ();
 		}
 
         public void Update()

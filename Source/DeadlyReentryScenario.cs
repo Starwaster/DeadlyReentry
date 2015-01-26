@@ -14,7 +14,8 @@ namespace DeadlyReentry
 		}
 		
 		public static DeadlyReentryScenario Instance;
-		public static bool displayParachuteWarning = true;
+		public bool displayParachuteWarning = true;
+        public bool displayCrewGForceWarning = true;
 		
 		private int difficultySetting = 1;
 		

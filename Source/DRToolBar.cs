@@ -167,14 +167,22 @@ namespace DeadlyReentry
 
             GUILayout.Space(20.0f);
             GUILayout.BeginHorizontal();
-            DeadlyReentryScenario.displayParachuteWarning = GUILayout.Toggle(DeadlyReentryScenario.displayParachuteWarning, "Warn when it is unsafe to deploy parachutes due to heating.");
+            DeadlyReentryScenario.Instance.displayParachuteWarning = GUILayout.Toggle(DeadlyReentryScenario.Instance.displayParachuteWarning, "Warn when it is unsafe to deploy parachutes due to heating.");
             GUILayout.EndHorizontal();
-            
+
+            GUILayout.BeginHorizontal();
+            DeadlyReentryScenario.Instance.displayCrewGForceWarning = GUILayout.Toggle(DeadlyReentryScenario.Instance.displayCrewGForceWarning, "Warn when crew are experiencing hazardous levels of g forces.");
+            GUILayout.EndHorizontal();
+
             GUI.DragWindow();
             if (GUI.changed)
             {
                 DeadlyReentry.ReentryPhysics.SaveSettings();
                 DeadlyReentry.ReentryPhysics.SaveCustomSettings();
+                if (!DeadlyReentryScenario.Instance.displayCrewGForceWarning)
+                    ScreenMessages.RemoveMessage(ReentryPhysics.crewGWarningMsg);
+                if (!DeadlyReentryScenario.Instance.displayParachuteWarning)
+                    ScreenMessages.RemoveMessage(ReentryPhysics.chuteWarningMsg);
             }
 		}
 	}
