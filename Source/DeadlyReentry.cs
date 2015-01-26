@@ -460,6 +460,29 @@ namespace DeadlyReentry
 			CheckGeeForces();
 		}
 
+        public void LateUpdate()
+        {
+            if (!isCompatible)
+                return;
+            if (is_on_fire)
+            {
+                foreach (ParticleEmitter fx in ablationFX.fxEmitters)
+                {
+                    fx.gameObject.SetActive(true);
+                    fx.gameObject.transform.LookAt(part.transform.position + velocity);
+                    fx.gameObject.transform.Rotate(90, 0, 0);
+                }
+                foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
+                {
+                    fx.gameObject.SetActive(density > 0.02);
+                    fx.gameObject.transform.LookAt(part.transform.position + velocity);
+                    fx.gameObject.transform.Rotate(90, 0, 0);
+                }
+                float severity = (this.part.maxTemp * 0.85f) / this.part.maxTemp;
+                float distance = Vector3.Distance(this.part.partTransform.position, FlightGlobals.ActiveVessel.vesselTransform.position);
+            }
+        }
+
 		public void AddDamage(float dmg)
 		{
 			if (dead || part == null || part.partInfo == null || part.partInfo.partPrefab == null)
@@ -633,20 +656,6 @@ namespace DeadlyReentry
                         else
                         {
                             is_on_fire = true;
-                            foreach (ParticleEmitter fx in ablationFX.fxEmitters)
-                            {
-                                fx.gameObject.SetActive(true);
-                                fx.gameObject.transform.LookAt(part.transform.position + velocity);
-                                fx.gameObject.transform.Rotate(90, 0, 0);
-                            }
-                            foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
-                            {
-                                fx.gameObject.SetActive(density > 0.02);
-                                fx.gameObject.transform.LookAt(part.transform.position + velocity);
-                                fx.gameObject.transform.Rotate(90, 0, 0);
-                            }
-                            float severity = (this.part.maxTemp * 0.85f) / this.part.maxTemp;
-                            float distance = Vector3.Distance(this.part.partTransform.position, FlightGlobals.ActiveVessel.vesselTransform.position);
                             ReentryReaction.Fire(new GameEvents.ExplosionReaction(distance, severity));
                         }
                     }
