@@ -14,7 +14,6 @@ namespace DeadlyReentry
 
         protected bool isCompatible = true;
 
-        // I got nothing...
         EventData<GameEvents.ExplosionReaction> ReentryReaction = GameEvents.onPartExplode;
 
 		UIPartActionWindow _myWindow = null; 
@@ -341,7 +340,7 @@ namespace DeadlyReentry
                     //bool cut = ambient + Math.Pow(density, ReentryPhysics.densityExponent) * shockwave * 10f
                     //    > part.maxTemp * ReentryPhysics.parachuteTempMult;
                     // ambient term as it doesn't contribute meaningfully
-                    bool cut = Math.Pow(density, ReentryPhysics.densityExponent) * shockwave * 10f
+                    bool cut = Math.Pow(density, ReentryPhysics.parachuteDifficulty) * shockwave * 10f
                         > part.maxTemp * ReentryPhysics.parachuteTempMult;
 					if (cut)
 					{
@@ -478,8 +477,6 @@ namespace DeadlyReentry
                     fx.gameObject.transform.LookAt(part.transform.position + velocity);
                     fx.gameObject.transform.Rotate(90, 0, 0);
                 }
-                float severity = (this.part.maxTemp * 0.85f) / this.part.maxTemp;
-                float distance = Vector3.Distance(this.part.partTransform.position, FlightGlobals.ActiveVessel.vesselTransform.position);
             }
         }
 
@@ -656,6 +653,8 @@ namespace DeadlyReentry
                         else
                         {
                             is_on_fire = true;
+                            float severity = (this.part.maxTemp * 0.85f) / this.part.maxTemp;
+                            float distance = Vector3.Distance(this.part.partTransform.position, FlightGlobals.ActiveVessel.vesselTransform.position);
                             ReentryReaction.Fire(new GameEvents.ExplosionReaction(distance, severity));
                         }
                     }
@@ -817,8 +816,8 @@ namespace DeadlyReentry
 	[KSPAddon(KSPAddon.Startup.MainMenu, false)] // fixed
 	public class FixMaxTemps : MonoBehaviour
 	{
-        protected PartModule RFEngineConfig = null;
-        protected FieldInfo RFEConfigs = null;
+        //protected PartModule RFEngineConfig = null;
+        //protected FieldInfo[] RFEConfigs = null;
         
         public void Start()
 		{
@@ -843,13 +842,10 @@ namespace DeadlyReentry
                                 try
                                 {
                                     // allow heat sinks. Also ignore engines until RF engine situation is finally sorted
-                                    if (part.partPrefab != null && !part.partPrefab.Modules.Contains("ModuleHeatShield")
-                                        && !(part.partPrefab.Modules.Contains("ModuleEngines") || part.partPrefab.Modules.Contains("ModuleEnginesFX")))
+                                    if (part.partPrefab != null && !part.partPrefab.Modules.Contains("ModuleHeatShield"))
                                     {
                                         float oldTemp = part.partPrefab.maxTemp;
                                         bool changed = false;
-                                        // if (part.partPrefab.Modules.Contains("ModuleEngines") || part.partPrefab.Modules.Contains("ModuleEnginesFX"))
-                                        //    maxTemp *= 2f;
                                         if (part.partPrefab.maxTemp > maxTemp)
                                         {
                                             part.partPrefab.maxTemp = Mathf.Min(part.partPrefab.maxTemp * scale, maxTemp);
@@ -867,14 +863,6 @@ namespace DeadlyReentry
                                             {
                                                 module.heatProduction *= curScale;
                                             }
-
-                                            //if (part.partPrefab.Modules.Contains("ModuleEngineConfigs"))
-                                            //{
-                                            //    RFEngineConfig = part.partPrefab.Modules["ModuleEngineConfigs"];
-                                            //    RFEConfigs = RFEngineConfig.GetType().GetFields("CONFIG");
-                                            //}
-                                            //else
-                                            //    RFEngineConfig = null;
                                         }
                                     }
                                 }
@@ -938,7 +926,8 @@ namespace DeadlyReentry
         public static bool dissipationCap = true;
         public static bool debugging = false;
         public static bool useAlternateDensity;
-        public static bool useAlternateHeatModel;
+        public static bool useAlternateHeatModel = true;
+        public static float parachuteDifficulty = 1f;
 
         public static float frameDensity = 0f;
 
@@ -1091,7 +1080,9 @@ namespace DeadlyReentry
                         float.TryParse(node.GetValue("crewGKillChance"), out ModuleAeroReentry.crewGKillChance);
                     if (node.HasValue("ablationMetric"))
                         float.TryParse(node.GetValue("ablationMetric"), out ablationMetric);
-                    
+                    if (node.HasValue("parachuteDifficulty"))
+                        float.TryParse(node.GetValue("parachuteDifficulty"), out parachuteDifficulty);
+
                     
                     if(node.HasValue("debugging"))
                         bool.TryParse (node.GetValue ("debugging"), out debugging);
@@ -1163,6 +1154,8 @@ namespace DeadlyReentry
                         node.SetValue("useAlternateDensity", useAlternateDensity.ToString());
                     if(node.HasValue("useAlternateHeatModel"))
                         node.SetValue("useAlternateHeatModel", useAlternateHeatModel.ToString());
+                    if(node.HasValue("parachuteDifficulty"))
+                        node.SetValue("parachuteDifficulty", parachuteDifficulty.ToString());
 
                     break;
                 }
@@ -1516,6 +1509,11 @@ namespace DeadlyReentry
                         {
                             float.TryParse(settingNode.GetValue("crewGKillChance"), out ftmp);
                             node.AddValue ("@crewGKillChance", ftmp);
+                        }
+                        if(settingNode.HasValue("parachuteDifficulty"))
+                        {
+                            float.TryParse(settingNode.GetValue("parachuteDifficulty"), out ftmp);
+                            node.AddValue("@parachuteDifficulty", ftmp.ToString());
                         }
 
                         
