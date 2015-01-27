@@ -154,6 +154,12 @@ namespace DeadlyReentry
                 DeadlyReentry.ReentryPhysics.debugging = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.debugging, "Open Debugging Menu (flight only)");
                 GUILayout.EndHorizontal();
             }
+            else
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Toggle(false, "Debugging Menu Unavailable (flight only)");
+                GUILayout.EndHorizontal();
+            }
             //useAlternateDensity
             
             GUILayout.BeginHorizontal();

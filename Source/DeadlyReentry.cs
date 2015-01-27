@@ -718,7 +718,7 @@ namespace DeadlyReentry
 		[KSPField(isPersistant = false, guiActive = false, guiName = "angle", guiUnits = " ", guiFormat = "F3")]
 		public float dot;
 
-		[KSPField(isPersistant = true)]
+		[KSPField(isPersistant = false)]
 		public int deployAnimationController;
 
 		[KSPField(isPersistant = false)]
@@ -727,7 +727,7 @@ namespace DeadlyReentry
 		[KSPField(isPersistant = false)]
 		public float reflective;
 
-		[KSPField(isPersistant = true)]
+		[KSPField(isPersistant = false)]
 		public string ablative;
 
 		[KSPField(isPersistant = false)]
