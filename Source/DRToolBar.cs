@@ -151,13 +151,16 @@ namespace DeadlyReentry
             if (HighLogic.LoadedSceneIsFlight)
             {
                 GUILayout.BeginHorizontal();
-                DeadlyReentry.ReentryPhysics.debugging = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.debugging, "Open Debugging Menu (flight only)");
+                DeadlyReentry.ReentryPhysics.debugging = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.debugging, "Open Debugging Menu");
                 GUILayout.EndHorizontal();
             }
             else
             {
+                GUIStyle redStyle = new GUIStyle ();
+                redStyle.richText = true;
+                GUILayoutOption[] options = {};
                 GUILayout.BeginHorizontal();
-                GUILayout.Toggle(false, "Debugging Menu Unavailable (flight only)");
+                GUILayout.Toggle(false, "<color=red>Debugging Menu Unavailable (flight only)</color>", redStyle, options);
                 GUILayout.EndHorizontal();
             }
             //useAlternateDensity
