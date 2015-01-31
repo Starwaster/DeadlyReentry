@@ -1001,8 +1001,8 @@ namespace DeadlyReentry
         {
             if (shockwaveK < partTempK || density == 0 || shockwaveK < 0)
                 return 0;
-            double watts = 0.000183 * Math.Pow(frameVelocity.magnitude, 3) * Math.Sqrt(density);
-            return (float) (watts * 0.0005265650665 * heatMultiplier * TimeWarp.fixedDeltaTime);
+            double temp = 0.000183 * Math.Pow(frameVelocity.magnitude, 3) * Math.Sqrt(density);
+            return (float) (((temp * 0.0005265650665) - partTempK) * heatMultiplier * TimeWarp.fixedDeltaTime);
         }
 
         public static float TemperatureDelta(double density, float shockwaveK, float partTempK)
