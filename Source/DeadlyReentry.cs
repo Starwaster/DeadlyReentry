@@ -14,6 +14,8 @@ namespace DeadlyReentry
 
         protected bool isCompatible = true;
 
+        public bool is_chute_warned;
+
         EventData<GameEvents.ExplosionReaction> ReentryReaction = GameEvents.onPartExplode;
 
 		UIPartActionWindow _myWindow = null; 
@@ -162,6 +164,22 @@ namespace DeadlyReentry
         protected PartModule FARPartModule = null;
         protected FieldInfo FARField = null;
         protected bool FARSearched = false;
+
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Rec. Heat", guiUnits = "C", guiFormat = "F4")]
+        protected float recordedHeat = 0f; // recorded incoming heat flux. (sort of, kind of, not really)
+
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Max. Rec. Heat", guiUnits = "C", guiFormat = "F4")]
+        protected float maximumRecordedHeat = 0f;
+        
+        [KSPEvent(guiName = "Reset Heat Record", guiActiveUnfocused = true, externalToEVAOnly = false, guiActive = false, unfocusedRange = 4f)]
+        public void ResetRecordedHeat()
+        {
+            this.recordedHeat = 0f;
+            this.maximumRecordedHeat = 0f;
+            if (myWindow != null)
+                myWindow.displayDirty = true;
+        }
+
 
 		[KSPEvent (guiName = "No Damage", guiActiveUnfocused = true, externalToEVAOnly = true, guiActive = false, unfocusedRange = 4f)]
 		public void RepairDamage()
@@ -345,7 +363,10 @@ namespace DeadlyReentry
 					if (cut)
 					{
                         if (DeadlyReentryScenario.Instance.displayParachuteWarning && (object)ReentryPhysics.chuteWarningMsg != null)
+                        {
                             ScreenMessages.PostScreenMessage(ReentryPhysics.chuteWarningMsg, false);
+                            is_chute_warned = true;
+                        }
 
 	                    if ((object)parachute != null)
 	                    {
@@ -366,6 +387,11 @@ namespace DeadlyReentry
 							}
 	                    }
 					}
+                    else if (is_chute_warned)
+                    {
+                        ScreenMessages.RemoveMessage(ReentryPhysics.chuteWarningMsg);
+                        is_chute_warned = false;
+                    }
                 }
                 if (IsShielded(velocity))
                 {
@@ -375,14 +401,25 @@ namespace DeadlyReentry
                 }
                 else
                 {
-                    if (is_debugging)
-					{
-                        displayShockwave = shockwave.ToString("F0") + "C";
-					}
+                    float incomingHeat;
                     if (ReentryPhysics.useAlternateHeatModel)
-                        return AdjustedHeat(ReentryPhysics.AltTemperatureDelta(AdjustedDensity(), shockwave + CTOK, part.temperature + CTOK));
+                        incomingHeat = ReentryPhysics.AltTemperatureDelta(AdjustedDensity(), shockwave + CTOK, part.temperature + CTOK);
                     else
-                        return AdjustedHeat(ReentryPhysics.TemperatureDelta(AdjustedDensity(), shockwave + CTOK, part.temperature + CTOK));
+                        incomingHeat = ReentryPhysics.TemperatureDelta(AdjustedDensity(), shockwave + CTOK, part.temperature + CTOK);
+
+                    //if (shockwave > part.temperature)
+                    //    part.heatDissipation = (shockwave - part.temperature) / shockwave * 0.12;
+                    //else
+                    //    part.heatDissipation = 0.12f;
+                    //That needs careful and better handling or it will really mess things up.
+
+                    if (is_debugging)
+                    {
+                        displayShockwave = shockwave.ToString("F0") + "C";
+                        recordedHeat += incomingHeat;
+                        maximumRecordedHeat = Mathf.Max(maximumRecordedHeat, incomingHeat);
+                    }
+                    return AdjustedHeat(incomingHeat);
 
                 }
             }
@@ -407,6 +444,10 @@ namespace DeadlyReentry
 				Fields["displayGForce"].guiActive = ReentryPhysics.debugging;
 	            Fields["gExperienced"].guiActive = ReentryPhysics.debugging;
 				Fields["displayAtmDensity"].guiActive = ReentryPhysics.debugging;
+                Fields["recordedHeat"].guiActive = ReentryPhysics.debugging;
+                Fields["maximumRecordedHeat"].guiActive = ReentryPhysics.debugging;
+                if (myWindow != null)
+                    myWindow.displayDirty = true;
 			}
 
             // fix for parts that animate/etc: all parts will use vessel velocity.
@@ -446,7 +487,7 @@ namespace DeadlyReentry
                 FARSearched = true;
             }
 
-			part.temperature += ReentryHeat();
+			part.temperature += ReentryHeat() / (1f - part.heatDissipation); // Try to counteract stock excessive heat dissipation.
             if (part.temperature < -CTOK || float.IsNaN (part.temperature)) // clamp to Absolute Zero
                 part.temperature = -CTOK;
 			displayTemperature = part.temperature;
@@ -638,9 +679,10 @@ namespace DeadlyReentry
                             if (!dead)
                             {
                                 dead = true;
-                                FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
-                                                           + part.partInfo.title + " burned up from overheating.");
-
+                                //FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
+                                //                           + part.partInfo.title + " burned up from overheating.");
+                              //GameEvents.onOverheat.Fire (new EventReport (FlightEvents.OVERHEAT, this, this.partInfo.title, . (42945), 0, string.Empty));
+                                GameEvents.onOverheat.Fire(new EventReport (FlightEvents.REENTRY_BURNUP, part, part.partInfo.title, part.partInfo.title, 0, string.Empty));;
                                 if ( part is StrutConnector )
                                 {
                                     ((StrutConnector)part).BreakJoint();
@@ -759,8 +801,10 @@ namespace DeadlyReentry
             part.heatConductivity = conductivity;
             if (ReentryPhysics.dissipationCap)
                 // key = 1350 3600.0 14.06186 0 - Maybe increase value higher...
-                dissipation.Add(this.part.maxTemp * 0.85f, this.part.maxTemp * 2.0f, 14.06186f, 0f);
-
+            {
+                dissipation.Add(this.part.maxTemp * 0.75f, this.dissipation.Evaluate(this.dissipation.maxTime) * 5.0f, 14.06186f, 0f);
+                dissipation.Add(this.part.maxTemp, this.dissipation.Evaluate(this.dissipation.maxTime) * 100.0f, 14.06186f, 0f);
+            }
             if (HighLogic.CurrentGame.Mode != Game.Modes.SANDBOX && !techRequired.Equals("") && ResearchAndDevelopment.GetTechnologyState(techRequired) != RDTech.State.Available)
                 canShield = false;
 		}
@@ -777,35 +821,49 @@ namespace DeadlyReentry
 		public override float AdjustedHeat(float temp)
 		{
 			if (direction.magnitude == 0) // an empty vector means the shielding exists on all sides
-				dot = 1; 
+				dot = 1f; 
 			else // check the angle between the shock front and the shield
 				dot = Vector3.Dot (velocity.normalized, part.transform.TransformDirection(direction).normalized);
-			
-			if (canShield && dot > 0 && temp > 0) {
+
+            if (canShield && dot > 0 && temp > 0)
+            {
 				//radiate away some heat
 				float rad = temp * dot * reflective;
 				temp -= rad  * (1 - damage) * (1 - damage);
 				//if(loss.Evaluate(shockwave) > 0
                 if(loss.Evaluate(part.temperature) > 0
-                   && part.Resources.Contains (ablative)) {
-					// ablate away some shielding
-                    float ablation = (float) (loss.Evaluate(part.temperature)
-                                              //loss.Evaluate((float) Math.Pow (shockwave, ReentryPhysics.temperatureExponent)) 
-                                              //* dot
-                                              //* AdjustedDensity()
-					                          * deltaTime
-                                              * ReentryPhysics.ablationMetric); // This last is to scale down ablation rate to survive up to x minutes  of reentry (ablationMetric = 1 / x * 60)
-
-                    float disAmount = dissipation.Evaluate(part.temperature) * ablation * (1 - damage) * (1 - damage);
-                    if (disAmount > 0)
+                   && part.Resources.Contains (ablative))
+                {
+                    float ablation = 0f;
+                    float disAmount = 0f;
+                    float result = 0f;
+                    switch(ReentryPhysics.useAlternateHeatModel)
                     {
-                        if (part.Resources[ablative].amount < ablation)
-                            ablation = (float)part.Resources[ablative].amount;
-                        // wick away some heat with the shielding
-                        part.Resources[ablative].amount -= ablation;
-                        //dissipation.evaluate(dissipation.maxtime)
-                        //temp -= dissipation.Evaluate(dissipation.maxTime) * ablation * (1 - damage) * (1 - damage);
-                        temp -= dissipation.Evaluate(part.temperature) * ablation * (1 - damage) * (1 - damage);
+                        case true:
+        					// ablate away some shielding
+                            ablation = (float) (loss.Evaluate(part.temperature) * deltaTime);
+
+                            disAmount = dissipation.Evaluate(part.temperature) * ablation * (1 - damage) * (1 - damage) * ReentryPhysics.dissipationMetric;
+                            float ablationRequest = ablation * ReentryPhysics.ablationMetric;
+                            result = part.RequestResource(ablative, ablationRequest);
+                            if (disAmount > 0f)
+                                temp -= dissipation.Evaluate(part.temperature) * (result / ablationRequest) * ablation * (1 - damage) * (1 - damage) * ReentryPhysics.dissipationMetric;
+                            break;
+                        case false:
+                            // ablate away some shielding
+                            ablation = (float) (dot 
+                                                      * loss.Evaluate((float) Math.Pow (shockwave, ReentryPhysics.temperatureExponent)) 
+                                                      * AdjustedDensity()
+                                                      * deltaTime);
+                            
+                            disAmount = dissipation.Evaluate(part.temperature) * ablation * (1 - damage) * (1 - damage);
+                            result = part.RequestResource(ablative, ablation);
+                            if (disAmount > 0)
+                            {
+                                // wick away some heat with the shielding
+                                temp -= dissipation.Evaluate(part.temperature) * result * (1 - damage) * (1 - damage);
+                            }
+                            break;
                     }
 				}
 			}
@@ -917,7 +975,10 @@ namespace DeadlyReentry
 		public static float startThermal = 800.0f;
 		public static float fullThermal = 1150.0f;
         public static float afxDensityExponent = 0.7f;
-        public static float ablationMetric = 0.0066666666666667f;
+        //public static float ablationMetric = 0.0066666666666667f;
+        public static float ablationMetric = 1f;
+        public static float dissipationMetric = 1f;
+
 
         public static float gToleranceMult = 6.0f;
         public static float parachuteTempMult = 0.25f;
@@ -996,13 +1057,28 @@ namespace DeadlyReentry
         }
 
         protected Rect windowPos = new Rect(100, 100, 0, 0);
-
+        /*
         public static float AltTemperatureDelta(double density, float shockwaveK, float partTempK)
         {
             if (shockwaveK < partTempK || density == 0 || shockwaveK < 0)
                 return 0;
             double temp = 0.000183 * Math.Pow(frameVelocity.magnitude, 3) * Math.Sqrt(density);
             return (float) (((temp * 0.0005265650665) - partTempK) * heatMultiplier * TimeWarp.fixedDeltaTime);
+        }
+        */
+        public static float AltTemperatureDelta(double density, float shockwaveK, float partTempK)
+        {
+            if (shockwaveK < partTempK || density == 0 || shockwaveK <= 0)
+                return 0;
+            double tempMultiplier = Math.Pow(shockwaveK - partTempK, temperatureExponent)/shockwaveK;
+            double temp = 9.63614071695e-8 * Math.Pow(frameVelocity.magnitude, 3) * Math.Sqrt(density) * heatMultiplier;
+            temp *= tempMultiplier;
+            //double num = 0.000183 * Math.Pow ((double)ReentryPhysics.frameVelocity.get_magnitude (), 3.0) * Math.Sqrt (density);
+            //return (float)(num * 0.0005265650665 * (double)ReentryPhysics.heatMultiplier * (double)TimeWarp.get_fixedDeltaTime ());
+
+            if (temp > 0)
+                return (float)(temp * TimeWarp.fixedDeltaTime);
+            return 0f;
         }
 
         public static float TemperatureDelta(double density, float shockwaveK, float partTempK)
@@ -1080,6 +1156,8 @@ namespace DeadlyReentry
                         float.TryParse(node.GetValue("crewGKillChance"), out ModuleAeroReentry.crewGKillChance);
                     if (node.HasValue("ablationMetric"))
                         float.TryParse(node.GetValue("ablationMetric"), out ablationMetric);
+                    if (node.HasValue("dissipationMetric"))
+                        float.TryParse(node.GetValue("dissipationMetric"), out dissipationMetric);
                     if (node.HasValue("parachuteDifficulty"))
                         float.TryParse(node.GetValue("parachuteDifficulty"), out parachuteDifficulty);
 
@@ -1113,6 +1191,10 @@ namespace DeadlyReentry
                         node.SetValue("shockwaveMultiplier", shockwaveMultiplier.ToString());
                     if(node.HasValue("heatMultiplier"))
                         node.SetValue ("heatMultiplier", heatMultiplier.ToString());
+                    if(node.HasValue("ablationMetric"))
+                        node.SetValue ("ablationMetric", ablationMetric.ToString());
+                    if(node.HasValue("dissipationMetric"))
+                        node.SetValue ("dissipationMetric", dissipationMetric.ToString());
                     if(node.HasValue("startThermal"))
                         node.SetValue ("startThermal", startThermal.ToString());
                     if(node.HasValue("fullThermal"))
@@ -1167,7 +1249,7 @@ namespace DeadlyReentry
         {
             if (isCompatible && debugging)
             {
-                windowPos = GUILayout.Window("DeadlyReentry".GetHashCode(), windowPos, DrawWindow, "Deadly Reentry 6.4.0 Debug Menu");
+                windowPos = GUILayout.Window("DeadlyReentry".GetHashCode(), windowPos, DrawWindow, "Deadly Reentry 6.5.3 Debug Menu");
             }
         }
 
@@ -1221,27 +1303,17 @@ namespace DeadlyReentry
         {
             if (!isCompatible)
                 return;
-            //if (Input.GetKeyDown(KeyCode.R) && Input.GetKey(KeyCode.LeftAlt) && Input.GetKey(KeyCode.D))
-            //{
-            //    debugging = !debugging;
-            //}
 
             if (FlightGlobals.ready)
             {
-                if ((afx != null))
-                {
-                    // Only do this in FixedUpdate() from now on. (new system should be immune from flickering)
-  //                  AeroFixer();
-				
-					foreach (Vessel vessel in FlightGlobals.Vessels) 
+				foreach (Vessel vessel in FlightGlobals.Vessels) 
+				{
+					if(vessel.loaded)// && afx.FxScalar > 0)
 					{
-						if(vessel.loaded)// && afx.FxScalar > 0)
-						{
-                            foreach (Part p in vessel.Parts)
-                            {
-                                if (!(p.Modules.Contains("ModuleAeroReentry") || p.Modules.Contains("ModuleHeatShield")))
-                                    p.AddModule("ModuleAeroReentry"); // thanks a.g.!
-                            }
+                        foreach (Part p in vessel.Parts)
+                        {
+                            if (!(p.Modules.Contains("ModuleAeroReentry") || p.Modules.Contains("ModuleHeatShield")))
+                                p.AddModule("ModuleAeroReentry"); // thanks a.g.!
                         }
                     }
                 }
@@ -1290,11 +1362,27 @@ namespace DeadlyReentry
 			GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Multiplier:", labelStyle);
+            GUILayout.Label("Heat Multiplier:", labelStyle);
             string newMultiplier = GUILayout.TextField(heatMultiplier.ToString(), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
 
-			GUILayout.BeginHorizontal();
+            string newAblationMetric = ablationMetric.ToString();
+            string newDissipationMetric = dissipationMetric.ToString();
+
+            if (useAlternateHeatModel)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Ablation Metric:", labelStyle);
+                newAblationMetric = GUILayout.TextField(ablationMetric.ToString(), GUILayout.MinWidth(100));
+                GUILayout.EndHorizontal();
+                
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Dissipation Metric:", labelStyle);
+                newDissipationMetric = GUILayout.TextField(dissipationMetric.ToString(), GUILayout.MinWidth(100));
+                GUILayout.EndHorizontal();
+            }
+
+            GUILayout.BeginHorizontal();
 			GUILayout.Label("F/X Transition", labelStyle);
 			GUILayout.EndHorizontal();
 
@@ -1387,7 +1475,15 @@ namespace DeadlyReentry
                 {
                     heatMultiplier = newValue;
                 }
-				if (float.TryParse(newThermal, out newValue))
+                if (float.TryParse(newAblationMetric, out newValue))
+                {
+                    ablationMetric = newValue;
+                }
+                if (float.TryParse(newDissipationMetric, out newValue))
+                {
+                    dissipationMetric = newValue;
+                }
+                if (float.TryParse(newThermal, out newValue))
 				{
 					startThermal = newValue;
 				}
@@ -1439,7 +1535,7 @@ namespace DeadlyReentry
 
         public static void SaveCustomSettings()
         {
-            string[] difficultyNames = {"Easy", "Default", "Hard"};
+            string[] difficultyNames = {"Easy", "Default", "Hard", "Alternate.Model", "RSS"};
             bool btmp;
             float ftmp;
             double dtmp;
@@ -1451,7 +1547,7 @@ namespace DeadlyReentry
                 {
                     if (settingNode.HasValue("name") && settingNode.GetValue("name") == difficulty)
                     {
-                        ConfigNode node = new ConfigNode("@REENTRY_EFFECTS[" + difficulty + "]:AFTER[DeadlyReentry]");
+                        ConfigNode node = new ConfigNode("@REENTRY_EFFECTS[" + difficulty + "]:FINAL");
 
                         if(settingNode.HasValue("shockwaveExponent"))
                         {
@@ -1467,6 +1563,16 @@ namespace DeadlyReentry
                         {
                             float.TryParse (settingNode.GetValue ("heatMultiplier"), out ftmp);
                             node.AddValue ("@heatMultiplier", ftmp);
+                        }
+                        if(settingNode.HasValue("ablationMetric"))
+                        {
+                            float.TryParse (settingNode.GetValue ("ablationMetric"), out ftmp);
+                            node.AddValue ("@ablationMetric", ftmp);
+                        }
+                        if(settingNode.HasValue("dissipationMetric"))
+                        {
+                            float.TryParse (settingNode.GetValue ("dissipationMetric"), out ftmp);
+                            node.AddValue ("@dissipationMetric", ftmp);
                         }
                         if(settingNode.HasValue("startThermal"))
                         {

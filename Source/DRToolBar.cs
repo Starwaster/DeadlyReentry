@@ -117,7 +117,7 @@ namespace DeadlyReentry
 				//Set the GUI Skin
 				//GUI.skin = HighLogic.Skin;
 				
-				windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry 6.4.0 Settings", windowStyle);
+				windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry 6.5.3 Settings", windowStyle);
 			}
 		}
 		public void OnDestroy()
@@ -131,7 +131,7 @@ namespace DeadlyReentry
 		
 		private void OnWindow(int windowID)
 		{
-			string[] difficulties = {"Easy", "Normal", "Hard"};
+			string[] difficulties = {"Easy", "Normal", "Hard", "Alternate Model", "RSS"};
 
             GUILayout.BeginHorizontal();
             DeadlyReentryScenario.Instance.DifficultySetting = GUILayout.SelectionGrid (DeadlyReentryScenario.Instance.DifficultySetting, difficulties,3);

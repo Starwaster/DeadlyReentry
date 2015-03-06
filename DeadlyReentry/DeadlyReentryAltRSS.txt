@@ -1,0 +1,78 @@
+@REENTRY_EFFECTS[Easy]:FINAL
+{
+	@shockwaveExponent = 1
+	@shockwaveMultiplier = 1
+	@heatMultiplier = 1
+	@ablationMetric = 1.1
+	@dissipationMetric = 1
+	@startThermal = 750
+	@fullThermal = 1550
+	@afxDensityExponent = 0.475
+	@temperatureExponent = 1
+	@densityExponent = 1
+	@gToleranceMult = 6
+	@parachuteTempMult = 1
+	@crewGKillChance = 0.01
+	@parachuteDifficulty = 1
+	@crewGClamp = 10
+	@crewGPower = 4
+	@crewGMin = 10
+	@crewGWarn = 450000
+	@crewGLimit = 900000
+	@legacyAero = False
+	@dissipationCap = True
+	@useAlternateDensity = False
+	@useAlternateHeatModel = False
+}
+@REENTRY_EFFECTS[Default]:FINAL
+{
+	@shockwaveExponent = 1
+	@shockwaveMultiplier = 1
+	@heatMultiplier = 1
+	@ablationMetric = 0.01
+	@dissipationMetric = 0.00125
+	@startThermal = 750
+	@fullThermal = 1250
+	@afxDensityExponent = 0.625
+	@temperatureExponent = 1
+	@densityExponent = 1
+	@gToleranceMult = 6
+	@parachuteTempMult = 0.25
+	@crewGKillChance = 0.01
+	@parachuteDifficulty = 1
+	@crewGClamp = 30
+	@crewGPower = 4
+	@crewGMin = 5
+	@crewGWarn = 450000
+	@crewGLimit = 900000
+	@legacyAero = False
+	@dissipationCap = True
+	@useAlternateDensity = False
+	@useAlternateHeatModel = True
+}
+@REENTRY_EFFECTS[Hard]:FINAL
+{
+	@shockwaveExponent = 1.12
+	@shockwaveMultiplier = 2
+	@heatMultiplier = 25
+	@ablationMetric = 0.05
+	@dissipationMetric = 0.005
+	@startThermal = 750
+	@fullThermal = 1250
+	@afxDensityExponent = 0.6
+	@temperatureExponent = 1.03
+	@densityExponent = 0.6
+	@gToleranceMult = 6
+	@parachuteTempMult = 0.45
+	@crewGKillChance = 0.01
+	@parachuteDifficulty = 1
+	@crewGClamp = 30
+	@crewGPower = 4
+	@crewGMin = 5
+	@crewGWarn = 225000
+	@crewGLimit = 450000
+	@legacyAero = False
+	@dissipationCap = True
+	@useAlternateDensity = False
+	@useAlternateHeatModel = False
+}
