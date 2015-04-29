@@ -138,20 +138,20 @@ namespace DeadlyReentry
 			GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            DeadlyReentry.ReentryPhysics.legacyAero = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.legacyAero, "Use Legacy Aerothermodynamics.");
+            //DeadlyReentry.ReentryPhysics.legacyAero = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.legacyAero, "Use Legacy Aerothermodynamics.");
             GUILayout.EndHorizontal();
             
             if (!HighLogic.LoadedSceneIsFlight) // Would require exit to Space Center if changed in flight
             {
                 GUILayout.BeginHorizontal();
-                DeadlyReentry.ReentryPhysics.dissipationCap = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.dissipationCap, "Damp Heat Shield Temp to maxTemp");
+                //DeadlyReentry.ReentryPhysics.dissipationCap = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.dissipationCap, "Damp Heat Shield Temp to maxTemp");
                 GUILayout.EndHorizontal();
             }
 
             if (HighLogic.LoadedSceneIsFlight)
             {
                 GUILayout.BeginHorizontal();
-                DeadlyReentry.ReentryPhysics.debugging = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.debugging, "Open Debugging Menu");
+                //DeadlyReentry.ReentryPhysics.debugging = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.debugging, "Open Debugging Menu");
                 GUILayout.EndHorizontal();
             }
             else
@@ -166,12 +166,12 @@ namespace DeadlyReentry
             //useAlternateDensity
             
             GUILayout.BeginHorizontal();
-            DeadlyReentry.ReentryPhysics.useAlternateDensity = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.useAlternateDensity, "Alternate Density calc");
+            //DeadlyReentry.ReentryPhysics.useAlternateDensity = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.useAlternateDensity, "Alternate Density calc");
             GUILayout.EndHorizontal();
 
             // useAlternateHeatModel
             GUILayout.BeginHorizontal();
-            DeadlyReentry.ReentryPhysics.useAlternateHeatModel = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.useAlternateHeatModel, "Alternate Heating Model");
+            //DeadlyReentry.ReentryPhysics.useAlternateHeatModel = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.useAlternateHeatModel, "Alternate Heating Model");
             GUILayout.EndHorizontal();
 
             GUILayout.Space(20.0f);
@@ -184,15 +184,17 @@ namespace DeadlyReentry
             GUILayout.EndHorizontal();
 
             GUI.DragWindow();
+            /*
             if (GUI.changed)
             {
-                DeadlyReentry.ReentryPhysics.SaveSettings();
-                DeadlyReentry.ReentryPhysics.SaveCustomSettings();
+                //DeadlyReentry.ReentryPhysics.SaveSettings();
+                //DeadlyReentry.ReentryPhysics.SaveCustomSettings();
                 if (!DeadlyReentryScenario.Instance.displayCrewGForceWarning)
                     ScreenMessages.RemoveMessage(ReentryPhysics.crewGWarningMsg);
                 if (!DeadlyReentryScenario.Instance.displayParachuteWarning)
                     ScreenMessages.RemoveMessage(ReentryPhysics.chuteWarningMsg);
             }
+            */
 		}
 	}
 }

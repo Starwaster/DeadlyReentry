@@ -30,7 +30,7 @@ namespace DeadlyReentry
                 if (this.difficultySetting != value)
                 {
      				this.difficultySetting = value;
-                    DeadlyReentry.ReentryPhysics.LoadSettings();
+                    //DeadlyReentry.ReentryPhysics.LoadSettings();
                 }
 			}
 		}
@@ -70,7 +70,7 @@ namespace DeadlyReentry
 			if (node.HasValue("displayParachuteWarning"))
 				bool.TryParse(node.GetValue("displayParachuteWarning"), out displayParachuteWarning);
 
-            DeadlyReentry.ReentryPhysics.LoadSettings();
+            //DeadlyReentry.ReentryPhysics.LoadSettings();
 		}
 	}
 }
