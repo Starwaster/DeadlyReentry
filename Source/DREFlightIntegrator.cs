@@ -14,13 +14,23 @@ using ModularFI;
 
 namespace DeadlyReentry
 {
-    public class DREFlightIntegrator : ModularFlightIntegrator
+    [KSPAddon(KSPAddon.Startup.MainMenu, false)]
+    public class RemoveStockFlightIntegrator
+    {
+        public void Start()
+        {
+            VesselModuleManager.VesselModuleWrapper FIType = VesselModuleManager.GetWrapper ("FlightIntegrator");
+            VesselModuleManager.RemoveModuleOfType (FIType.type);
+        }
+    }
+
+    public class DREFlightIntegrator
     {
         public DREFlightIntegrator()
         {
         }
 
-        protected delegate void UpdateConvectionDelegate(PartThermalData ptd);
+        protected delegate void UpdateConvectionDelegate(ModularFlightIntegrator.PartThermalData ptd);
 
         protected void ProcessConvectionUpdate(UpdateConvectionDelegate UpdateConvection);
 
