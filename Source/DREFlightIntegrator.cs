@@ -14,34 +14,49 @@ using ModularFI;
 
 namespace DeadlyReentry
 {
-    [KSPAddon(KSPAddon.Startup.MainMenu, false)]
-    public class RemoveStockFlightIntegrator
-    {
-        public void Start()
-        {
-            VesselModuleManager.VesselModuleWrapper FIType = VesselModuleManager.GetWrapper ("FlightIntegrator");
-            VesselModuleManager.RemoveModuleOfType (FIType.type);
-        }
-    }
-
+    [KSPAddon(KSPAddon.Startup.SpaceCentre, false)]
     public class DREFlightIntegrator
     {
         public DREFlightIntegrator()
         {
         }
 
-        protected delegate void UpdateConvectionDelegate(ModularFlightIntegrator.PartThermalData ptd);
 
-        protected void ProcessConvectionUpdate(UpdateConvectionDelegate UpdateConvection);
+        //private static voidThermalDataDelegate updateConvectionOverride;
 
-        protected void updateConvection (PartThermalData ptd)
+        //ModularFlightIntegrator.voidThermalDataDelegate
+        
+
+
+        //solarFlux 
+        //solarFluxMultiplier;
+        //bodyEmissiveFlux
+        // bodyAlbedoFlux;
+    
+        //densityThermalLerp
+
+        //ModularFlightIntegrator.voidThermalDataDelegate RegisterOverrideConvection = ProcessUpdateConvection;
+        //ModularFlightIntegrator.voidThermalDataDelegate RegisterUpdateConvection = ProcessUpdateConvection;  
+
+        public void Awake()
         {
+            bool convectionOverridden=false;
+            convectionOverridden =  ModularFlightIntegrator.RegisterUpdateConvectionOverride(ProcessUpdateConvection);
+            if (!convectionOverridden)
+                Debug.Log("[DRE]: Unable to override stock convection heating!");
+        }
+
+        public static void ProcessUpdateConvection (ModularFlightIntegrator fi, ModularFlightIntegrator.PartThermalData ptd)
+        {
+
             Part part = ptd.part;
+            part.temperature = Double.MaxValue;
+            return;
             // get sub/transonic convection
             double convectionArea = UtilMath.Lerp(part.radiativeArea, part.exposedArea,
                                                   (part.machNumber - PhysicsGlobals.FullToCrossSectionLerpStart) / (PhysicsGlobals.FullToCrossSectionLerpEnd - PhysicsGlobals.FullToCrossSectionLerpStart));
             
-            double convectiveFlux = (part.externalTemperature - part.temperature) * convectiveCoefficient * convectionArea;
+            double convectiveFlux = (part.externalTemperature - part.temperature) * fi.convectiveCoefficient * convectionArea;
             
             // get hypersonic convection
             // defaults to starting at M=0.8 and being full at M=2.05
@@ -51,7 +66,7 @@ namespace DeadlyReentry
                 double machHeatingFlux =
                     part.exposedArea
                         * 1.83e-4d
-                        * Math.Pow(vessel.speed, PhysicsGlobals.ConvectionVelocityExponent)
+                        * Math.Pow(part.vessel.speed, PhysicsGlobals.ConvectionVelocityExponent)
                         * Math.Pow(part.atmDensity, PhysicsGlobals.ConvectionDensityExponent)/Math.Max(0.625d,Math.Sqrt(part.exposedArea / Math.PI)); // should be sqrt(density/nose radiu)s
                 
                 machHeatingFlux *= (double)PhysicsGlobals.ConvectionFactor;
@@ -59,13 +74,16 @@ namespace DeadlyReentry
             }
             convectiveFlux *= 0.001d * part.heatConvectiveConstant * ptd.convectionAreaMultiplier; // W to kW, scalars
             part.thermalConvectionFlux = convectiveFlux;
+            part.temperature += convectiveFlux;
             //part.temperature = Math.Max((part.temperature + convectiveFlux * part.thermalMassReciprocal * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
         }
-        delegate void UpdateRadiationDelegate(PartThermalData ptd);
-        
-        delegate void ProcessRadiationUpdate(UpdateConvectionDelegate updateRadiation);
 
-        protected override void UpdateRadiation(PartThermalData ptd)
+        /*
+        protected void ProcessRadiationUpdate(UpdateRadiationDelegate UpdateRadiation)
+        {
+        }
+
+        protected void UpdateRadiation(ModularFlightIntegrator.PartThermalData ptd)
         {
             Part part = ptd.part;
             // shared scalar
@@ -75,7 +93,7 @@ namespace DeadlyReentry
             
             double sunFlux = 0d;
             
-            if (vessel.directSunlight)
+            if (ptd.part.vessel.directSunlight)
             {
                 // assume half the surface area is under sunlight
                 sunFlux = _GetSunArea(ptd) * scalar * solarFlux * solarFluxMultiplier;
@@ -84,7 +102,7 @@ namespace DeadlyReentry
             double tempBodyFlux = bodyEmissiveFlux + bodyAlbedoFlux;
             if (tempBodyFlux > 0d)
             {
-                bodyFlux = UtilMath.Lerp(0.0, tempBodyFlux, this.densityThermalLerp) * _GetBodyArea(ptd) * scalar;
+                bodyFlux = UtilMath.Lerp(0.0, tempBodyFlux, densityThermalLerp) * _GetBodyArea(ptd) * scalar;
             }
             
             // Radiative flux = S-Bconst*e*A * (T^4 - radInT^4)
@@ -93,7 +111,7 @@ namespace DeadlyReentry
             //part.temperature = Math.Max(tempTemp, PhysicsGlobals.SpaceTemperature);
         }
         
-        public double _GetSunArea(PartThermalData ptd)
+        public double _GetSunArea(ModularFlightIntegrator.PartThermalData ptd)
         {
             Part p = ptd.part;
             if (p.DragCubes.None)
@@ -102,7 +120,7 @@ namespace DeadlyReentry
             return p.DragCubes.GetCubeAreaDir(localSun) * ptd.sunAreaMultiplier;
         }
         
-        public double _GetBodyArea(PartThermalData ptd)
+        public double _GetBodyArea(ModularFlightIntegrator.PartThermalData ptd)
         {
             Part p = ptd.part;
             if (p.DragCubes.None)
@@ -110,6 +128,7 @@ namespace DeadlyReentry
             Vector3 bodyLocal = p.partTransform.InverseTransformDirection(-vessel.upAxis);
             return p.DragCubes.GetCubeAreaDir(bodyLocal) * ptd.bodyAreaMultiplier;
         }
+        */
     }
 }
 

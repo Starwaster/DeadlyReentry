@@ -98,7 +98,39 @@ namespace DeadlyReentry
                 }
             }
         }
-        
+
+
+        public void dummycode(FlightIntegrator fi, FlightIntegrator.PartThermalData ptd)
+        {
+            
+            Part part = ptd.part;
+            
+            // get sub/transonic convection
+            double convectionArea = UtilMath.Lerp(part.radiativeArea, part.exposedArea,
+                                                  (part.machNumber - PhysicsGlobals.FullToCrossSectionLerpStart) / (PhysicsGlobals.FullToCrossSectionLerpEnd - PhysicsGlobals.FullToCrossSectionLerpStart));
+            
+            double convectiveFlux = (part.externalTemperature - part.temperature) * fi.convectiveCoefficient * convectionArea;
+            
+            // get hypersonic convection
+            // defaults to starting at M=0.8 and being full at M=2.05
+            double machLerp = (part.machNumber - PhysicsGlobals.MachConvectionStart) / (PhysicsGlobals.MachConvectionEnd - PhysicsGlobals.MachConvectionStart);
+            if (machLerp > 0)
+            {
+                double machHeatingFlux =
+                    part.exposedArea
+                        * 1.83e-4d
+                        * Math.Pow(part.vessel.speed, PhysicsGlobals.ConvectionVelocityExponent)
+                        * Math.Pow(part.atmDensity, PhysicsGlobals.ConvectionDensityExponent)/Math.Max(0.625d,Math.Sqrt(part.exposedArea / Math.PI)); // should be sqrt(density/nose radiu)s
+                
+                machHeatingFlux *= (double)PhysicsGlobals.ConvectionFactor;
+                convectiveFlux = UtilMath.Lerp(convectiveFlux, machHeatingFlux, machLerp);
+            }
+            convectiveFlux *= 0.001d * part.heatConvectiveConstant * ptd.convectionAreaMultiplier; // W to kW, scalars
+            part.thermalConvectionFlux = convectiveFlux;
+            part.temperature += convectiveFlux;
+            //part.temperature = Math.Max((part.temperature + convectiveFlux * part.thermalMassReciprocal * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
+        }
+
         public virtual void FixedUpdate()
         {
             if (!FlightGlobals.ready)
