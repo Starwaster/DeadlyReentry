@@ -25,9 +25,11 @@
  */
 
 using System;
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+
 using UnityEngine;
 
 /*-----------------------------------------*\
@@ -65,8 +67,7 @@ namespace DeadlyReentry
             // Even if you don't lock down functionality, you should return true if your users
             // can expect a future update to be available.
             //
-            return true;
-            //return Versioning.version_major == 1 && Versioning.version_minor == 0;// && Versioning.Revision == 0;
+            return Versioning.version_major == 1 && Versioning.version_minor == 0;// && Versioning.Revision == 0;
 
             /*-----------------------------------------------*\
             | IMPLEMENTERS SHOULD NOT EDIT BEYOND THIS POINT! |
@@ -167,8 +168,7 @@ namespace DeadlyReentry
                 message += "WARNING: You are using 64-bit KSP on Windows. This version of KSP is known to cause crashes. It's highly recommended that you use either 32-bit KSP on Windows or switch to Linux.";
                 Debug.Log("64-bit KSP client detected.");
             }
-            if (false)
-            //if (false && (incompatible.Length > 0) || (incompatibleUnity.Length > 0))
+            if ((incompatible.Length > 0) || (incompatibleUnity.Length > 0))
             {
                 message += ((message == String.Empty) ? "Some" : "\n\nAdditionally, some") + " installed mods may be incompatible with this version of Kerbal Space Program. Features may be broken or disabled. Please check for updates to the listed mods.";
 
@@ -200,7 +200,6 @@ namespace DeadlyReentry
 
         public static bool IsAllCompatible()
         {
-            return true;
             return IsCompatible() && IsUnityCompatible() && !IsWin64();
         }
 

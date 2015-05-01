@@ -1,21 +1,29 @@
 using System;
-using System.Collections.Generic;
+
+//using System.Collections.Generic;
 using System.Collections;
 using System.Reflection;
 using System.Linq;
+using ModularFI;
+
 using UnityEngine;
 using KSP;
-using ModularFI;
 
 namespace DeadlyReentry
 {
-    public class ModuleAeroReentry : PartModule
+    class ModuleAeroReentry : PartModule
     {
         /// <summary>
         /// Hull temperature as opposed to internal temperature (part.temperature)
         /// </summary>
         [KSPField(isPersistant = true)]
-        protected double skinTemperature;
+        protected double skinTemperature = -1.0;
+
+        [KSPField()]
+        public double skinMaxTemp = -1.0;
+
+        [KSPField]
+        public double skinThermalMassModifier;
         
         [KSPField(isPersistant = false, guiActive = false, guiName = "Skin Temp.", guiUnits = "K",   guiFormat = "x.00")]
         public string skinTemperatureDisplay;
@@ -37,13 +45,179 @@ namespace DeadlyReentry
         private double skinThermalRadiationFlux;
         
         private bool is_debugging;
-        
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Skin Rad.", guiUnits = "K",   guiFormat = "x.00")]
+
+        //[KSPField(isPersistant = false, guiActive = false, guiName = "Skin Rad.", guiUnits = "K",   guiFormat = "x.00")]
         public string skinThermalRadiationFluxDisplay;
         
         public ModularFlightIntegrator fi;
+        public ModularFlightIntegrator.PartThermalData ptd;
+
+        public virtual void Awake()
+        {
+        }
+
+        public virtual void Start()
+        {
+            if (!HighLogic.LoadedSceneIsFlight)
+                return;
+            
+            
+            fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
+            if (skinThermalMassModifier == -1.0)
+                skinThermalMassModifier = part.thermalMassModifier;
+            
+            if (skinMaxTemp == -1.0)
+                skinMaxTemp = part.maxTemp;
+            
+            // only one of skinThermalMassModifier and skinThicknessFactor should be configured
+            skinThermalMass = (double)part.mass * PhysicsGlobals.StandardSpecificHeatCapacity * skinThermalMassModifier * skinThicknessFactor;
+            skinThermalMassReciprocal = 1.0 / Math.Max (skinThermalMass, 0.001);
+            GameEvents.onVesselWasModified.Add(OnVesselWasModified);
+        }
         
-        protected UIPartActionWindow _myWindow = null; 
+        protected void OnVesselWasModified(Vessel v)
+        {
+            if (v == vessel)
+                fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
+        }
+
+        public virtual void FixedUpdate()
+        {
+            if (!FlightGlobals.ready)
+                return;
+            
+            // Can't look this up right now; trying to declare MFI in a field is smashing the assembly
+            // if (fi.IsAnalytical || fi.RecreateThermalGraph)
+            //     return;
+            
+            if (skinTemperature == -1.0 && !Double.IsNaN(vessel.externalTemperature))
+                skinTemperature = vessel.externalTemperature;   
+            
+            if (PhysicsGlobals.ThermalDataDisplay)
+            {
+                skinTemperatureDisplay = skinTemperature.ToString ("N2");
+                skinThermalRadiationFluxDisplay = skinThermalRadiationFlux.ToString ("N2");
+                RadiativeAreaDisplay = part.radiativeArea.ToString ("N2");
+            }
+
+            StartCoroutine (UpdateSkinThermals());
+        }
+
+        protected IEnumerator UpdateSkinThermals()
+        {
+            yield return new WaitForFixedUpdate();
+            
+            ptd = (FlightIntegrator.PartThermalData)fi.PartThermalDataList.Where(p => p.part == part);
+            
+            UpdateConvection();
+            UpdateRadiation();
+            UpdateSkinConduction();
+            
+            if (skinTemperature > skinMaxTemp)
+            {
+                FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
+                                          + part.partInfo.title + " burned up from overheating.");
+                
+                if ( part is StrutConnector )
+                {
+                    ((StrutConnector)part).BreakJoint();
+                }
+                
+                part.explode();
+            }
+            /*
+            if (PhysicsGlobals.ThermalConvectionEnabled)
+            {
+                double skinConvectionFlux = part.thermalConvectionFlux;
+                skinTemperature = Math.Max (skinTemperature + (skinConvectionFlux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
+            }
+            */
+            // Rate = k•A•(T1 - T2)/d
+            // Propagate heat from surface to interior
+        }
+
+        protected void UpdateConvection ()
+        {
+            // get sub/transonic convection
+            double convectionArea = UtilMath.Lerp(part.radiativeArea, part.exposedArea,
+                                                  (part.machNumber - PhysicsGlobals.FullToCrossSectionLerpStart) / (PhysicsGlobals.FullToCrossSectionLerpEnd - PhysicsGlobals.FullToCrossSectionLerpStart));
+            
+            double convectiveFlux = (part.externalTemperature - skinTemperature) * fi.convectiveCoefficient * convectionArea;
+            
+            // get hypersonic convection
+            // defaults to starting at M=0.8 and being full at M=2.05
+            double machLerp = (part.machNumber - PhysicsGlobals.MachConvectionStart) / (PhysicsGlobals.MachConvectionEnd - PhysicsGlobals.MachConvectionStart);
+            if (machLerp > 0)
+            {
+                double machHeatingFlux =
+                    part.exposedArea
+                        * 1.83e-4d
+                        * Math.Pow(part.vessel.speed, PhysicsGlobals.ConvectionVelocityExponent)
+                        * Math.Sqrt(Math.Pow(part.atmDensity, PhysicsGlobals.ConvectionDensityExponent)/Math.Max(0.625d,Math.Sqrt(part.exposedArea / Math.PI))); // should be sqrt(density/nose radiu)s
+                
+                machHeatingFlux *= (double)PhysicsGlobals.ConvectionFactor;
+                convectiveFlux = UtilMath.Lerp(convectiveFlux, machHeatingFlux, machLerp);
+            }
+            convectiveFlux *= 0.001d * part.heatConvectiveConstant * ptd.convectionAreaMultiplier; // W to kW, scalars
+            part.thermalConvectionFlux = convectiveFlux;
+            //part.temperature = Math.Max((part.temperature + convectiveFlux * part.thermalMassReciprocal * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
+        }
+
+        protected void UpdateRadiation()
+        {
+            // shared scalar
+            double scalar = part.emissiveConstant // local scalar
+                * PhysicsGlobals.RadiationFactor // global scalar
+                    * 0.001d; // W to kW
+            
+            double sunFlux = 0d;
+            
+            if (vessel.directSunlight)
+            {
+                // assume half the surface area is under sunlight
+                sunFlux = _GetSunArea(fi, ptd) * scalar * fi.solarFlux * fi.solarFluxMultiplier;
+            }
+            double bodyFlux = 0d;
+            double tempBodyFlux = fi.bodyEmissiveFlux + fi.bodyAlbedoFlux;
+            if (tempBodyFlux > 0d)
+            {
+                bodyFlux = UtilMath.Lerp(0.0, tempBodyFlux, fi.DensityThermalLerp) * _GetBodyArea(ptd) * scalar;
+            }
+            
+            // Radiative flux = S-Bconst*e*A * (T^4 - radInT^4)
+            skinThermalRadiationFlux = sunFlux + bodyFlux;
+            
+            //part.temperature = Math.Max(tempTemp, PhysicsGlobals.SpaceTemperature);
+            skinThermalRadiationFlux = part.thermalRadiationFlux;
+            double backgroundRadiation = UtilMath.Lerp(fi.atmosphericTemperature, PhysicsGlobals.SpaceTemperature, fi.DensityThermalLerp);
+
+            double emission = -(Math.Pow(skinTemperature + skinThermalRadiationFlux, PhysicsGlobals.PartEmissivityExponent)) 
+                //- Math.Pow (fi.backgroundRadiationTemp, PhysicsGlobals.PartEmissivityExponent)) // Don't use this for now.
+                // the convective formula is actually not pure convective. Some of it is radiative.
+                * PhysicsGlobals.StefanBoltzmanConstant * scalar;
+            skinThermalRadiationFlux += emission;
+
+            skinTemperature = Math.Max(skinTemperature + (skinThermalRadiationFlux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
+        }
+
+        protected void UpdateSkinConduction()
+        {
+            if (PhysicsGlobals.ThermalConductionEnabled)
+            {
+                double temperatureDelta = skinTemperature - part.temperature;
+                double surfaceConductionFlux = temperatureDelta * skinHeatConductivity * PhysicsGlobals.ConductionFactor * skinThermalMass;
+                
+                //print (temperatureDelta.ToString ("N8"));
+                //print (surfaceConductionFlux.ToString ("N8"));
+                
+                part.AddThermalFlux (surfaceConductionFlux);
+                skinTemperature -= surfaceConductionFlux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime;
+            }
+        }
+
+
+
+        private UIPartActionWindow _myWindow = null; 
         public UIPartActionWindow myWindow 
         {
             get {
@@ -65,25 +239,7 @@ namespace DeadlyReentry
             return hours.ToString ("D2") 
                 + ":" + minutes.ToString ("D2") + ":" + seconds.ToString ("D2");
         }
-        
-        public virtual void Start()
-        {
-            if (!HighLogic.LoadedSceneIsFlight)
-                return;
-            
-            
-            fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
-            skinThermalMass = (double)part.mass * PhysicsGlobals.StandardSpecificHeatCapacity * part.thermalMassModifier * skinThicknessFactor;
-            skinThermalMassReciprocal = 1.0 / Math.Max (skinThermalMass, 0.001);
-            GameEvents.onVesselWasModified.Add(OnVesselWasModified);
-        }
-        
-        protected void OnVesselWasModified(Vessel v)
-        {
-            if (v == vessel)
-                fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
-        }
-        
+
         public virtual void Update()
         {
             if (is_debugging != PhysicsGlobals.ThermalDataDisplay)
@@ -99,91 +255,25 @@ namespace DeadlyReentry
             }
         }
 
-
-        public void dummycode(FlightIntegrator fi, FlightIntegrator.PartThermalData ptd)
+        public double _GetBodyArea(ModularFlightIntegrator.PartThermalData ptd)
         {
-            
-            Part part = ptd.part;
-            
-            // get sub/transonic convection
-            double convectionArea = UtilMath.Lerp(part.radiativeArea, part.exposedArea,
-                                                  (part.machNumber - PhysicsGlobals.FullToCrossSectionLerpStart) / (PhysicsGlobals.FullToCrossSectionLerpEnd - PhysicsGlobals.FullToCrossSectionLerpStart));
-            
-            double convectiveFlux = (part.externalTemperature - part.temperature) * fi.convectiveCoefficient * convectionArea;
-            
-            // get hypersonic convection
-            // defaults to starting at M=0.8 and being full at M=2.05
-            double machLerp = (part.machNumber - PhysicsGlobals.MachConvectionStart) / (PhysicsGlobals.MachConvectionEnd - PhysicsGlobals.MachConvectionStart);
-            if (machLerp > 0)
-            {
-                double machHeatingFlux =
-                    part.exposedArea
-                        * 1.83e-4d
-                        * Math.Pow(part.vessel.speed, PhysicsGlobals.ConvectionVelocityExponent)
-                        * Math.Pow(part.atmDensity, PhysicsGlobals.ConvectionDensityExponent)/Math.Max(0.625d,Math.Sqrt(part.exposedArea / Math.PI)); // should be sqrt(density/nose radiu)s
-                
-                machHeatingFlux *= (double)PhysicsGlobals.ConvectionFactor;
-                convectiveFlux = UtilMath.Lerp(convectiveFlux, machHeatingFlux, machLerp);
-            }
-            convectiveFlux *= 0.001d * part.heatConvectiveConstant * ptd.convectionAreaMultiplier; // W to kW, scalars
-            part.thermalConvectionFlux = convectiveFlux;
-            part.temperature += convectiveFlux;
-            //part.temperature = Math.Max((part.temperature + convectiveFlux * part.thermalMassReciprocal * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
-        }
-
-        public virtual void FixedUpdate()
-        {
-            if (!FlightGlobals.ready)
-                return;
-            
-            if (fi.IsAnalytical || fi.RecreateThermalGraph)
-                return;
-            
-            if (skinTemperature == -1.0 && Double.IsNaN(vessel.externalTemperature))
-                skinTemperature = vessel.externalTemperature;   
-            
-            StartCoroutine (UpdateSkinThermals());
-            
-            if (PhysicsGlobals.ThermalDataDisplay)
-            {
-                skinTemperatureDisplay = skinTemperature.ToString ("N2");
-                skinThermalRadiationFluxDisplay = skinThermalRadiationFlux.ToString ("N2");
-                RadiativeAreaDisplay = part.radiativeArea.ToString ("N2");
-            }
-            if (skinTemperature > part.maxTemp)
-            {
-                FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
-                                          + part.partInfo.title + " burned up from overheating.");
-                
-                if ( part is StrutConnector )
-                {
-                    ((StrutConnector)part).BreakJoint();
-                }
-                
-                part.explode();
-                return;
-            }
+            Part p = ptd.part;
+            if (p.DragCubes.None)
+                return 0d;
+            Vector3 bodyLocal = p.partTransform.InverseTransformDirection(-vessel.upAxis);
+            return p.DragCubes.GetCubeAreaDir(bodyLocal) * ptd.bodyAreaMultiplier;
         }
         
-        public IEnumerator UpdateSkinThermals()
+        public double _GetSunArea(ModularFlightIntegrator fi, ModularFlightIntegrator.PartThermalData ptd)
         {
-            yield return new WaitForFixedUpdate();
-            
-            if (PhysicsGlobals.ThermalConvectionEnabled)
-            {
-                double skinConvectionFlux = part.thermalConvectionFlux;
-                skinTemperature = Math.Max (skinTemperature + (skinConvectionFlux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
-            }
-            
-            // Rate = k•A•(T1 - T2)/d
-            // Propagate heat from surface to interior
-            
-            
-            UpdateSkinRadiation ();
-            
-            UpdateSkinConduction ();
+            Part p = ptd.part;
+            if (p.DragCubes.None)
+                return 0d;
+            Vector3 localSun = p.partTransform.InverseTransformDirection(fi.sunVector);
+            return p.DragCubes.GetCubeAreaDir(localSun) * ptd.sunAreaMultiplier;
         }
-        
+
+        /*
         // Conduct skin temperature to part temperature
         protected void UpdateSkinConduction()
         {
@@ -220,8 +310,10 @@ namespace DeadlyReentry
                 
                 skinTemperature = Math.Max(skinTemperature + (skinThermalRadiationFlux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
             }
-        }           
+        }
+        */
     }
+
     class ModuleHeatShield : ModuleAeroReentry
     {
         [KSPField]
@@ -277,7 +369,7 @@ namespace DeadlyReentry
             if (!HighLogic.LoadedSceneIsFlight)
                 return;
             
-            base.Start ();
+            //base.Start ();
             if (ablativeResource != null && ablativeResource != "")
             {
                 if (part.Resources.Contains(ablativeResource) && lossExp < 0)
@@ -301,7 +393,7 @@ namespace DeadlyReentry
             //  return;
             
             
-            base.FixedUpdate ();
+            //base.FixedUpdate ();
             flux = 0d;
             loss = 0d;
             
@@ -331,6 +423,7 @@ namespace DeadlyReentry
             }
         }
     }
+
     [KSPAddon(KSPAddon.Startup.MainMenu, false)] // fixed
 	public class FixMaxTemps : MonoBehaviour
 	{

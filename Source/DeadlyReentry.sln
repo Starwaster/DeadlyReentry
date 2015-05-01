@@ -187,7 +187,10 @@ Global
 		$29.MessageStyle = $30
 		$30.LineAlign = 0
 		$29.inheritsSet = Mono
-		version = 6.3.1
+		$0.VersionControlPolicy = $31
+		$31.inheritsSet = Mono
+		description = The Melificent Edition
+		version = 6.6
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
