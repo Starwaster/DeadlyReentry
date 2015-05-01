@@ -31,7 +31,7 @@ namespace DeadlyReentry
         {
             if (HighLogic.LoadedScene != GameScenes.SPACECENTER)
                 return;
-            print("Attempting to register ProcessUpdateConvection with ModularFlightIntegrator");
+            print("Attempting to register ProcessUpdate* with ModularFlightIntegrator");
             bool result=false;
             result =  ModularFlightIntegrator.RegisterUpdateConvectionOverride(ProcessUpdateConvection);
             if (!result)
