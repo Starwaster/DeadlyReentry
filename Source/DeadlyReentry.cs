@@ -4,10 +4,9 @@ using System;
 using System.Collections;
 using System.Reflection;
 using System.Linq;
-using ModularFI;
-
 using UnityEngine;
 using KSP;
+using ModularFI;
 
 namespace DeadlyReentry
 {
@@ -17,19 +16,13 @@ namespace DeadlyReentry
         /// Hull temperature as opposed to internal temperature (part.temperature)
         /// </summary>
         [KSPField(isPersistant = true)]
-        protected double skinTemperature = -1.0;
+        public double skinTemperature = -1.0;
 
-        [KSPField()]
+        [KSPField]
         public double skinMaxTemp = -1.0;
 
         [KSPField]
-        public double skinThermalMassModifier;
-        
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Skin Temp.", guiUnits = "K",   guiFormat = "x.00")]
-        public string skinTemperatureDisplay;
-        
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Rad. Area", guiUnits = "m2",   guiFormat = "x.00")]
-        public string RadiativeAreaDisplay;
+        public double skinThermalMassModifier = -1.0;
         
         [KSPField(isPersistant = false)]
         public double skinThicknessFactor = 0.1;
@@ -38,23 +31,23 @@ namespace DeadlyReentry
         public double skinHeatConductivity = 0.12;
         
         [KSPField(isPersistant = false)]
-        public double skinThermalMass = 0.0;
+        public double skinThermalMass = -1.0;
         
-        public double skinThermalMassReciprocal = 0.0;
-        
-        private double skinThermalRadiationFlux;
-        
-        private bool is_debugging;
+        public double skinThermalMassReciprocal;
 
-        //[KSPField(isPersistant = false, guiActive = false, guiName = "Skin Rad.", guiUnits = "K",   guiFormat = "x.00")]
+        public bool is_debugging;
+
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Skin Temp.", guiUnits = "K",   guiFormat = "x.00")]
+        public string skinTemperatureDisplay;
+        
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Rad. Area", guiUnits = "m2",   guiFormat = "x.00")]
+        public string RadiativeAreaDisplay;
+        
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Skin Rad.", guiUnits = "K",   guiFormat = "x.00")]
         public string skinThermalRadiationFluxDisplay;
         
         public ModularFlightIntegrator fi;
         public ModularFlightIntegrator.PartThermalData ptd;
-
-        public virtual void Awake()
-        {
-        }
 
         public virtual void Start()
         {
@@ -70,12 +63,13 @@ namespace DeadlyReentry
                 skinMaxTemp = part.maxTemp;
             
             // only one of skinThermalMassModifier and skinThicknessFactor should be configured
-            skinThermalMass = (double)part.mass * PhysicsGlobals.StandardSpecificHeatCapacity * skinThermalMassModifier * skinThicknessFactor;
+            if (skinThermalMass == -1.0)
+                skinThermalMass = (double)part.mass * PhysicsGlobals.StandardSpecificHeatCapacity * skinThermalMassModifier * skinThicknessFactor;
             skinThermalMassReciprocal = 1.0 / Math.Max (skinThermalMass, 0.001);
             GameEvents.onVesselWasModified.Add(OnVesselWasModified);
         }
         
-        protected void OnVesselWasModified(Vessel v)
+        public void OnVesselWasModified(Vessel v)
         {
             if (v == vessel)
                 fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
@@ -87,31 +81,33 @@ namespace DeadlyReentry
                 return;
             
             // Can't look this up right now; trying to declare MFI in a field is smashing the assembly
-            // if (fi.IsAnalytical || fi.RecreateThermalGraph)
-            //     return;
+             if (fi.IsAnalytical || fi.RecreateThermalGraph)
+                 return;
             
             if (skinTemperature == -1.0 && !Double.IsNaN(vessel.externalTemperature))
                 skinTemperature = vessel.externalTemperature;   
             
             if (PhysicsGlobals.ThermalDataDisplay)
             {
-                skinTemperatureDisplay = skinTemperature.ToString ("N2");
-                skinThermalRadiationFluxDisplay = skinThermalRadiationFlux.ToString ("N2");
-                RadiativeAreaDisplay = part.radiativeArea.ToString ("N2");
+                skinTemperatureDisplay = skinTemperature.ToString ("F4");
+                RadiativeAreaDisplay = part.radiativeArea.ToString ("F4");
             }
 
             StartCoroutine (UpdateSkinThermals());
         }
 
-        protected IEnumerator UpdateSkinThermals()
+        public IEnumerator UpdateSkinThermals()
         {
             yield return new WaitForFixedUpdate();
             
-            ptd = (FlightIntegrator.PartThermalData)fi.PartThermalDataList.Where(p => p.part == part);
+            ptd = fi.PartThermalDataList.Where(p => p.part == part).FirstOrDefault();
             
-            UpdateConvection();
-            UpdateRadiation();
-            UpdateSkinConduction();
+            if(PhysicsGlobals.ThermalConvectionEnabled)
+                UpdateConvection();
+            if(PhysicsGlobals.ThermalRadiationEnabled)
+                UpdateRadiation();
+            if(PhysicsGlobals.ThermalConductionEnabled)
+                UpdateSkinConduction();
             
             if (skinTemperature > skinMaxTemp)
             {
@@ -125,25 +121,53 @@ namespace DeadlyReentry
                 
                 part.explode();
             }
-            /*
-            if (PhysicsGlobals.ThermalConvectionEnabled)
-            {
-                double skinConvectionFlux = part.thermalConvectionFlux;
-                skinTemperature = Math.Max (skinTemperature + (skinConvectionFlux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
-            }
-            */
-            // Rate = k•A•(T1 - T2)/d
-            // Propagate heat from surface to interior
         }
 
-        protected void UpdateConvection ()
+        public void UpdateConvection()
+        {
+            // get sub/transonic convection
+            double convectionArea = UtilMath.Lerp(
+                part.radiativeArea,
+                part.exposedArea,
+                PhysicsGlobals.FullConvectionAreaMin + (part.machNumber - PhysicsGlobals.FullToCrossSectionLerpStart) / (PhysicsGlobals.FullToCrossSectionLerpEnd - PhysicsGlobals.FullToCrossSectionLerpStart));
+            
+            double convectiveFlux = (part.externalTemperature - skinTemperature) * fi.convectiveCoefficient * convectionArea;
+            
+            // get mach convection
+            // defaults to starting at M=2 and being full at M=3
+            double machLerp = (part.machNumber - PhysicsGlobals.MachConvectionStart) / (PhysicsGlobals.MachConvectionEnd - PhysicsGlobals.MachConvectionStart);
+            
+            if (machLerp > 0d)
+            {
+                machLerp = Math.Min(1d, Math.Pow(machLerp, PhysicsGlobals.MachConvectionExponent));
+                
+                // get flux
+                double machHeatingFlux = convectionArea * fi.convectiveMachFlux;
+                convectiveFlux = UtilMath.LerpUnclamped(convectiveFlux, machHeatingFlux, machLerp);
+                
+                // get steady-state radiative temperature for this flux. Assume 0.5 emissivity, because while part emissivity might be higher,
+                // radiative area will be way higher than convective area, so this will be safe.
+                // We multiply in the convective area multiplier because that accounts for both how much area is occluded, but also modifiers
+                // to the shock temperature.
+                double machExtTemp = Math.Pow(0.5d * fi.convectiveMachFlux * ptd.convectionAreaMultiplier * part.heatConvectiveConstant
+                                              / (PhysicsGlobals.StefanBoltzmanConstant * PhysicsGlobals.RadiationFactor), 1d / PhysicsGlobals.PartEmissivityExponent);
+                part.externalTemperature = Math.Max(part.externalTemperature, UtilMath.LerpUnclamped(part.externalTemperature, machExtTemp, machLerp));
+            }
+            convectiveFlux *= 0.001d * part.heatConvectiveConstant * ptd.convectionAreaMultiplier; // W to kW, scalars
+            part.thermalConvectionFlux = convectiveFlux;
+            skinTemperature = Math.Max((skinTemperature + convectiveFlux * part.thermalMassReciprocal * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
+        }
+        /*
+        public void UpdateConvection ()
         {
             // get sub/transonic convection
             double convectionArea = UtilMath.Lerp(part.radiativeArea, part.exposedArea,
                                                   (part.machNumber - PhysicsGlobals.FullToCrossSectionLerpStart) / (PhysicsGlobals.FullToCrossSectionLerpEnd - PhysicsGlobals.FullToCrossSectionLerpStart));
             
             double convectiveFlux = (part.externalTemperature - skinTemperature) * fi.convectiveCoefficient * convectionArea;
-            
+            //print("convectionArea = " + convectionArea.ToString("F4"));
+            //print("convectiveFlux = " + convectiveFlux.ToString("F4"));
+
             // get hypersonic convection
             // defaults to starting at M=0.8 and being full at M=2.05
             double machLerp = (part.machNumber - PhysicsGlobals.MachConvectionStart) / (PhysicsGlobals.MachConvectionEnd - PhysicsGlobals.MachConvectionStart);
@@ -157,55 +181,87 @@ namespace DeadlyReentry
                 
                 machHeatingFlux *= (double)PhysicsGlobals.ConvectionFactor;
                 convectiveFlux = UtilMath.Lerp(convectiveFlux, machHeatingFlux, machLerp);
+                //print("machHeatingFlux = " + machHeatingFlux.ToString("F4"));
             }
             convectiveFlux *= 0.001d * part.heatConvectiveConstant * ptd.convectionAreaMultiplier; // W to kW, scalars
             part.thermalConvectionFlux = convectiveFlux;
-            //part.temperature = Math.Max((part.temperature + convectiveFlux * part.thermalMassReciprocal * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
+            //print("Final convectionFlux = " + convectiveFlux.ToString("F4"));
+            skinTemperature = Math.Max(skinTemperature + (convectiveFlux * skinThermalMassReciprocal * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
         }
+        */
+  
 
-        protected void UpdateRadiation()
+        public void UpdateRadiation()
         {
-            // shared scalar
+            
             double scalar = part.emissiveConstant // local scalar
                 * PhysicsGlobals.RadiationFactor // global scalar
                     * 0.001d; // W to kW
-            
+            double finalScalar = skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime;
             double sunFlux = 0d;
+            double tempTemp = skinTemperature;
+            
             
             if (vessel.directSunlight)
             {
                 // assume half the surface area is under sunlight
                 sunFlux = _GetSunArea(fi, ptd) * scalar * fi.solarFlux * fi.solarFluxMultiplier;
+                tempTemp += sunFlux * finalScalar;
+                //print("Temp + sunFlux = " + tempTemp.ToString("F4"));
             }
-            double bodyFlux = 0d;
-            double tempBodyFlux = fi.bodyEmissiveFlux + fi.bodyAlbedoFlux;
-            if (tempBodyFlux > 0d)
+            double bodyFlux = fi.bodyEmissiveFlux + fi.bodyAlbedoFlux;
+            if (bodyFlux > 0d)
             {
-                bodyFlux = UtilMath.Lerp(0.0, tempBodyFlux, fi.DensityThermalLerp) * _GetBodyArea(ptd) * scalar;
+                tempTemp += UtilMath.Lerp(0.0, bodyFlux, fi.DensityThermalLerp) * _GetBodyArea(ptd) * scalar * finalScalar;
+                //print("Temp + bodyFlux = " + tempTemp.ToString("F4"));
             }
             
             // Radiative flux = S-Bconst*e*A * (T^4 - radInT^4)
-            skinThermalRadiationFlux = sunFlux + bodyFlux;
-            
+
             //part.temperature = Math.Max(tempTemp, PhysicsGlobals.SpaceTemperature);
-            skinThermalRadiationFlux = part.thermalRadiationFlux;
-            double backgroundRadiation = UtilMath.Lerp(fi.atmosphericTemperature, PhysicsGlobals.SpaceTemperature, fi.DensityThermalLerp);
-
-            double emission = -(Math.Pow(skinTemperature + skinThermalRadiationFlux, PhysicsGlobals.PartEmissivityExponent)) 
-                //- Math.Pow (fi.backgroundRadiationTemp, PhysicsGlobals.PartEmissivityExponent)) // Don't use this for now.
-                // the convective formula is actually not pure convective. Some of it is radiative.
-                * PhysicsGlobals.StefanBoltzmanConstant * scalar;
-            skinThermalRadiationFlux += emission;
-
-            skinTemperature = Math.Max(skinTemperature + (skinThermalRadiationFlux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
+            double backgroundRadiationTemp = UtilMath.Lerp(fi.atmosphericTemperature, PhysicsGlobals.SpaceTemperature, fi.DensityThermalLerp);
+            
+            double radOut = -(Math.Pow(tempTemp, PhysicsGlobals.PartEmissivityExponent)
+                - Math.Pow (fi.backgroundRadiationTemp, PhysicsGlobals.PartEmissivityExponent)) // Using modified background radiation with no reentry radiant flux
+                    * PhysicsGlobals.StefanBoltzmanConstant * scalar * part.radiativeArea;
+            tempTemp += radOut * finalScalar;
+            //print("Temp + radOut =" + tempTemp.ToString("F4"));
+            part.thermalRadiationFlux = radOut + sunFlux;
+            
+            skinTemperature = Math.Max(tempTemp, PhysicsGlobals.SpaceTemperature);
         }
 
-        protected void UpdateSkinConduction()
+        public void UpdateSkinConduction()
+        {
+            double timeConductionFactor = PhysicsGlobals.ConductionFactor * Time.fixedDeltaTime;
+            double temperatureDelta = skinTemperature - part.temperature;
+            double energyTransferred =
+                temperatureDelta
+                    * Math.Min(skinThermalMass, part.thermalMass) * 0.5d
+                    * Math.Max(0d, Math.Min(1d,
+                                            timeConductionFactor
+                                            * skinHeatConductivity
+                                            * part.heatConductivity
+                                            * part.radiativeArea)); // should be contact area... how large a value should we use?
+            
+            double kilowatts = energyTransferred * fi.WarpReciprocal;
+            double temperatureLost = energyTransferred * skinThermalMassReciprocal;
+            double temperatureRecieved = energyTransferred * part.thermalMassReciprocal;
+            
+            //skinThermalConductionFlux -= kilowatts;
+            //part.thermalConductionFlux += kilowatts;
+            
+            skinTemperature = Math.Max(skinTemperature - temperatureLost, PhysicsGlobals.SpaceTemperature);
+            part.AddThermalFlux(kilowatts);
+        }
+
+        /*
+        public void UpdateSkinConduction()
         {
             if (PhysicsGlobals.ThermalConductionEnabled)
             {
                 double temperatureDelta = skinTemperature - part.temperature;
-                double surfaceConductionFlux = temperatureDelta * skinHeatConductivity * PhysicsGlobals.ConductionFactor * skinThermalMass;
+                double surfaceConductionFlux = temperatureDelta * skinHeatConductivity * PhysicsGlobals.ConductionFactor * skinThermalMass * 0.001;
                 
                 //print (temperatureDelta.ToString ("N8"));
                 //print (surfaceConductionFlux.ToString ("N8"));
@@ -214,10 +270,11 @@ namespace DeadlyReentry
                 skinTemperature -= surfaceConductionFlux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime;
             }
         }
+        */
 
 
 
-        private UIPartActionWindow _myWindow = null; 
+        public UIPartActionWindow _myWindow = null; 
         public UIPartActionWindow myWindow 
         {
             get {
@@ -246,7 +303,6 @@ namespace DeadlyReentry
             {
                 is_debugging = PhysicsGlobals.ThermalDataDisplay;
                 Fields["skinTemperatureDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
-                Fields["skinThermalRadiationFluxDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["RadiativeAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 if (myWindow != null)
                 {
@@ -272,46 +328,10 @@ namespace DeadlyReentry
             Vector3 localSun = p.partTransform.InverseTransformDirection(fi.sunVector);
             return p.DragCubes.GetCubeAreaDir(localSun) * ptd.sunAreaMultiplier;
         }
-
-        /*
-        // Conduct skin temperature to part temperature
-        protected void UpdateSkinConduction()
+        static void print(string msg)
         {
-            if (PhysicsGlobals.ThermalConductionEnabled)
-            {
-                double temperatureDelta = skinTemperature - part.temperature;
-                double surfaceConductionFlux = temperatureDelta * skinHeatConductivity * PhysicsGlobals.ConductionFactor * skinThermalMass;
-                
-                //print (temperatureDelta.ToString ("N8"));
-                //print (surfaceConductionFlux.ToString ("N8"));
-                
-                part.AddThermalFlux (surfaceConductionFlux);
-                skinTemperature -= surfaceConductionFlux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime;
-            }
+            MonoBehaviour.print("[DeadlyReentry.ModuleAeroReentry] " + msg);
         }
-        
-        protected void UpdateSkinRadiation()
-        {
-            // Have to handle emission here so we can get the skin temperature instead of part temperature
-            if (PhysicsGlobals.ThermalRadiationEnabled)
-            {
-                double scalar = part.emissiveConstant // local scalar
-                    * PhysicsGlobals.RadiationFactor // global scalar
-                        * 0.001d;
-                
-                
-                skinThermalRadiationFlux = part.thermalRadiationFlux;
-                double emission = -(Math.Pow(skinTemperature + skinThermalRadiationFlux, PhysicsGlobals.PartEmissivityExponent) 
-                                    - Math.Pow (fi.backgroundRadiationTemp, PhysicsGlobals.PartEmissivityExponent))
-                    * PhysicsGlobals.StefanBoltzmanConstant * scalar;
-                skinThermalRadiationFlux += emission;
-                
-                //print ("Background Radiation Temp: " + fi.backgroundRadiationTemp + "K");
-                
-                skinTemperature = Math.Max(skinTemperature + (skinThermalRadiationFlux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
-            }
-        }
-        */
     }
 
     class ModuleHeatShield : ModuleAeroReentry
@@ -350,18 +370,18 @@ namespace DeadlyReentry
         public double reentryConductivity = 0.01d;
         
         
-        // private fields
-        private PartResource ablative = null; // pointer to the PartResource
-        private double pyrolysisLoss; // actual per-tonne flux
-        private double origConductivity; // we'll store the part's original conductivity here
-        private int downDir = (int)DragCube.DragFace.YN;
-        private double density = 1d;
-        private double invDensity = 1d;
+        // public fields
+        public PartResource ablative = null; // pointer to the PartResource
+        public double pyrolysisLoss; // actual per-tonne flux
+        public double origConductivity; // we'll store the part's original conductivity here
+        public int downDir = (int)DragCube.DragFace.YN;
+        public double density = 1d;
+        public double invDensity = 1d;
         
         [KSPField(guiActive = true, guiName ="Ablation: ", guiUnits = " kg/sec", guiFormat = "N5")]
         double loss = 0d;
         
-        [KSPField(guiActive = true, guiName = "Pyrolysis Flux: ", guiUnits = " kW", guiFormat = "N2")]
+        [KSPField(guiActive = true, guiName = "Pyrolysis Flux: ", guiUnits = " kW", guiFormat = "F4")]
         double flux = 0d;
         
         public override void Start()
@@ -427,8 +447,8 @@ namespace DeadlyReentry
     [KSPAddon(KSPAddon.Startup.MainMenu, false)] // fixed
 	public class FixMaxTemps : MonoBehaviour
 	{
-        //protected PartModule RFEngineConfig = null;
-        //protected FieldInfo[] RFEConfigs = null;
+        //public PartModule RFEngineConfig = null;
+        //public FieldInfo[] RFEConfigs = null;
         
         public void Start()
 		{
