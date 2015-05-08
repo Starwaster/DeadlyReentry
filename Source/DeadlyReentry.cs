@@ -1,6 +1,6 @@
 using System;
 
-//using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Collections;
 using System.Reflection;
 using System.Linq;
@@ -37,17 +37,145 @@ namespace DeadlyReentry
 
         public bool is_debugging;
 
+        // Debug Displays
         [KSPField(isPersistant = false, guiActive = false, guiName = "Skin Temp.", guiUnits = "K",   guiFormat = "x.00")]
         public string skinTemperatureDisplay;
         
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Skin Thermal Mass.", guiUnits = "",   guiFormat = "x.00")]
+        public string skinThermalMassDisplay;
+        
         [KSPField(isPersistant = false, guiActive = false, guiName = "Rad. Area", guiUnits = "m2",   guiFormat = "x.00")]
         public string RadiativeAreaDisplay;
+
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Exp. Area", guiUnits = "m2",   guiFormat = "x.00")]
+        public string ExposedAreaDisplay;
+
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Acceleration", guiUnits = "G",   guiFormat = "F3")]
+        public float displayGForce;
         
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Skin Rad.", guiUnits = "K",   guiFormat = "x.00")]
-        public string skinThermalRadiationFluxDisplay;
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Damage", guiUnits = "",   guiFormat = "G")]
+        public string displayDamage;
         
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Cumulative G", guiUnits = "", guiFormat = "F0")]
+        public double gExperienced = 0;
+
         public ModularFlightIntegrator fi;
         public ModularFlightIntegrator.PartThermalData ptd;
+
+        private double lastGForce = 0;
+
+        [KSPField(isPersistant = true)]
+        private bool dead;
+
+        [KSPField]
+        public float gTolerance = -1;
+
+        [KSPField(isPersistant = true)]
+        public float crashTolerance = 8;
+        
+        [KSPField(isPersistant = true)]
+        public float damage = 0;
+
+        public static double crewGClamp = 30;
+        public static double crewGPower = 4;
+        public static double crewGMin = 5;
+        public static double crewGWarn = 300000;
+        public static double crewGLimit = 600000;
+        public static float crewGKillChance = 0.75f;
+        
+        private double counter = 0;
+        
+        private bool is_on_fire = false;
+        private bool is_gforce_fx_playing = false;
+        
+        private bool is_engine = false;
+        private bool is_eva = false;
+
+
+        EventData<GameEvents.ExplosionReaction> ReentryReaction = GameEvents.onPartExplode;
+        
+        UIPartActionWindow _myWindow = null; 
+        UIPartActionWindow myWindow 
+        {
+            get {
+                if(_myWindow == null) {
+                    foreach(UIPartActionWindow window in FindObjectsOfType (typeof(UIPartActionWindow))) {
+                        if(window.part == part) _myWindow = window;
+                    }
+                }
+                return _myWindow;
+            }
+        }
+        
+        static string FormatTime(double time)
+        {
+            int iTime = (int) time % 3600;
+            int seconds = iTime % 60;
+            int minutes = (iTime / 60) % 60;
+            int hours = (iTime / 3600);
+            return hours.ToString ("D2") 
+                + ":" + minutes.ToString ("D2") + ":" + seconds.ToString ("D2");
+        }
+        
+        public static void PlaySound(FXGroup fx, float volume)
+        {
+            if(fx.audio.isPlaying) {
+                if(fx.audio.volume < volume)
+                    fx.audio.volume = volume;
+            } else {
+                fx.audio.volume = volume;
+                fx.audio.Play ();
+            }
+            //if(this.is_debugging)
+            //    print (fx.audio.clip.name);
+            
+        }
+        FXGroup _gForceFX = null;
+        FXGroup gForceFX 
+        {
+            get {
+                if(_gForceFX == null) {
+                    _gForceFX = new FXGroup (part.partName + "_Crushing");
+                    _gForceFX.audio = gameObject.AddComponent<AudioSource>();
+                    _gForceFX.audio.clip = GameDatabase.Instance.GetAudioClip("DeadlyReentry/Sounds/gforce_damage");
+                    _gForceFX.audio.volume = GameSettings.SHIP_VOLUME;
+                    _gForceFX.audio.Stop ();
+                }
+                return _gForceFX;
+                
+            }
+        }
+        /*
+        FXGroup _ablationSmokeFX = null;
+        FXGroup ablationSmokeFX 
+        {
+            get {
+                if(_ablationSmokeFX == null) {
+                    _ablationSmokeFX = new FXGroup (part.partName + "_Smoking");
+                    _ablationSmokeFX.fxEmitters.Add (Emitter("fx_smokeTrail_medium").GetComponent<ParticleEmitter>());
+                }
+                return _ablationSmokeFX;
+            }
+        }
+        
+        FXGroup _ablationFX = null;
+        FXGroup ablationFX 
+        {
+            get {
+                if(_ablationFX == null) {
+                    _ablationFX = new FXGroup (part.partName + "_Burning");
+                    _ablationFX.fxEmitters.Add (Emitter("fx_exhaustFlame_yellow").GetComponent<ParticleEmitter>());
+                    _ablationFX.fxEmitters.Add(Emitter("fx_exhaustSparks_yellow").GetComponent<ParticleEmitter>());
+                    _ablationFX.audio = gameObject.AddComponent<AudioSource>();
+                    _ablationFX.audio.clip = GameDatabase.Instance.GetAudioClip("DeadlyReentry/Sounds/fire_damage");
+                    _ablationFX.audio.volume = GameSettings.SHIP_VOLUME;
+                    _ablationFX.audio.Stop ();
+                    
+                }
+                return _ablationFX;
+            }
+        }
+        */
 
         public virtual void Start()
         {
@@ -79,18 +207,26 @@ namespace DeadlyReentry
         {
             if (!FlightGlobals.ready)
                 return;
-            
-            // Can't look this up right now; trying to declare MFI in a field is smashing the assembly
+            // HACK skipping an update on IsAnalytical is a quick hack. Need to handle Analytical Mode properly
              if (fi.IsAnalytical || fi.RecreateThermalGraph)
                  return;
-            
+
+            if ((object)fi == null)
+            {
+                fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
+                if ((object)fi == null)
+                    print("Fatal error! Unable to locate ModularFlightIntegrator for vessel (" + vessel.vesselName + ")");
+            }
+
             if (skinTemperature == -1.0 && !Double.IsNaN(vessel.externalTemperature))
                 skinTemperature = vessel.externalTemperature;   
             
             if (PhysicsGlobals.ThermalDataDisplay)
             {
                 skinTemperatureDisplay = skinTemperature.ToString ("F4");
+                skinThermalMassDisplay = skinThermalMass.ToString();
                 RadiativeAreaDisplay = part.radiativeArea.ToString ("F4");
+                ExposedAreaDisplay = part.exposedArea.ToString("F4");
             }
 
             StartCoroutine (UpdateSkinThermals());
@@ -121,6 +257,8 @@ namespace DeadlyReentry
                 
                 part.explode();
             }
+            CheckForFire();
+            CheckGeeForces();
         }
 
         public void UpdateConvection()
@@ -155,9 +293,9 @@ namespace DeadlyReentry
             }
             convectiveFlux *= 0.001d * part.heatConvectiveConstant * ptd.convectionAreaMultiplier; // W to kW, scalars
             part.thermalConvectionFlux = convectiveFlux;
-            skinTemperature = Math.Max((skinTemperature + convectiveFlux * part.thermalMassReciprocal * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
+            skinTemperature = Math.Max((skinTemperature + convectiveFlux * skinThermalMassReciprocal * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
         }
-        /*
+/*
         public void UpdateConvection ()
         {
             // get sub/transonic convection
@@ -189,7 +327,6 @@ namespace DeadlyReentry
             skinTemperature = Math.Max(skinTemperature + (convectiveFlux * skinThermalMassReciprocal * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
         }
         */
-  
 
         public void UpdateRadiation()
         {
@@ -222,7 +359,7 @@ namespace DeadlyReentry
             double backgroundRadiationTemp = UtilMath.Lerp(fi.atmosphericTemperature, PhysicsGlobals.SpaceTemperature, fi.DensityThermalLerp);
             
             double radOut = -(Math.Pow(tempTemp, PhysicsGlobals.PartEmissivityExponent)
-                - Math.Pow (fi.backgroundRadiationTemp, PhysicsGlobals.PartEmissivityExponent)) // Using modified background radiation with no reentry radiant flux
+                - Math.Pow (backgroundRadiationTemp, PhysicsGlobals.PartEmissivityExponent)) // Using modified background radiation with no reentry radiant flux
                     * PhysicsGlobals.StefanBoltzmanConstant * scalar * part.radiativeArea;
             tempTemp += radOut * finalScalar;
             //print("Temp + radOut =" + tempTemp.ToString("F4"));
@@ -274,41 +411,157 @@ namespace DeadlyReentry
 
 
 
-        public UIPartActionWindow _myWindow = null; 
-        public UIPartActionWindow myWindow 
-        {
-            get {
-                if(_myWindow == null) {
-                    foreach(UIPartActionWindow window in FindObjectsOfType (typeof(UIPartActionWindow))) {
-                        if(window.part == part) _myWindow = window;
-                    }
-                }
-                return _myWindow;
-            }
-        }
-        
-        static string FormatTime(double time)
-        {
-            int iTime = (int) time % 3600;
-            int seconds = iTime % 60;
-            int minutes = (iTime / 60) % 60;
-            int hours = (iTime / 3600);
-            return hours.ToString ("D2") 
-                + ":" + minutes.ToString ("D2") + ":" + seconds.ToString ("D2");
-        }
-
         public virtual void Update()
         {
             if (is_debugging != PhysicsGlobals.ThermalDataDisplay)
             {
                 is_debugging = PhysicsGlobals.ThermalDataDisplay;
                 Fields["skinTemperatureDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields["skinThermalMassDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["RadiativeAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields["ExposedAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 if (myWindow != null)
                 {
                     myWindow.displayDirty = true;
                 }
             }
+        }
+
+        public void CheckGeeForces()
+        {
+            if (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready)
+            {
+                if (dead || (object)vessel == null || TimeWarp.fixedDeltaTime > 0.5 || TimeWarp.fixedDeltaTime <= 0)
+                    return; // don't check G-forces in warp
+                
+                double geeForce = vessel.geeForce_immediate;
+                if (geeForce > 40 && geeForce > lastGForce)
+                {
+                    // G forces over 40 are probably a Kraken twitch unless they last multiple frames
+                    displayGForce = displayGForce * (1 - TimeWarp.fixedDeltaTime) + (float)(lastGForce * TimeWarp.fixedDeltaTime);
+                }
+                else
+                {
+                    //keep a running average of G force over 1s, to further prevent absurd spikes (mostly decouplers & parachutes)
+                    displayGForce = displayGForce * (1 - TimeWarp.fixedDeltaTime) + (float)(geeForce * TimeWarp.fixedDeltaTime);
+                }
+                if (displayGForce < crewGMin)
+                    gExperienced = 0;
+                
+                //double gTolerance;
+                if (gTolerance < 0)
+                {
+                    if (is_engine && damage < 1)
+                        gTolerance = (float)Math.Pow(UnityEngine.Random.Range(11.9f, 12.1f) * part.crashTolerance, 0.5);
+                    else
+                        gTolerance = (float)Math.Pow(UnityEngine.Random.Range(5.9f, 6.1f) * part.crashTolerance, 0.5);
+                    
+                    gTolerance *= ReentryPhysics.gToleranceMult;
+                }
+                if (gTolerance >= 0 && displayGForce > gTolerance)
+                { // G tolerance is based roughly on crashTolerance
+                    AddDamage(TimeWarp.fixedDeltaTime * (float)(displayGForce / gTolerance - 1));
+                    if (!is_eva)
+                    { // kerbal bones shouldn't sound like metal when they break.
+                        gForceFX.audio.pitch = (float)(displayGForce / gTolerance);
+                        PlaySound(gForceFX, damage * 0.3f + 0.7f);
+                        is_gforce_fx_playing = true;
+                    }
+                }
+                else if (is_gforce_fx_playing)
+                {
+                    float new_volume = (gForceFX.audio.volume *= 0.8f);
+                    if (new_volume < 0.001f)
+                    {
+                        gForceFX.audio.Stop();
+                        is_gforce_fx_playing = false;
+                    }
+                }
+                if (damage >= 1.0f && !dead)
+                {
+                    dead = true;
+                    FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
+                                              + part.partInfo.title + " exceeded g-force tolerance.");
+                    
+                    if ( part is StrutConnector )
+                    {
+                        ((StrutConnector)part).BreakJoint();
+                    }
+                    
+                    part.explode();
+                    return;
+                }
+                if (Math.Max(displayGForce, geeForce) >= crewGMin)
+                {
+                    gExperienced += Math.Pow(Math.Min(Math.Abs(Math.Max(displayGForce, geeForce)), crewGClamp), crewGPower) * TimeWarp.fixedDeltaTime;
+                    List<ProtoCrewMember> crew = part.protoModuleCrew; //vessel.GetVesselCrew();
+                    if (gExperienced > crewGWarn && crew.Count > 0)
+                    {
+                        
+                        if (gExperienced < crewGLimit)
+                            ScreenMessages.PostScreenMessage(ReentryPhysics.crewGWarningMsg, false);
+                        else
+                        {
+                            // borrowed from TAC Life Support
+                            if (UnityEngine.Random.Range(0f, 1f) < crewGKillChance)
+                            {
+                                int crewMemberIndex = UnityEngine.Random.Range(0, crew.Count - 1);
+                                if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA)
+                                {
+                                    CameraManager.Instance.SetCameraFlight();
+                                }
+                                ProtoCrewMember member = crew[crewMemberIndex];
+                                
+                                ScreenMessages.PostScreenMessage(vessel.vesselName + ": Crewmember " + member.name + " died of G-force damage!", 30.0f, ScreenMessageStyle.UPPER_CENTER);
+                                FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
+                                                          + member.name + " died of G-force damage.");
+                                Debug.Log("*DRE* [" + Time.time + "]: " + vessel.vesselName + " - " + member.name + " died of G-force damage.");
+                                
+                                if (!vessel.isEVA)
+                                {
+                                    part.RemoveCrewmember(member);
+                                    member.Die();
+                                }
+                            }
+                        }
+                    }
+                }
+                lastGForce = vessel.geeForce_immediate;
+            }
+        }
+
+        public void AddDamage(float dmg)
+        {
+            if (dead || part == null || part.partInfo == null || part.partInfo.partPrefab == null)
+                return;
+            if(is_debugging)
+                print (part.partInfo.title + ": +" + dmg + " damage");
+            damage += dmg;
+            part.maxTemp = part.partInfo.partPrefab.maxTemp * (1 - 0.15f * damage);
+            part.breakingForce = part.partInfo.partPrefab.breakingForce * (1 - damage);
+            part.breakingTorque = part.partInfo.partPrefab.breakingTorque * (1 - damage);
+            part.crashTolerance = part.partInfo.partPrefab.crashTolerance * (1 - 0.5f * damage);
+            SetDamageLabel ();
+        }
+
+        
+        public void SetDamageLabel() 
+        {
+            if (Events == null)
+                return;
+            if (damage > 0.5)
+                Events["RepairDamage"].guiName = "Repair Critical Damage";
+            else if (damage > 0.25)
+                Events["RepairDamage"].guiName = "Repair Heavy Damage";
+            else if (damage > 0.125)
+                Events["RepairDamage"].guiName = "Repair Moderate Damage";
+            else if (damage > 0)
+                Events["RepairDamage"].guiName = "Repair Light Damage";
+            else
+                Events["RepairDamage"].guiName = "No Damage";
+        }
+        public void CheckForFire()
+        {
         }
 
         public double _GetBodyArea(ModularFlightIntegrator.PartThermalData ptd)
@@ -389,7 +642,7 @@ namespace DeadlyReentry
             if (!HighLogic.LoadedSceneIsFlight)
                 return;
             
-            //base.Start ();
+            base.Start ();
             if (ablativeResource != null && ablativeResource != "")
             {
                 if (part.Resources.Contains(ablativeResource) && lossExp < 0)
@@ -413,7 +666,7 @@ namespace DeadlyReentry
             //  return;
             
             
-            //base.FixedUpdate ();
+            base.FixedUpdate ();
             flux = 0d;
             loss = 0d;
             
@@ -435,10 +688,12 @@ namespace DeadlyReentry
                     {
                         loss *= ablativeAmount;
                         ablative.amount -= loss * TimeWarp.fixedDeltaTime;
-                        loss *= 1000d * density;
+                        loss *= density;
                         flux = pyrolysisLoss * loss;
+                        loss *= 1000.0;
+
                         skinTemperature = Math.Max (skinTemperature - (flux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
-                    }
+                    }                    
                 }
             }
         }
@@ -508,4 +763,54 @@ namespace DeadlyReentry
 			}
 		}
 	}
+    [KSPAddon(KSPAddon.Startup.Flight, false)]
+    public class ReentryPhysics : MonoBehaviour
+    {
+        static System.Version DREVersion = Assembly.GetExecutingAssembly().GetName().Version;
+        
+        
+        protected bool isCompatible = true;
+        private static AerodynamicsFX _afx;
+        
+        public static AerodynamicsFX afx {
+            get {
+                if (_afx == null) {
+                    GameObject fx = GameObject.Find ("FXLogic");
+                    if (fx != null) {
+                        _afx = fx.GetComponent<AerodynamicsFX> ();
+                    }
+                }
+                return _afx;
+            }
+        }
+        
+        public static Vector3 frameVelocity;
+        
+        public static GUIStyle warningMessageStyle = new GUIStyle();
+        
+        public static ScreenMessage chuteWarningMsg = new ScreenMessage("Warning: Chute deployment unsafe!", 1f, ScreenMessageStyle.UPPER_CENTER, warningMessageStyle);
+        public static ScreenMessage crewGWarningMsg = new ScreenMessage("Reaching Crew G limit!", 1f, ScreenMessageStyle.UPPER_CENTER, warningMessageStyle);
+        
+        public static double specificGasConstant = 287.058;
+        
+        public static float shockwaveMultiplier = 1.0f;
+        public static float shockwaveExponent = 1.0f;
+        public static float heatMultiplier = 20.0f;
+        public static float temperatureExponent = 1.0f;
+        public static float densityExponent = 1.0f;
+        
+        public static float startThermal = 800.0f;
+        public static float fullThermal = 1150.0f;
+        public static float afxDensityExponent = 0.7f;
+        
+        public static float gToleranceMult = 6.0f;
+        public static float parachuteTempMult = 0.25f;
+        
+        public static bool legacyAero = false;
+        public static bool dissipationCap = true;
+        public static bool debugging = false;
+        public static bool useAlternateDensity;
+        
+        public static float frameDensity = 0f;
+    }
 }

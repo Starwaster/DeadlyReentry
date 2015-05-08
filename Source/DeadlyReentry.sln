@@ -190,7 +190,7 @@ Global
 		$0.VersionControlPolicy = $31
 		$31.inheritsSet = Mono
 		description = The Melificent Edition
-		version = 6.6
+		version = 7.0
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
