@@ -14,7 +14,8 @@ namespace DeadlyReentry
 		}
 		
 		public static DeadlyReentryScenario Instance;
-		public static bool displayParachuteWarning = true;
+		public bool displayParachuteWarning = true;
+        public bool displayCrewGForceWarning = true;
 		
 		private int difficultySetting = 1;
 		
@@ -29,12 +30,12 @@ namespace DeadlyReentry
                 if (this.difficultySetting != value)
                 {
      				this.difficultySetting = value;
-                    DeadlyReentry.ReentryPhysics.LoadSettings();
+                    //DeadlyReentry.ReentryPhysics.LoadSettings();
                 }
 			}
 		}
 
-        private static string[] difficultyName = {"Easy", "Default", "Hard"};
+        private static string[] difficultyName = {"Easy", "Default", "Hard", "Alternate.Model", "RSS"};
 
         public string DifficultyName
         {
@@ -57,19 +58,19 @@ namespace DeadlyReentry
 		
 		public override void OnSave(ConfigNode node)
 		{
+            return;
 			node.AddValue ("difficultySetting", difficultySetting);
 			node.AddValue ("displayParachuteWarning", displayParachuteWarning);
 		}
 		
 		public override void OnLoad(ConfigNode node)
 		{
+            return;
 			if (node.HasValue ("difficultySetting"))
 				difficultySetting = int.Parse (node.GetValue ("difficultySetting"));
 
 			if (node.HasValue("displayParachuteWarning"))
 				bool.TryParse(node.GetValue("displayParachuteWarning"), out displayParachuteWarning);
-
-            DeadlyReentry.ReentryPhysics.LoadSettings();
 		}
 	}
 }
