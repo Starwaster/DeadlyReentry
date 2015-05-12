@@ -256,7 +256,7 @@ namespace DeadlyReentry
             if (PhysicsGlobals.ThermalDataDisplay)
             {
                 skinTemperatureDisplay = skinTemperature.ToString ("F4");
-                skinThermalMassDisplay = skinThermalMass.ToString();
+                skinThermalMassDisplay = skinThermalMass.ToString("F4");
                 RadiativeAreaDisplay = part.radiativeArea.ToString ("F4");
                 ExposedAreaDisplay = part.exposedArea.ToString("F4");
             }
@@ -758,10 +758,14 @@ namespace DeadlyReentry
         public double density = 1d;
         public double invDensity = 1d;
         
-        [KSPField(guiActive = true, guiName ="Ablation: ", guiUnits = " kg/sec", guiFormat = "N5")]
+        [KSPField(guiActive = true, guiName ="Ablation: ", guiUnits = " kg/sec", guiFormat = "F4")]
+        string lossDisplay;
+
         double loss = 0d;
         
         [KSPField(guiActive = true, guiName = "Pyrolysis Flux: ", guiUnits = " kW", guiFormat = "F4")]
+        string fluxDisplay;
+
         double flux = 0d;
         
         public override void Start()
@@ -823,6 +827,8 @@ namespace DeadlyReentry
                     }                    
                 }
             }
+            fluxDisplay = flux.ToString("F2");
+            lossDisplay = loss.ToString("F2"    );
         }
     }
 
