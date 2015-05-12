@@ -10,27 +10,27 @@
     },
     "VERSION":
     {
-        "MAJOR":6,
-        "MINOR":4,
-        "PATCH":0,
+        "MAJOR":7,
+        "MINOR":0,
+        "PATCH":1,
         "BUILD":0
     },
     "KSP_VERSION":
     {
-        "MAJOR":0,
-        "MINOR":90,
-        "PATCH":0
+        "MAJOR":1,
+        "MINOR":0,
+        "PATCH":2
     },
     "KSP_VERSION_MIN":
     {
-        "MAJOR":0,
-        "MINOR":90,
+        "MAJOR":1,
+        "MINOR":0,
         "PATCH":0
     },
     "KSP_VERSION_MAX":
     {
-        "MAJOR":0,
-        "MINOR":90,
-        "PATCH":0
+        "MAJOR":1,
+        "MINOR":0,
+        "PATCH":2
     }
 }
