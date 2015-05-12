@@ -51,7 +51,7 @@ namespace DeadlyReentry
         public string ExposedAreaDisplay;
 
         [KSPField(isPersistant = false, guiActive = false, guiName = "Acceleration", guiUnits = "G",   guiFormat = "F3")]
-        public float displayGForce;
+        public double displayGForce;
         
         [KSPField(isPersistant = false, guiActive = false, guiName = "Damage", guiUnits = "",   guiFormat = "G")]
         public string displayDamage;
@@ -59,7 +59,18 @@ namespace DeadlyReentry
         [KSPField(isPersistant = false, guiActive = false, guiName = "Cumulative G", guiUnits = "", guiFormat = "F0")]
         public double gExperienced = 0;
 
-        public ModularFlightIntegrator fi;
+        private ModularFlightIntegrator fi;
+        public ModularFlightIntegrator FI
+        {
+            get
+            {
+                if ((object)fi == null)
+                    fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
+                return fi;
+            }
+            set {fi = value;}
+        }
+
         public ModularFlightIntegrator.PartThermalData ptd;
 
         private double lastGForce = 0;
@@ -81,9 +92,9 @@ namespace DeadlyReentry
         public static double crewGMin = 5;
         public static double crewGWarn = 300000;
         public static double crewGLimit = 600000;
-        public static float crewGKillChance = 0.75f;
+        public static double crewGKillChance = 0.75f;
         
-        private double counter = 0;
+        private bool isCompatible = true;
         
         private bool is_on_fire = false;
         private bool is_gforce_fx_playing = false;
@@ -145,7 +156,7 @@ namespace DeadlyReentry
                 
             }
         }
-        /*
+
         FXGroup _ablationSmokeFX = null;
         FXGroup ablationSmokeFX 
         {
@@ -175,15 +186,27 @@ namespace DeadlyReentry
                 return _ablationFX;
             }
         }
-        */
+
+        public override void OnAwake()
+        {
+            base.OnAwake();
+            if (!CompatibilityChecker.IsAllCompatible())
+            {
+                isCompatible = false;
+                return;
+            }
+        }
 
         public virtual void Start()
         {
+            if (!isCompatible)
+                return;
+            //counter = 0;
             if (!HighLogic.LoadedSceneIsFlight)
                 return;
             
             
-            fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
+            //FI = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
             if (skinThermalMassModifier == -1.0)
                 skinThermalMassModifier = part.thermalMassModifier;
             
@@ -200,27 +223,36 @@ namespace DeadlyReentry
         public void OnVesselWasModified(Vessel v)
         {
             if (v == vessel)
-                fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
+                FI = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
         }
 
         public virtual void FixedUpdate()
         {
             if (!FlightGlobals.ready)
                 return;
+
+            //print("FlightGlobals.ready = true");
+
+            //if ((object)fi == null)
+            //{
+            //    fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
+            //    if ((object)fi == null)
+            //        print("Fatal error! Unable to locate ModularFlightIntegrator for vessel (" + vessel.vesselName + ")");
+            //}
+            //else
+                //print("ModularFlightIntegrator found for this vessel.");
+            
+
+
             // HACK skipping an update on IsAnalytical is a quick hack. Need to handle Analytical Mode properly
-             if (fi.IsAnalytical || fi.RecreateThermalGraph)
+             if (FI.IsAnalytical || FI.RecreateThermalGraph)
                  return;
 
-            if ((object)fi == null)
-            {
-                fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
-                if ((object)fi == null)
-                    print("Fatal error! Unable to locate ModularFlightIntegrator for vessel (" + vessel.vesselName + ")");
-            }
-
             if (skinTemperature == -1.0 && !Double.IsNaN(vessel.externalTemperature))
-                skinTemperature = vessel.externalTemperature;   
-            
+            {
+                skinTemperature = vessel.externalTemperature;
+                //print("Uninitialized skinTemperature initialized.");
+            }
             if (PhysicsGlobals.ThermalDataDisplay)
             {
                 skinTemperatureDisplay = skinTemperature.ToString ("F4");
@@ -228,7 +260,7 @@ namespace DeadlyReentry
                 RadiativeAreaDisplay = part.radiativeArea.ToString ("F4");
                 ExposedAreaDisplay = part.exposedArea.ToString("F4");
             }
-
+            //print("Starting UpdateSkinThermals() coroutine.");
             StartCoroutine (UpdateSkinThermals());
         }
 
@@ -236,7 +268,7 @@ namespace DeadlyReentry
         {
             yield return new WaitForFixedUpdate();
             
-            ptd = fi.PartThermalDataList.Where(p => p.part == part).FirstOrDefault();
+            ptd = FI.PartThermalDataList.Where(p => p.part == part).FirstOrDefault();
             
             if(PhysicsGlobals.ThermalConvectionEnabled)
                 UpdateConvection();
@@ -269,7 +301,7 @@ namespace DeadlyReentry
                 part.exposedArea,
                 PhysicsGlobals.FullConvectionAreaMin + (part.machNumber - PhysicsGlobals.FullToCrossSectionLerpStart) / (PhysicsGlobals.FullToCrossSectionLerpEnd - PhysicsGlobals.FullToCrossSectionLerpStart));
             
-            double convectiveFlux = (part.externalTemperature - skinTemperature) * fi.convectiveCoefficient * convectionArea;
+            double convectiveFlux = (part.externalTemperature - skinTemperature) * FI.convectiveCoefficient * convectionArea;
             
             // get mach convection
             // defaults to starting at M=2 and being full at M=3
@@ -280,14 +312,14 @@ namespace DeadlyReentry
                 machLerp = Math.Min(1d, Math.Pow(machLerp, PhysicsGlobals.MachConvectionExponent));
                 
                 // get flux
-                double machHeatingFlux = convectionArea * fi.convectiveMachFlux;
+                double machHeatingFlux = convectionArea * FI.convectiveMachFlux;
                 convectiveFlux = UtilMath.LerpUnclamped(convectiveFlux, machHeatingFlux, machLerp);
                 
                 // get steady-state radiative temperature for this flux. Assume 0.5 emissivity, because while part emissivity might be higher,
                 // radiative area will be way higher than convective area, so this will be safe.
                 // We multiply in the convective area multiplier because that accounts for both how much area is occluded, but also modifiers
                 // to the shock temperature.
-                double machExtTemp = Math.Pow(0.5d * fi.convectiveMachFlux * ptd.convectionAreaMultiplier * part.heatConvectiveConstant
+                double machExtTemp = Math.Pow(0.5d * FI.convectiveMachFlux * ptd.convectionAreaMultiplier * part.heatConvectiveConstant
                                               / (PhysicsGlobals.StefanBoltzmanConstant * PhysicsGlobals.RadiationFactor), 1d / PhysicsGlobals.PartEmissivityExponent);
                 part.externalTemperature = Math.Max(part.externalTemperature, UtilMath.LerpUnclamped(part.externalTemperature, machExtTemp, machLerp));
             }
@@ -302,7 +334,7 @@ namespace DeadlyReentry
             double convectionArea = UtilMath.Lerp(part.radiativeArea, part.exposedArea,
                                                   (part.machNumber - PhysicsGlobals.FullToCrossSectionLerpStart) / (PhysicsGlobals.FullToCrossSectionLerpEnd - PhysicsGlobals.FullToCrossSectionLerpStart));
             
-            double convectiveFlux = (part.externalTemperature - skinTemperature) * fi.convectiveCoefficient * convectionArea;
+            double convectiveFlux = (part.externalTemperature - skinTemperature) * FI.convectiveCoefficient * convectionArea;
             //print("convectionArea = " + convectionArea.ToString("F4"));
             //print("convectiveFlux = " + convectiveFlux.ToString("F4"));
 
@@ -342,21 +374,21 @@ namespace DeadlyReentry
             if (vessel.directSunlight)
             {
                 // assume half the surface area is under sunlight
-                sunFlux = _GetSunArea(fi, ptd) * scalar * fi.solarFlux * fi.solarFluxMultiplier;
+                sunFlux = _GetSunArea(fi, ptd) * scalar * FI.solarFlux * FI.solarFluxMultiplier;
                 tempTemp += sunFlux * finalScalar;
                 //print("Temp + sunFlux = " + tempTemp.ToString("F4"));
             }
-            double bodyFlux = fi.bodyEmissiveFlux + fi.bodyAlbedoFlux;
+            double bodyFlux = FI.bodyEmissiveFlux + FI.bodyAlbedoFlux;
             if (bodyFlux > 0d)
             {
-                tempTemp += UtilMath.Lerp(0.0, bodyFlux, fi.DensityThermalLerp) * _GetBodyArea(ptd) * scalar * finalScalar;
+                tempTemp += UtilMath.Lerp(0.0, bodyFlux, FI.DensityThermalLerp) * _GetBodyArea(ptd) * scalar * finalScalar;
                 //print("Temp + bodyFlux = " + tempTemp.ToString("F4"));
             }
             
             // Radiative flux = S-Bconst*e*A * (T^4 - radInT^4)
 
             //part.temperature = Math.Max(tempTemp, PhysicsGlobals.SpaceTemperature);
-            double backgroundRadiationTemp = UtilMath.Lerp(fi.atmosphericTemperature, PhysicsGlobals.SpaceTemperature, fi.DensityThermalLerp);
+            double backgroundRadiationTemp = UtilMath.Lerp(FI.atmosphericTemperature, PhysicsGlobals.SpaceTemperature, FI.DensityThermalLerp);
             
             double radOut = -(Math.Pow(tempTemp, PhysicsGlobals.PartEmissivityExponent)
                 - Math.Pow (backgroundRadiationTemp, PhysicsGlobals.PartEmissivityExponent)) // Using modified background radiation with no reentry radiant flux
@@ -377,11 +409,10 @@ namespace DeadlyReentry
                     * Math.Min(skinThermalMass, part.thermalMass) * 0.5d
                     * Math.Max(0d, Math.Min(1d,
                                             timeConductionFactor
-                                            * skinHeatConductivity
-                                            * part.heatConductivity
+                                            * Math.Min(skinHeatConductivity, part.heatConductivity)
                                             * part.radiativeArea)); // should be contact area... how large a value should we use?
             
-            double kilowatts = energyTransferred * fi.WarpReciprocal;
+            double kilowatts = energyTransferred * FI.WarpReciprocal;
             double temperatureLost = energyTransferred * skinThermalMassReciprocal;
             double temperatureRecieved = energyTransferred * part.thermalMassReciprocal;
             
@@ -470,7 +501,7 @@ namespace DeadlyReentry
                 }
                 else if (is_gforce_fx_playing)
                 {
-                    float new_volume = (gForceFX.audio.volume *= 0.8f);
+                    double new_volume = (gForceFX.audio.volume *= 0.8f);
                     if (new_volume < 0.001f)
                     {
                         gForceFX.audio.Stop();
@@ -560,8 +591,104 @@ namespace DeadlyReentry
             else
                 Events["RepairDamage"].guiName = "No Damage";
         }
+
         public void CheckForFire()
         {
+            if (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready)
+            {
+                if (FlightGlobals.ActiveVessel.situation != Vessel.Situations.PRELAUNCH || FlightGlobals.ActiveVessel.missionTime > 2.0)
+                {
+                    if (dead)
+                        return;
+                    double damageThreshold;
+                    
+                    if (is_engine && damage < 1)
+                        damageThreshold = part.maxTemp * 0.975;
+                    else if (is_eva)
+                    {
+                        damageThreshold = 800 * (1 - damage) * (1 - damage);
+                        part.maxTemp = 900;
+                    }
+                    else
+                        damageThreshold = part.maxTemp * 0.85;
+                    if (part.temperature > damageThreshold)
+                    {
+                        // Handle client-side fire stuff.
+                        // OH GOD IT'S ON FIRE.
+                        float tempRatio = (float)((part.temperature / damageThreshold) - 1.0);
+                        tempRatio *= (float)((part.temperature / part.maxTemp) * (part.temperature / part.maxTemp) * 4.0);
+                        AddDamage(TimeWarp.deltaTime * (float)((damage + 1.0) * tempRatio));
+                        float soundTempRatio = (float)(part.temperature / part.maxTemp);
+                        PlaySound(ablationFX, soundTempRatio * soundTempRatio);
+                        
+                        if (is_engine && damage < 1)
+                            part.temperature = UnityEngine.Random.Range(0.97f + 0.05f * damage, 0.98f + 0.05f * damage) * part.maxTemp;
+                        else if (damage < 1)// non-engines can keep burning
+                            part.temperature += UnityEngine.Random.Range(0.5f + 0.5f * damage, 1.0f + 0.5f * damage) * (tempRatio * 0.04f * part.maxTemp * TimeWarp.fixedDeltaTime);
+                        
+                        if (part.temperature > part.maxTemp || damage >= 1.0f)
+                        { // has it burnt up completely?
+                            foreach (ParticleEmitter fx in ablationFX.fxEmitters)
+                                GameObject.DestroyImmediate(fx.gameObject);
+                            foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
+                                GameObject.DestroyImmediate(fx.gameObject);
+                            if (!dead)
+                            {
+                                dead = true;
+                                FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
+                                                          + part.partInfo.title + " burned up from overheating.");
+                                
+                                if ( part is StrutConnector )
+                                {
+                                    ((StrutConnector)part).BreakJoint();
+                                }
+                                
+                                part.explode();
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            is_on_fire = true;
+                            foreach (ParticleEmitter fx in ablationFX.fxEmitters)
+                            {
+                                fx.gameObject.SetActive(true);
+                                fx.gameObject.transform.LookAt(part.transform.position + vessel.srf_velocity);
+                                fx.gameObject.transform.Rotate(90, 0, 0);
+                            }
+                            foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
+                            {
+                                fx.gameObject.SetActive(vessel.atmDensity > 0.02);
+                                fx.gameObject.transform.LookAt(part.transform.position + vessel.srf_velocity);
+                                fx.gameObject.transform.Rotate(90, 0, 0);
+                            }
+                            float severity = (float)((this.part.maxTemp * 0.85) / this.part.maxTemp);
+                            float distance = Vector3.Distance(this.part.partTransform.position, FlightGlobals.ActiveVessel.vesselTransform.position);
+                            ReentryReaction.Fire(new GameEvents.ExplosionReaction(distance, severity));
+                        }
+                    }
+                    else if (is_on_fire)
+                    { // not on fire.
+                        is_on_fire = false;
+                        foreach (ParticleEmitter fx in ablationFX.fxEmitters)
+                            fx.gameObject.SetActive(false);
+                        foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
+                            fx.gameObject.SetActive(false);
+                    }
+                }
+            }
+        }
+
+        public GameObject Emitter(string fxName)
+        {
+            GameObject fx = (GameObject)UnityEngine.Object.Instantiate (UnityEngine.Resources.Load ("Effects/" + fxName));
+            
+            fx.transform.parent = part.transform;
+            fx.transform.localPosition = new Vector3 (0, 0, 0);
+            fx.transform.localRotation = Quaternion.identity;
+            fx.SetActive (false);
+            return fx;
+            
         }
 
         public double _GetBodyArea(ModularFlightIntegrator.PartThermalData ptd)
@@ -578,7 +705,7 @@ namespace DeadlyReentry
             Part p = ptd.part;
             if (p.DragCubes.None)
                 return 0d;
-            Vector3 localSun = p.partTransform.InverseTransformDirection(fi.sunVector);
+            Vector3 localSun = p.partTransform.InverseTransformDirection(FI.sunVector);
             return p.DragCubes.GetCubeAreaDir(localSun) * ptd.sunAreaMultiplier;
         }
         static void print(string msg)
@@ -662,7 +789,7 @@ namespace DeadlyReentry
                 return;
             
             // shouldn't matter for this...
-            //if (fi.IsAnalytical || fi.RecreateThermalGraph)
+            //if (FI.IsAnalytical || FI.RecreateThermalGraph)
             //  return;
             
             
@@ -715,9 +842,9 @@ namespace DeadlyReentry
                 if(node.HasValue("name") && node.GetValue("name") == "Default" && node.HasValue("ridiculousMaxTemp"))
                 {
 					double maxTemp;
-					float scale = 0.5f;
+					double scale = 0.5f;
 					if(node.HasValue ("maxTempScale"))
-						float.TryParse(node.GetValue("maxTempScale"), out scale);
+						double.TryParse(node.GetValue("maxTempScale"), out scale);
 					if(scale > 0 && double.TryParse(node.GetValue("ridiculousMaxTemp"), out maxTemp))
                     {
                         Debug.Log("Using ridiculousMaxTemp = " + maxTemp.ToString() + " / maxTempScale =" + scale.ToString());
@@ -791,26 +918,9 @@ namespace DeadlyReentry
         public static ScreenMessage chuteWarningMsg = new ScreenMessage("Warning: Chute deployment unsafe!", 1f, ScreenMessageStyle.UPPER_CENTER, warningMessageStyle);
         public static ScreenMessage crewGWarningMsg = new ScreenMessage("Reaching Crew G limit!", 1f, ScreenMessageStyle.UPPER_CENTER, warningMessageStyle);
         
-        public static double specificGasConstant = 287.058;
-        
-        public static float shockwaveMultiplier = 1.0f;
-        public static float shockwaveExponent = 1.0f;
-        public static float heatMultiplier = 20.0f;
-        public static float temperatureExponent = 1.0f;
-        public static float densityExponent = 1.0f;
-        
-        public static float startThermal = 800.0f;
-        public static float fullThermal = 1150.0f;
-        public static float afxDensityExponent = 0.7f;
-        
+
         public static float gToleranceMult = 6.0f;
-        public static float parachuteTempMult = 0.25f;
-        
-        public static bool legacyAero = false;
-        public static bool dissipationCap = true;
+
         public static bool debugging = false;
-        public static bool useAlternateDensity;
-        
-        public static float frameDensity = 0f;
     }
 }

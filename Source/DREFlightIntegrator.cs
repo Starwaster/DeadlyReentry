@@ -5,7 +5,7 @@ using ModularFI;
 
 namespace DeadlyReentry
 {
-    [KSPAddon(KSPAddon.Startup.SpaceCentre, false)]
+    [KSPAddon(KSPAddon.Startup.SpaceCentre, true)]
     public class DREFlightIntegrator : MonoBehaviour
     {
         public DREFlightIntegrator()
@@ -27,17 +27,16 @@ namespace DeadlyReentry
         //densityThermalLerp
 
 
-        public void Awake()
+        public void Start()
         {
-            if (HighLogic.LoadedScene != GameScenes.SPACECENTER)
-                return;
-            print("Attempting to register ProcessUpdate* with ModularFlightIntegrator");
+            print("Attempting to register ProcessUpdateConvectionOverride with ModularFlightIntegrator");
             bool result=false;
             result =  ModularFlightIntegrator.RegisterUpdateConvectionOverride(ProcessUpdateConvection);
             if (!result)
                 print("Unable to override stock convection heating!");
             
             result = false;
+            print("Attempting to register ProcessUpdateRadiationOverride with ModularFlightIntegrator");
             result = ModularFlightIntegrator.RegisterUpdateRadiationOverride(ProcessUpdateRadiation);
             if (!result)
                 print("Unable to override stock radiant heating!");

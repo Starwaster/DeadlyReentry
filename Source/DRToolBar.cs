@@ -12,13 +12,15 @@ namespace DeadlyReentry
 	{
 		private static Rect windowPosition = new Rect(0,0,360,480);
 		private static GUIStyle windowStyle = null;
-		
+        private static GUIStyle windowStyleCenter = null;
+
 		#region Fields
 		private GUISkin skins = HighLogic.Skin;
 		private int id = Guid.NewGuid().GetHashCode();
 		//private bool visible = false, showing = true;
 		//private Rect window = new Rect(), button = new Rect();
 		private Texture2D buttonTexture = new Texture2D(1, 1);
+        private Texture Melificent = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Melificent", false);
 		#endregion
 		
 		#region Properties
@@ -57,15 +59,22 @@ namespace DeadlyReentry
 		{
 			// Set up the stock toolbar
 			GameEvents.onGUIApplicationLauncherReady.Add(OnGUIAppLauncherReady);
-			GameEvents.onGUIApplicationLauncherDestroyed.Add(OnGUIAppLauncherDestroyed);			
+			GameEvents.onGUIApplicationLauncherDestroyed.Add(OnGUIAppLauncherDestroyed);
+            GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequestedForAppLauncher);
+            //Texture Melificent =
 		}
 		
 		public void Start() 
 		{
+            print("Start method called Initializing GUIs");
 			if (HighLogic.LoadedScene >= GameScenes.SPACECENTER
-				&& HighLogic.LoadedScene <= GameScenes.TRACKSTATION) {
+				&& HighLogic.LoadedScene <= GameScenes.TRACKSTATION)
+            {
 				windowStyle = new GUIStyle (HighLogic.Skin.window);
+                windowStyleCenter = new GUIStyle (HighLogic.Skin.window);
+                windowStyleCenter.alignment = TextAnchor.MiddleCenter;
 				RenderingManager.AddToPostDrawQueue (0, OnDraw);
+                OnGUIAppLauncherReady();
 			}
 		}
 		
@@ -82,19 +91,28 @@ namespace DeadlyReentry
 				                                                                       ApplicationLauncher.AppScenes.ALWAYS,
 				                                                                       (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/DR_icon_off", false));
 			}
+            else
+                print("OnGUIAppLauncherReady fired but AppLauncher not ready!");
 		}
+
+        void OnGameSceneLoadRequestedForAppLauncher(GameScenes SceneToLoad)
+        {
+
+        }
 		
 		void OnGUIAppLauncherDestroyed()
 		{
-			if (this.DRToolbarButton != null)
+            print("onGUIAppLauncherDestroyed() called");
+            if (this.DRToolbarButton != null)
 			{
 				ApplicationLauncher.Instance.RemoveModApplication(this.DRToolbarButton);
 				this.DRToolbarButton = null;
-			}
+            }
 		}
 		
 		void onAppLaunchToggleOn()
 		{
+            print("onAppLaunchToggleOn() called");
 			this.DRToolbarButton.SetTexture((Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/DR_icon_on", false));
 			this.visible = true;
 		}
@@ -102,8 +120,9 @@ namespace DeadlyReentry
 		void onAppLaunchToggleOff()
 		{
 			this.DRToolbarButton.SetTexture((Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/DR_icon_off", false));
-			
 			this.visible = false;
+            print("onAppLaunchToggleOff() called");
+
 		}
 		
 		
@@ -117,7 +136,7 @@ namespace DeadlyReentry
 				//Set the GUI Skin
 				//GUI.skin = HighLogic.Skin;
 				
-				windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry 6.5.3 Settings", windowStyle);
+				windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry 7.0 - The Melificent Edition", windowStyle);
 			}
 		}
 		public void OnDestroy()
@@ -125,63 +144,25 @@ namespace DeadlyReentry
 			
 			// Remove the stock toolbar button
 			GameEvents.onGUIApplicationLauncherReady.Remove(OnGUIAppLauncherReady);
-			if (this.DRToolbarButton != null)
+            GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequestedForAppLauncher);
+            if (this.DRToolbarButton != null)
 				ApplicationLauncher.Instance.RemoveModApplication(DRToolbarButton);			
 		}
 		
 		private void OnWindow(int windowID)
 		{
-			string[] difficulties = {"Easy", "Normal", "Hard", "Alternate Model", "RSS"};
+            GUILayout.ExpandWidth(true);
+            GUILayout.ExpandHeight(true);
+            GUILayout.BeginVertical();
 
-            GUILayout.BeginHorizontal();
-            DeadlyReentryScenario.Instance.DifficultySetting = GUILayout.SelectionGrid (DeadlyReentryScenario.Instance.DifficultySetting, difficulties,3);
-			GUILayout.EndHorizontal();
+            GUILayout.Label("This space intentionally left blank.", windowStyleCenter);
+            GUILayout.Label("For now, use alt-F12 then select Physics->Thermals to adjust reentry heating.", windowStyleCenter);
+            GUILayout.Label(Melificent, windowStyleCenter);
 
-            GUILayout.BeginHorizontal();
-            //DeadlyReentry.ReentryPhysics.legacyAero = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.legacyAero, "Use Legacy Aerothermodynamics.");
-            GUILayout.EndHorizontal();
-            
-            if (!HighLogic.LoadedSceneIsFlight) // Would require exit to Space Center if changed in flight
-            {
-                GUILayout.BeginHorizontal();
-                //DeadlyReentry.ReentryPhysics.dissipationCap = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.dissipationCap, "Damp Heat Shield Temp to maxTemp");
-                GUILayout.EndHorizontal();
-            }
+            GUILayout.Width(0);
+            GUILayout.Height(0);
 
-            if (HighLogic.LoadedSceneIsFlight)
-            {
-                GUILayout.BeginHorizontal();
-                //DeadlyReentry.ReentryPhysics.debugging = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.debugging, "Open Debugging Menu");
-                GUILayout.EndHorizontal();
-            }
-            else
-            {
-                GUIStyle redStyle = new GUIStyle ();
-                redStyle.richText = true;
-                GUILayoutOption[] options = {};
-                GUILayout.BeginHorizontal();
-                GUILayout.Toggle(false, "<color=red>Debugging Menu Unavailable (flight only)</color>", redStyle, options);
-                GUILayout.EndHorizontal();
-            }
-            //useAlternateDensity
-            
-            GUILayout.BeginHorizontal();
-            //DeadlyReentry.ReentryPhysics.useAlternateDensity = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.useAlternateDensity, "Alternate Density calc");
-            GUILayout.EndHorizontal();
-
-            // useAlternateHeatModel
-            GUILayout.BeginHorizontal();
-            //DeadlyReentry.ReentryPhysics.useAlternateHeatModel = GUILayout.Toggle(DeadlyReentry.ReentryPhysics.useAlternateHeatModel, "Alternate Heating Model");
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(20.0f);
-            GUILayout.BeginHorizontal();
-            DeadlyReentryScenario.Instance.displayParachuteWarning = GUILayout.Toggle(DeadlyReentryScenario.Instance.displayParachuteWarning, "Warn when it is unsafe to deploy parachutes due to heating.");
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal();
-            DeadlyReentryScenario.Instance.displayCrewGForceWarning = GUILayout.Toggle(DeadlyReentryScenario.Instance.displayCrewGForceWarning, "Warn when crew are experiencing hazardous levels of g forces.");
-            GUILayout.EndHorizontal();
+            GUILayout.EndVertical();
 
             GUI.DragWindow();
             /*
@@ -196,5 +177,10 @@ namespace DeadlyReentry
             }
             */
 		}
-	}
+
+        static void print(string msg)
+        {
+            MonoBehaviour.print("[DeadlyReentry.DRToolBar] " + msg);
+        }
+    }
 }

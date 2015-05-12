@@ -58,19 +58,19 @@ namespace DeadlyReentry
 		
 		public override void OnSave(ConfigNode node)
 		{
+            return;
 			node.AddValue ("difficultySetting", difficultySetting);
 			node.AddValue ("displayParachuteWarning", displayParachuteWarning);
 		}
 		
 		public override void OnLoad(ConfigNode node)
 		{
+            return;
 			if (node.HasValue ("difficultySetting"))
 				difficultySetting = int.Parse (node.GetValue ("difficultySetting"));
 
 			if (node.HasValue("displayParachuteWarning"))
 				bool.TryParse(node.GetValue("displayParachuteWarning"), out displayParachuteWarning);
-
-            //DeadlyReentry.ReentryPhysics.LoadSettings();
 		}
 	}
 }
