@@ -80,16 +80,16 @@ namespace DeadlyReentry
 		
 		void OnGUIAppLauncherReady()
 		{
-			if (ApplicationLauncher.Ready)
+			if (ApplicationLauncher.Ready && this.DRToolbarButton == null)
 			{
 				this.DRToolbarButton = ApplicationLauncher.Instance.AddModApplication(onAppLaunchToggleOn,
-				                                                                       onAppLaunchToggleOff,
-				                                                                       DummyVoid,
-				                                                                       DummyVoid,
-				                                                                       DummyVoid,
-				                                                                       DummyVoid,
-				                                                                       ApplicationLauncher.AppScenes.ALWAYS,
-				                                                                       (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/DR_icon_off", false));
+                                                                                      onAppLaunchToggleOff,
+                                                                                      null,
+                                                                                      null,
+                                                                                      null,
+                                                                                      null,
+                                                                                      ApplicationLauncher.AppScenes.ALWAYS,
+                                                                                      (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/DR_icon_off", false));
 			}
             else
                 print("OnGUIAppLauncherReady fired but AppLauncher not ready!");
@@ -139,9 +139,9 @@ namespace DeadlyReentry
 				windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry 7.0 - The Melificent Edition", windowStyle);
 			}
 		}
-		public void OnDestroy()
+		private void OnDestroy()
 		{
-			
+            print("OnDestroy() called - destroying button");
 			// Remove the stock toolbar button
 			GameEvents.onGUIApplicationLauncherReady.Remove(OnGUIAppLauncherReady);
             GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequestedForAppLauncher);
