@@ -430,7 +430,6 @@ namespace DeadlyReentry
                     * Math.Max(0d, Math.Min(1d,
                                             timeConductionFactor
                                             * skinHeatConductivity
-                                            * part.heatConductivity
                                             * part.radiativeArea));
             
             double kilowatts = energyTransferred * FI.WarpReciprocal;
@@ -958,6 +957,7 @@ namespace DeadlyReentry
         {
             foreach (Vessel vessel in FlightGlobals.Vessels)
             {
+                // TODO Remove catchall MM patches from config files. Leave only custom configurations.
                 if (vessel.loaded)
                 {
                     foreach (Part p in vessel.Parts)
