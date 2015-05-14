@@ -63,7 +63,7 @@ namespace DeadlyReentry
         {
             get
             {
-                if ((object)fi == null)
+                if (fi == null)
                     fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
                 return fi;
             }
@@ -205,7 +205,7 @@ namespace DeadlyReentry
                 return;
             
             
-            //FI = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
+            FI = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
             if (skinThermalMassModifier == -1.0)
                 skinThermalMassModifier = part.thermalMassModifier;
             
@@ -240,7 +240,11 @@ namespace DeadlyReentry
             //}
             //else
             //print("ModularFlightIntegrator found for this vessel.");
-            
+            if (FI == null)
+            {
+                print("FlightIntegrator null. Trying to retrieve correct FI");
+                fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
+            }
             
             
             // HACK skipping an update on IsAnalytical is a quick hack. Need to handle Analytical Mode properly
@@ -291,21 +295,26 @@ namespace DeadlyReentry
             CheckForFire();
             CheckGeeForces();
         }
-        
+
+
         public void UpdateConvection()
         {
+            if (fi == null)
+                print(part.name + ": UpdateConvection() Null flight integrator.");
+            if (ptd == null)
+                print(part.name + ": PartThermalData is NULL!");
             // get sub/transonic convection
             double convectionArea = UtilMath.Lerp(
                 part.radiativeArea,
                 part.exposedArea,
-                PhysicsGlobals.FullConvectionAreaMin + (part.machNumber - PhysicsGlobals.FullToCrossSectionLerpStart) / (PhysicsGlobals.FullToCrossSectionLerpEnd - PhysicsGlobals.FullToCrossSectionLerpStart));
+                PhysicsGlobals.FullConvectionAreaMin + (part.machNumber - PhysicsGlobals.FullToCrossSectionLerpStart) 
+                        / (PhysicsGlobals.FullToCrossSectionLerpEnd - PhysicsGlobals.FullToCrossSectionLerpStart));
             
             double convectiveFlux = (part.externalTemperature - skinTemperature) * FI.convectiveCoefficient * convectionArea;
             
             // get mach convection
             // defaults to starting at M=2 and being full at M=3
             double machLerp = (part.machNumber - PhysicsGlobals.MachConvectionStart) / (PhysicsGlobals.MachConvectionEnd - PhysicsGlobals.MachConvectionStart);
-            
             if (machLerp > 0d)
             {
                 machLerp = Math.Min(1d, Math.Pow(machLerp, PhysicsGlobals.MachConvectionExponent));
@@ -326,6 +335,8 @@ namespace DeadlyReentry
             part.thermalConvectionFlux = convectiveFlux;
             skinTemperature = Math.Max((skinTemperature + convectiveFlux * skinThermalMassReciprocal * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
         }
+
+
         /*
         public void UpdateConvection ()
         {
@@ -358,6 +369,7 @@ namespace DeadlyReentry
             skinTemperature = Math.Max(skinTemperature + (convectiveFlux * skinThermalMassReciprocal * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
         }
         */
+
         
         public void UpdateRadiation()
         {
@@ -373,7 +385,7 @@ namespace DeadlyReentry
             if (vessel.directSunlight)
             {
                 // assume half the surface area is under sunlight
-                sunFlux = _GetSunArea(fi, ptd) * scalar * FI.solarFlux * FI.solarFluxMultiplier;
+                sunFlux = _GetSunArea(FI, ptd) * scalar * FI.solarFlux * FI.solarFluxMultiplier;
                 tempTemp += sunFlux * finalScalar;
                 //print("Temp + sunFlux = " + tempTemp.ToString("F4"));
             }
@@ -387,11 +399,20 @@ namespace DeadlyReentry
             // Radiative flux = S-Bconst*e*A * (T^4 - radInT^4)
             
             //part.temperature = Math.Max(tempTemp, PhysicsGlobals.SpaceTemperature);
-            double backgroundRadiationTemp = UtilMath.Lerp(FI.atmosphericTemperature, PhysicsGlobals.SpaceTemperature, FI.DensityThermalLerp);
+            double lowLevelRadiationTemp = UtilMath.Lerp(FI.atmosphericTemperature, PhysicsGlobals.SpaceTemperature, FI.DensityThermalLerp);
             
             double radOut = -(Math.Pow(tempTemp, PhysicsGlobals.PartEmissivityExponent)
-                              - Math.Pow (backgroundRadiationTemp, PhysicsGlobals.PartEmissivityExponent)) // Using modified background radiation with no reentry radiant flux
+                              - Math.Pow (lowLevelRadiationTemp, PhysicsGlobals.PartEmissivityExponent))
                 * PhysicsGlobals.StefanBoltzmanConstant * scalar * part.radiativeArea;
+
+            // Changed: Separated reentry shock radiation from normal background radiation
+            // Use only exposed area for reentry radiation.
+            if (FI.backgroundRadiationTemp - lowLevelRadiationTemp > 0d)
+            {
+                radOut += -(Math.Pow(tempTemp, PhysicsGlobals.PartEmissivityExponent)
+                                - Math.Pow (FI.backgroundRadiationTemp - lowLevelRadiationTemp, PhysicsGlobals.PartEmissivityExponent))
+                        * PhysicsGlobals.StefanBoltzmanConstant * scalar * part.exposedArea;
+            }
             tempTemp += radOut * finalScalar;
             //print("Temp + radOut =" + tempTemp.ToString("F4"));
             part.thermalRadiationFlux = radOut + sunFlux;
@@ -408,8 +429,9 @@ namespace DeadlyReentry
                     * Math.Min(skinThermalMass, part.thermalMass) * 0.5d
                     * Math.Max(0d, Math.Min(1d,
                                             timeConductionFactor
-                                            * Math.Min(skinHeatConductivity, part.heatConductivity)
-                                            * part.radiativeArea)); // should be contact area... how large a value should we use?
+                                            * skinHeatConductivity
+                                            * part.heatConductivity
+                                            * part.radiativeArea));
             
             double kilowatts = energyTransferred * FI.WarpReciprocal;
             double temperatureLost = energyTransferred * skinThermalMassReciprocal;
@@ -590,7 +612,11 @@ namespace DeadlyReentry
             else
                 Events["RepairDamage"].guiName = "No Damage";
         }
-        
+
+        protected void ProcessUpdateRadiation()
+        {
+        }
+
         public void CheckForFire()
         {
             if (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready)
@@ -927,5 +953,20 @@ namespace DeadlyReentry
         public static float gToleranceMult = 6.0f;
         
         public static bool debugging = false;
+
+        protected void FixedUpdate()
+        {
+            foreach (Vessel vessel in FlightGlobals.Vessels)
+            {
+                if (vessel.loaded)
+                {
+                    foreach (Part p in vessel.Parts)
+                    {
+                        if (!(p.Modules.Contains("ModuleAeroReentry") || p.Modules.Contains("ModuleHeatShield")))
+                            p.AddModule("ModuleAeroReentry"); // thanks a.g.!
+                    }
+                }
+            }
+        }
     }
 }
