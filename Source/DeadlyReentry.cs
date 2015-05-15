@@ -85,6 +85,8 @@ namespace DeadlyReentry
         
         [KSPField(isPersistant = true)]
         public float damage = 0;
+
+        float totalSurfaceArea;
         
         public static double crewGClamp = 30;
         public static double crewGPower = 4;
@@ -217,6 +219,10 @@ namespace DeadlyReentry
                 skinThermalMass = (double)part.mass * PhysicsGlobals.StandardSpecificHeatCapacity * skinThermalMassModifier * skinThicknessFactor;
             skinThermalMassReciprocal = 1.0 / Math.Max (skinThermalMass, 0.001);
             GameEvents.onVesselWasModified.Add(OnVesselWasModified);
+
+            totalSurfaceArea = 0f;
+            foreach (float face in part.DragCubes.WeightedArea)
+                totalSurfaceArea += face;
         }
         
         public void OnVesselWasModified(Vessel v)
@@ -273,7 +279,7 @@ namespace DeadlyReentry
             
             ptd = FI.PartThermalDataList.Where(p => p.part == part).FirstOrDefault();
             
-            if(PhysicsGlobals.ThermalConvectionEnabled)
+            if(PhysicsGlobals.ThermalConvectionEnabled && !part.ShieldedFromAirstream)
                 UpdateConvection();
             if(PhysicsGlobals.ThermalRadiationEnabled)
                 UpdateRadiation();
@@ -333,7 +339,7 @@ namespace DeadlyReentry
             }
             convectiveFlux *= 0.001d * part.heatConvectiveConstant * ptd.convectionAreaMultiplier; // W to kW, scalars
             part.thermalConvectionFlux = convectiveFlux;
-            skinTemperature = Math.Max((skinTemperature + convectiveFlux * skinThermalMassReciprocal * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
+            skinTemperature = Math.Max((skinTemperature + convectiveFlux * skinThermalMassReciprocal * (totalSurfaceArea / part.exposedArea) * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
         }
 
 
