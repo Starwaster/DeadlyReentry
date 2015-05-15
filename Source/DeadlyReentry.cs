@@ -86,8 +86,6 @@ namespace DeadlyReentry
         [KSPField(isPersistant = true)]
         public float damage = 0;
 
-        float totalSurfaceArea;
-        
         public static double crewGClamp = 30;
         public static double crewGPower = 4;
         public static double crewGMin = 5;
@@ -219,10 +217,23 @@ namespace DeadlyReentry
                 skinThermalMass = (double)part.mass * PhysicsGlobals.StandardSpecificHeatCapacity * skinThermalMassModifier * skinThicknessFactor;
             skinThermalMassReciprocal = 1.0 / Math.Max (skinThermalMass, 0.001);
             GameEvents.onVesselWasModified.Add(OnVesselWasModified);
+        }
 
-            totalSurfaceArea = 0f;
-            foreach (float face in part.DragCubes.WeightedArea)
-                totalSurfaceArea += face;
+        void OnDestroy()
+        {
+            FI = null;
+        }
+
+        public double ExposedAreaPercent()
+        {
+            if (part.exposedArea > 0d)
+            {
+                double totalSurfaceArea = 0d;
+                for (int i=0; i<6;i++)
+                    totalSurfaceArea += part.DragCubes.WeightedArea[i];
+                return Math.Max(totalSurfaceArea, 1.23) / part.exposedArea;  // Assume smallest possible surface area = 0.625 diameter sphere
+            }
+            else return 1d;
         }
         
         public void OnVesselWasModified(Vessel v)
@@ -339,7 +350,8 @@ namespace DeadlyReentry
             }
             convectiveFlux *= 0.001d * part.heatConvectiveConstant * ptd.convectionAreaMultiplier; // W to kW, scalars
             part.thermalConvectionFlux = convectiveFlux;
-            skinTemperature = Math.Max((skinTemperature + convectiveFlux * skinThermalMassReciprocal * (totalSurfaceArea / part.exposedArea) * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
+            //print(part + ": convectiveFlux = " + convectiveFlux.ToString("F4") + ", skinThermalMassReciprocal " + skinThermalMassReciprocal.ToString("F4"));
+            skinTemperature = Math.Max((skinTemperature + convectiveFlux * skinThermalMassReciprocal * ExposedAreaPercent() * TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
         }
 
 
@@ -765,7 +777,7 @@ namespace DeadlyReentry
         /// Factor to the ablator's specific heat to use for the pyrolysis flux
         /// </summary>
         [KSPField]
-        public double  pyrolysisLossFactor = 10d;
+        public double  pyrolysisLossFactor = 1000d;
         
         /// <summary>
         /// Minimum temperature for ablation to start
