@@ -10,7 +10,7 @@ Note: Does not support any KSP 64 bit versions past, present or future.
 
 Deadly Reentry 7.0 for KSP 1.0.*
 A note on settings:
-Coming SOon
+Coming Soon
 
 INSTALL INSTRUCTIONS:
 1. If you currently have Deadly Reentry installed, go to KSP/GameData/DeadlyReentry and delete everything (files and folders) except custom.cfg. Also delete any old versions of ModuleManager (modulemanager.dll for example) in your KSP/GameData folder.
@@ -23,6 +23,22 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v7.0.3
+* Calculate what pecentage of skin is actually facing the shockwave and use only that percent for thermalMass
+* Add OnDestroy() and null the FlightIntegrator cache
+* Added additional check for part.ShieldedFromAistream
+* Buffed fuel tank maxTemp
+* Fixed typo in DRE heat shields
+
+v7.0.2
+* Removed legacy engine configurations which were adding pre-KSP 1.0 levels of heat production. (FIRE BAD!)
+* Fixed duplicate toolbar button issue
+* Tweaked convection heating to start EARLIER. Tweaked stock shields to (more or less)
+* Put in checks and guards against null ref errors in UpdateConvection()
+
+v7.0.1
+* Fixed stack bottom attach nodes.
+
 v7.0
 * Deadly Reentry rewritten from the ground up to take advantage of stock thermodynamics.
 * Skin temperature implemented. part.temperature now represents a parts interior  temperature. Skin and part temperatures are tracked separately. Because the skin tends to be thinner it will usually be very much easier to burn through.

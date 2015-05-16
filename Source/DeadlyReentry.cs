@@ -217,6 +217,7 @@ namespace DeadlyReentry
                 skinThermalMass = (double)part.mass * PhysicsGlobals.StandardSpecificHeatCapacity * skinThermalMassModifier * skinThicknessFactor;
             skinThermalMassReciprocal = 1.0 / Math.Max (skinThermalMass, 0.001);
             GameEvents.onVesselWasModified.Add(OnVesselWasModified);
+            print(part.name + " Flight Integrator ID = " + FI.GetInstanceID().ToString());
         }
 
         void OnDestroy()
@@ -270,15 +271,18 @@ namespace DeadlyReentry
             
             if (skinTemperature == -1.0 && !Double.IsNaN(vessel.externalTemperature))
             {
-                skinTemperature = vessel.externalTemperature;
+                //skinTemperature = vessel.externalTemperature;
+                skinTemperature = part.temperature;
+                //print(part.name + " skinTemperature initializing = " + part.temperature.ToString() + " (part.temperature)");
+                //print(" vessel external temperature reads at " + vessel.externalTemperature.ToString() + "K");
                 //print("Uninitialized skinTemperature initialized.");
             }
             if (PhysicsGlobals.ThermalDataDisplay)
             {
-                skinTemperatureDisplay = skinTemperature.ToString ("F4");
-                skinThermalMassDisplay = skinThermalMass.ToString("F4");
-                RadiativeAreaDisplay = part.radiativeArea.ToString ("F4");
-                ExposedAreaDisplay = part.exposedArea.ToString("F4");
+                skinTemperatureDisplay = skinTemperature.ToString ("F2");
+                skinThermalMassDisplay = skinThermalMass.ToString("F2");
+                RadiativeAreaDisplay = part.radiativeArea.ToString ("F2");
+                ExposedAreaDisplay = part.exposedArea.ToString("F2");
             }
             //print("Starting UpdateSkinThermals() coroutine.");
             StartCoroutine (UpdateSkinThermals());
@@ -289,28 +293,37 @@ namespace DeadlyReentry
             yield return new WaitForFixedUpdate();
             
             ptd = FI.PartThermalDataList.Where(p => p.part == part).FirstOrDefault();
-            
-            if(PhysicsGlobals.ThermalConvectionEnabled && !part.ShieldedFromAirstream)
-                UpdateConvection();
-            if(PhysicsGlobals.ThermalRadiationEnabled)
-                UpdateRadiation();
-            if(PhysicsGlobals.ThermalConductionEnabled)
-                UpdateSkinConduction();
-            
-            if (skinTemperature > skinMaxTemp)
+            if ((object)ptd != null)
             {
-                FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
-                                          + part.partInfo.title + " burned up from overheating.");
-                
-                if ( part is StrutConnector )
+                //print(part.name + " PartThermalData HashCode = " + ptd.GetHashCode());              
+                if(PhysicsGlobals.ThermalConvectionEnabled && !part.ShieldedFromAirstream)
+                    UpdateConvection();
+                if(PhysicsGlobals.ThermalRadiationEnabled)
+                    UpdateRadiation();
+                if(PhysicsGlobals.ThermalConductionEnabled)
+                    UpdateSkinConduction();
+
+
+                if (skinTemperature > skinMaxTemp)
                 {
-                    ((StrutConnector)part).BreakJoint();
+                    //print(part.name + ".skinTemperature = " + skinTemperature.ToString());
+                    //print(part.name + ".skinMaxTemp = " + skinMaxTemp.ToString());
+
+                    FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
+                                              + part.partInfo.title + " burned up from overheating.");
+                    
+                    if ( part is StrutConnector )
+                    {
+                        ((StrutConnector)part).BreakJoint();
+                    }
+                    if (!CheatOptions.IgnoreMaxTemperature)
+                        part.explode();
                 }
-                
-                part.explode();
+                CheckForFire();
+                CheckGeeForces();
             }
-            CheckForFire();
-            CheckGeeForces();
+            else
+                print(part.name + ": PartThermalData is NULL!");
         }
 
 
@@ -790,7 +803,9 @@ namespace DeadlyReentry
         /// </summary>
         [KSPField]
         public double reentryConductivity = 0.01d;
-        
+
+        [KSPField]
+        public double depletedMaxTemp = 1300;
         
         // public fields
         public PartResource ablative = null; // pointer to the PartResource
@@ -868,6 +883,8 @@ namespace DeadlyReentry
                         skinTemperature = Math.Max (skinTemperature - (flux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
                     }                    
                 }
+                else
+                    part.maxTemp = depletedMaxTemp;
             }
             fluxDisplay = flux.ToString("F2");
             lossDisplay = loss.ToString("F2"    );
