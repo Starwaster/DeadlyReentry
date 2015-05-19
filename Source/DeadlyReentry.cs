@@ -217,7 +217,7 @@ namespace DeadlyReentry
                 skinThermalMass = (double)part.mass * PhysicsGlobals.StandardSpecificHeatCapacity * skinThermalMassModifier * skinThicknessFactor;
             skinThermalMassReciprocal = 1.0 / Math.Max (skinThermalMass, 0.001);
             GameEvents.onVesselWasModified.Add(OnVesselWasModified);
-            print(part.name + " Flight Integrator ID = " + FI.GetInstanceID().ToString());
+            //print(part.name + " Flight Integrator ID = " + FI.GetInstanceID().ToString());
         }
 
         void OnDestroy()
@@ -261,7 +261,7 @@ namespace DeadlyReentry
             if (FI == null)
             {
                 print("FlightIntegrator null. Trying to retrieve correct FI");
-                fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
+                FI = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
             }
             
             
@@ -323,7 +323,9 @@ namespace DeadlyReentry
                 CheckGeeForces();
             }
             else
-                print(part.name + ": PartThermalData is NULL!");
+            {
+                //print(part.name + ": PartThermalData is NULL!");
+            }
         }
 
 
@@ -331,8 +333,6 @@ namespace DeadlyReentry
         {
             if (fi == null)
                 print(part.name + ": UpdateConvection() Null flight integrator.");
-            if (ptd == null)
-                print(part.name + ": PartThermalData is NULL!");
             // get sub/transonic convection
             double convectionArea = UtilMath.Lerp(
                 part.radiativeArea,
@@ -350,7 +350,7 @@ namespace DeadlyReentry
                 machLerp = Math.Min(1d, Math.Pow(machLerp, PhysicsGlobals.MachConvectionExponent));
                 
                 // get flux
-                double machHeatingFlux = convectionArea * FI.convectiveMachFlux;
+                double machHeatingFlux = convectionArea * FI.convectiveMachFlux * ReentryPhysics.machMultiplier;
                 convectiveFlux = UtilMath.LerpUnclamped(convectiveFlux, machHeatingFlux, machLerp);
                 
                 // get steady-state radiative temperature for this flux. Assume 0.5 emissivity, because while part emissivity might be higher,
@@ -463,7 +463,7 @@ namespace DeadlyReentry
                                             * skinHeatConductivity
                                             * part.radiativeArea));
             
-            double kilowatts = energyTransferred * FI.WarpReciprocal;
+            double kilowatts = energyTransferred * FI.WarpReciprocal * 0.001;
             double temperatureLost = energyTransferred * skinThermalMassReciprocal;
             double temperatureRecieved = energyTransferred * part.thermalMassReciprocal;
             
@@ -641,10 +641,6 @@ namespace DeadlyReentry
                 Events["RepairDamage"].guiName = "Repair Light Damage";
             else
                 Events["RepairDamage"].guiName = "No Damage";
-        }
-
-        protected void ProcessUpdateRadiation()
-        {
         }
 
         public void CheckForFire()
@@ -985,6 +981,8 @@ namespace DeadlyReentry
         
         
         public static float gToleranceMult = 6.0f;
+
+        public static double machMultiplier  = 3.65;
         
         public static bool debugging = false;
 
