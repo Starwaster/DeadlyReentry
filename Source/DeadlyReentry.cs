@@ -292,7 +292,11 @@ namespace DeadlyReentry
                 float newExp, newRad, newTot;
                 CalculateAreas(out newRad, out newExp, out newTot);
                 part.exposedArea = newExp / newRad * part.radiativeArea;
+                if (double.IsNaN(part.exposedArea))
+                    part.exposedArea = 0d;
                 thermalMassMult = newRad / newTot;
+                if (double.IsNaN(thermalMassMult))
+                    thermalMassMult = 1.0d;
                 convectionArea = part.radiativeArea;
 
                 //print(part.name + " PartThermalData HashCode = " + ptd.GetHashCode());              
@@ -442,6 +446,8 @@ namespace DeadlyReentry
             double exposedTemp = skinTemperature;
             double restTemp = part.temperature; // assume non-exposed area is at the part's temp.
             double exposedMult = convectionArea / part.radiativeArea;
+            if (double.IsNaN(exposedMult))
+                exposedMult = 1d;
             double restMult = 1d - exposedMult;
             
             if (vessel.directSunlight)
