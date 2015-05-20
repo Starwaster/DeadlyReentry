@@ -291,6 +291,7 @@ namespace DeadlyReentry
             {
                 float newExp, newRad, newTot;
                 CalculateAreas(out newRad, out newExp, out newTot);
+                print("Calculated areas for part " + part.name + ", " + newExp.ToString("N3") + ", " + newRad.ToString("N3") + ", " + newTot.ToString("N3"));
                 part.exposedArea = newExp / newRad * part.radiativeArea;
                 thermalMassMult = newRad / newTot;
                 convectionArea = part.radiativeArea;
