@@ -463,7 +463,7 @@ namespace DeadlyReentry
                                             * skinHeatConductivity
                                             * part.radiativeArea));
             
-            double kilowatts = energyTransferred * FI.WarpReciprocal;
+            double kilowatts = energyTransferred * FI.WarpReciprocal * 0.001;
             double temperatureLost = energyTransferred * skinThermalMassReciprocal;
             double temperatureRecieved = energyTransferred * part.thermalMassReciprocal;
             
@@ -942,17 +942,6 @@ namespace DeadlyReentry
                                 }
                                 catch (Exception e)
                                 {
-                                    print("Error processing part maxTemp " + part.name);
-                                    Debug.Log(e.Message);
-                                }
-                                try
-                                {
-                                if(part.partPrefab != null && (!part.partPrefab.Modules.Contains("ModuleAeroReentry") || !part.partPrefab.Modules.Contains("ModuleHeatShield")))
-                                    part.partPrefab.AddModule("ModuleAeroReentry");
-                                }
-                                catch (Exception e)
-                                {
-                                    print ("Error adding ModuleAeroReentry to " + part.name);
                                     Debug.Log(e.Message);
                                 }
                             }
@@ -997,20 +986,18 @@ namespace DeadlyReentry
         
         public static bool debugging = false;
 
-        public void Awake()
+        protected void FixedUpdate()
         {
-            GameEvents.onVesselGoOffRails.Add (AddDREModule);
-        }
-
-        private void AddDREModule(Vessel v)
-        {
-            Debug.Log ("ReentryPhysics " + v.name + " going off rails; adding ModuleAeroReentry");
-            foreach (Part part in v.parts)
+            foreach (Vessel vessel in FlightGlobals.Vessels)
             {
-                if (!(part.Modules.Contains ("ModuleAeroReentry") || part.Modules.Contains("ModuleHeatShield")))
+                // TODO Remove catchall MM patches from config files. Leave only custom configurations.
+                if (vessel.loaded)
                 {
-                    part.AddModule ("ModuleAeroReentry");
-                    Debug.Log ("Added ModuleAeroReentry to " + part.name);
+                    foreach (Part p in vessel.Parts)
+                    {
+                        if (!(p.Modules.Contains("ModuleAeroReentry") || p.Modules.Contains("ModuleHeatShield")))
+                            p.AddModule("ModuleAeroReentry"); // thanks a.g.!
+                    }
                 }
             }
         }
