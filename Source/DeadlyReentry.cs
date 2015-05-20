@@ -442,6 +442,7 @@ namespace DeadlyReentry
             double exposedTemp = skinTemperature;
             double restTemp = part.temperature; // assume non-exposed area is at the part's temp.
             double exposedMult = convectionArea / part.radiativeArea;
+            double restMult = 1d - exposedMult;
             
             if (vessel.directSunlight)
             {
