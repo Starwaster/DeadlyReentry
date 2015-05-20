@@ -291,7 +291,6 @@ namespace DeadlyReentry
             {
                 float newExp, newRad, newTot;
                 CalculateAreas(out newRad, out newExp, out newTot);
-                print("Calculated areas for part " + part.name + ", " + newExp.ToString("N3") + ", " + newRad.ToString("N3") + ", " + newTot.ToString("N3"));
                 part.exposedArea = newExp / newRad * part.radiativeArea;
                 thermalMassMult = newRad / newTot;
                 convectionArea = part.radiativeArea;
@@ -443,7 +442,6 @@ namespace DeadlyReentry
             double exposedTemp = skinTemperature;
             double restTemp = part.temperature; // assume non-exposed area is at the part's temp.
             double exposedMult = convectionArea / part.radiativeArea;
-            double restMult = 1 - exposedMult;
             
             if (vessel.directSunlight)
             {
@@ -451,7 +449,7 @@ namespace DeadlyReentry
                 sunFlux = _GetSunArea(FI, ptd) * scalar * FI.solarFlux * FI.solarFluxMultiplier;
                 double num = sunFlux * finalScalar;
                 exposedTemp += num * exposedMult;
-                restMult += num * restMult;
+                restTemp += num * restMult;
                 //print("Temp + sunFlux = " + tempTemp.ToString("F4"));
             }
             double bodyFlux = FI.bodyEmissiveFlux + FI.bodyAlbedoFlux;
@@ -459,7 +457,7 @@ namespace DeadlyReentry
             {
                 double num = UtilMath.Lerp(0.0, bodyFlux, FI.DensityThermalLerp) * _GetBodyArea(ptd) * scalar * finalScalar;
                 exposedTemp += num * exposedMult;
-                restMult += num * restMult;
+                restTemp += num * restMult;
                 //print("Temp + bodyFlux = " + tempTemp.ToString("F4"));
             }
             
@@ -468,17 +466,17 @@ namespace DeadlyReentry
             //part.temperature = Math.Max(tempTemp, PhysicsGlobals.SpaceTemperature);
             double lowLevelRadiationTemp = UtilMath.Lerp(FI.atmosphericTemperature, PhysicsGlobals.SpaceTemperature, FI.DensityThermalLerp);
             
-            double skinOut = -(Math.Pow(exposedTemp, PhysicsGlobals.PartEmissivityExponent)
+            double exposedOut = -(Math.Pow(exposedTemp, PhysicsGlobals.PartEmissivityExponent)
                               - Math.Pow(FI.backgroundRadiationTemp, PhysicsGlobals.PartEmissivityExponent))
                 * PhysicsGlobals.StefanBoltzmanConstant * scalar * convectionArea;
 
-            double restOut = -(Math.Pow(exposedTemp, PhysicsGlobals.PartEmissivityExponent)
+            double restOut = -(Math.Pow(restTemp, PhysicsGlobals.PartEmissivityExponent)
                               - Math.Pow(lowLevelRadiationTemp, PhysicsGlobals.PartEmissivityExponent))
                 * PhysicsGlobals.StefanBoltzmanConstant * scalar * (part.radiativeArea - convectionArea);
 
-            exposedTemp += (skinOut + restOut) * finalScalar;
+            exposedTemp += (exposedOut + restOut) * finalScalar;
             //print("Temp + radOut =" + tempTemp.ToString("F4"));
-            part.thermalRadiationFlux = skinOut + restOut + sunFlux;
+            part.thermalRadiationFlux = exposedOut + restOut + sunFlux;
             
             skinTemperature = Math.Max(exposedTemp, PhysicsGlobals.SpaceTemperature);
         }
