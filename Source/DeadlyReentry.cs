@@ -493,7 +493,7 @@ namespace DeadlyReentry
                                        * skinHeatConductivity
                                        * part.radiativeArea);
             
-            double kilowatts = energyTransferred * FI.WarpReciprocal * 0.001;
+            double kilowatts = energyTransferred * FI.WarpReciprocal;
             double temperatureLost = energyTransferred * skinThermalMassReciprocal * thermalMassMult;
             double temperatureRecieved = energyTransferred * part.thermalMassReciprocal;
             
@@ -963,10 +963,10 @@ namespace DeadlyReentry
                                         if (changed)
                                         {
                                             double curScale = part.partPrefab.maxTemp / oldTemp;
-                                            
+
                                             foreach (PartModule module in part.partPrefab.Modules)
                                             {
-                                                if(module is ModuleEngines)
+                                                if (module is ModuleEngines)
                                                     ((ModuleEngines)module).heatProduction *= (float)curScale;
                                             }
                                         }
@@ -974,6 +974,17 @@ namespace DeadlyReentry
                                 }
                                 catch (Exception e)
                                 {
+                                    print("Error processing part maxTemp " + part.name);
+                                    Debug.Log(e.Message);
+                                }
+                                try
+                                {
+                                    if (part.partPrefab != null && (!part.partPrefab.Modules.Contains("ModuleAeroReentry") || !part.partPrefab.Modules.Contains("ModuleHeatShield")))
+                                        part.partPrefab.AddModule("ModuleAeroReentry");
+                                }
+                                catch (Exception e)
+                                {
+                                    print("Error adding ModuleAeroReentry to " + part.name);
                                     Debug.Log(e.Message);
                                 }
                             }
@@ -1018,18 +1029,20 @@ namespace DeadlyReentry
         
         public static bool debugging = false;
 
-        protected void FixedUpdate()
+        public void Awake()
         {
-            foreach (Vessel vessel in FlightGlobals.Vessels)
+            GameEvents.onVesselGoOffRails.Add(AddDREModule);
+        }
+
+        private void AddDREModule(Vessel v)
+        {
+            Debug.Log("ReentryPhysics " + v.name + " going off rails; adding ModuleAeroReentry");
+            foreach (Part part in v.parts)
             {
-                // TODO Remove catchall MM patches from config files. Leave only custom configurations.
-                if (vessel.loaded)
+                if (!(part.Modules.Contains("ModuleAeroReentry") || part.Modules.Contains("ModuleHeatShield")))
                 {
-                    foreach (Part p in vessel.Parts)
-                    {
-                        if (!(p.Modules.Contains("ModuleAeroReentry") || p.Modules.Contains("ModuleHeatShield")))
-                            p.AddModule("ModuleAeroReentry"); // thanks a.g.!
-                    }
+                    part.AddModule("ModuleAeroReentry");
+                    Debug.Log("Added ModuleAeroReentry to " + part.name);
                 }
             }
         }
