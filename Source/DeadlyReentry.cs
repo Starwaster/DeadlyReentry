@@ -30,7 +30,7 @@ namespace DeadlyReentry
         public double skinThicknessFactor = 0.1;
         
         [KSPField(isPersistant = false)]
-        public double skinHeatConductivity = 0.12;
+        public double skinHeatConductivity = 0.0012;
         
         [KSPField(isPersistant = false)]
         public double skinThermalMass = -1.0;
@@ -52,6 +52,9 @@ namespace DeadlyReentry
         
         [KSPField(isPersistant = false, guiActive = false, guiName = "Exp. Area", guiUnits = "m2",   guiFormat = "x.00")]
         public string ExposedAreaDisplay;
+
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Flux /Area", guiUnits = "kW/m2",   guiFormat = "x.00")]
+        public string convFluxAreaDisplay;
         
         [KSPField(isPersistant = false, guiActive = false, guiName = "Acceleration", guiUnits = "G",   guiFormat = "F3")]
         public double displayGForce;
@@ -220,7 +223,7 @@ namespace DeadlyReentry
             
             // only one of skinThermalMassModifier and skinThicknessFactor should be configured
             if (skinThermalMass == -1.0)
-                skinThermalMass = (double)part.mass * part.thermalMassModifier * PhysicsGlobals.StandardSpecificHeatCapacity * skinThermalMassModifier * skinThicknessFactor;
+                skinThermalMass = (double)part.mass * PhysicsGlobals.StandardSpecificHeatCapacity * skinThermalMassModifier * skinThicknessFactor;
             skinThermalMassReciprocal = 1.0 / Math.Max (skinThermalMass, 0.001);
             GameEvents.onVesselWasModified.Add(OnVesselWasModified);
             //print(part.name + " Flight Integrator ID = " + FI.GetInstanceID().ToString());
@@ -271,13 +274,6 @@ namespace DeadlyReentry
                 //print(" vessel external temperature reads at " + vessel.externalTemperature.ToString() + "K");
                 //print("Uninitialized skinTemperature initialized.");
             }
-            if (PhysicsGlobals.ThermalDataDisplay)
-            {
-                skinTemperatureDisplay = skinTemperature.ToString ("F2");
-                skinThermalMassDisplay = skinThermalMass.ToString("F2");
-                RadiativeAreaDisplay = part.radiativeArea.ToString ("F2");
-                ExposedAreaDisplay = part.exposedArea.ToString("F2");
-            }
             //print("Starting UpdateSkinThermals() coroutine.");
             StartCoroutine (UpdateSkinThermals());
         }
@@ -323,10 +319,11 @@ namespace DeadlyReentry
                 CheckGeeForces();
                 if (PhysicsGlobals.ThermalDataDisplay)
                 {
-                    skinTemperatureDisplay = skinTemperature.ToString("F2");
+                    skinTemperatureDisplay = skinTemperature.ToString ("F2");
                     skinThermalMassDisplay = skinThermalMass.ToString("F2");
-                    RadiativeAreaDisplay = part.radiativeArea.ToString("F2");
+                    RadiativeAreaDisplay = part.radiativeArea.ToString ("F2");
                     ExposedAreaDisplay = part.exposedArea.ToString("F2");
+                    convFluxAreaDisplay = (part.thermalConvectionFlux / part.exposedArea).ToString("F4");
                 }
             }
             else
@@ -532,6 +529,7 @@ namespace DeadlyReentry
                 Fields["skinThermalMassDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["RadiativeAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["ExposedAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields["convFluxAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 if (myWindow != null)
                 {
                     myWindow.displayDirty = true;
@@ -979,7 +977,7 @@ namespace DeadlyReentry
                                 }
                                 try
                                 {
-                                    if (part.partPrefab != null && (!part.partPrefab.Modules.Contains("ModuleAeroReentry") || !part.partPrefab.Modules.Contains("ModuleHeatShield")))
+                                    if (part.partPrefab != null && !(part.partPrefab.Modules.Contains("ModuleAeroReentry") || part.partPrefab.Modules.Contains("ModuleHeatShield")))
                                         part.partPrefab.AddModule("ModuleAeroReentry");
                                 }
                                 catch (Exception e)
@@ -1029,6 +1027,7 @@ namespace DeadlyReentry
         
         public static bool debugging = false;
 
+        /*
         public void Awake()
         {
             GameEvents.onVesselGoOffRails.Add(AddDREModule);
@@ -1046,5 +1045,6 @@ namespace DeadlyReentry
                 }
             }
         }
+        */
     }
 }
