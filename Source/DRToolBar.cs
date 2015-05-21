@@ -136,7 +136,7 @@ namespace DeadlyReentry
 				//Set the GUI Skin
 				//GUI.skin = HighLogic.Skin;
 				
-				windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry 7.0 - The Melificent Edition", windowStyle);
+				windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry 7.0.5 - The Melificent Edition", windowStyle);
 			}
 		}
 		private void OnDestroy()
