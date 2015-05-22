@@ -48,14 +48,14 @@ namespace DeadlyReentry
 			private set;
 		}
 		
-		public DRToolbar ()
+		DRToolbar ()
 		{
 			if (Instance == null) 
 			{
 				Instance = this;
 			}
 		}
-		public void Awake() 
+		void Awake() 
 		{
 			// Set up the stock toolbar
 			GameEvents.onGUIApplicationLauncherReady.Add(OnGUIAppLauncherReady);
@@ -64,7 +64,7 @@ namespace DeadlyReentry
             //Texture Melificent =
 		}
 		
-		public void Start() 
+		void Start() 
 		{
             print("Start method called Initializing GUIs");
 			if (HighLogic.LoadedScene >= GameScenes.SPACECENTER
@@ -136,7 +136,7 @@ namespace DeadlyReentry
 				//Set the GUI Skin
 				//GUI.skin = HighLogic.Skin;
 				
-				windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry 7.0 - The Melificent Edition", windowStyle);
+				windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry 7.0.5 - The Melificent Edition", windowStyle);
 			}
 		}
 		private void OnDestroy()

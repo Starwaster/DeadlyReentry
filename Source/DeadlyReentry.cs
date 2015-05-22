@@ -30,7 +30,7 @@ namespace DeadlyReentry
         public double skinThicknessFactor = 0.1;
         
         [KSPField(isPersistant = false)]
-        public double skinHeatConductivity = 0.12;
+        public double skinHeatConductivity = 0.0012;
         
         [KSPField(isPersistant = false)]
         public double skinThermalMass = -1.0;
@@ -41,19 +41,25 @@ namespace DeadlyReentry
         public bool is_debugging;
         
         // Debug Displays
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Skin Temp.", guiUnits = "K",   guiFormat = "x.00")]
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Skin Temp.", guiUnits = " K",   guiFormat = "x.00")]
         public string skinTemperatureDisplay;
         
         [KSPField(isPersistant = false, guiActive = false, guiName = "Skin Thermal Mass.", guiUnits = "",   guiFormat = "x.00")]
         public string skinThermalMassDisplay;
         
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Rad. Area", guiUnits = "m2",   guiFormat = "x.00")]
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Rad. Area", guiUnits = " m2",   guiFormat = "x.00")]
         public string RadiativeAreaDisplay;
         
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Exp. Area", guiUnits = "m2",   guiFormat = "x.00")]
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Exp. Area", guiUnits = " m2",   guiFormat = "x.00")]
         public string ExposedAreaDisplay;
+
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Flux /Area", guiUnits = " kW/m2",   guiFormat = "x.00")]
+        public string convFluxAreaDisplay;
+
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Skin Cond", guiUnits = " W/m2",   guiFormat = "x.00")]
+        public string skinCondFluxAreaDisplay;
         
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Acceleration", guiUnits = "G",   guiFormat = "F3")]
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Acceleration", guiUnits = " G",   guiFormat = "F3")]
         public double displayGForce;
         
         [KSPField(isPersistant = false, guiActive = false, guiName = "Damage", guiUnits = "",   guiFormat = "G")]
@@ -220,7 +226,7 @@ namespace DeadlyReentry
             
             // only one of skinThermalMassModifier and skinThicknessFactor should be configured
             if (skinThermalMass == -1.0)
-                skinThermalMass = (double)part.mass * part.thermalMassModifier * PhysicsGlobals.StandardSpecificHeatCapacity * skinThermalMassModifier * skinThicknessFactor;
+                skinThermalMass = (double)part.mass * PhysicsGlobals.StandardSpecificHeatCapacity * skinThermalMassModifier * skinThicknessFactor;
             skinThermalMassReciprocal = 1.0 / Math.Max (skinThermalMass, 0.001);
             GameEvents.onVesselWasModified.Add(OnVesselWasModified);
             //print(part.name + " Flight Integrator ID = " + FI.GetInstanceID().ToString());
@@ -271,13 +277,6 @@ namespace DeadlyReentry
                 //print(" vessel external temperature reads at " + vessel.externalTemperature.ToString() + "K");
                 //print("Uninitialized skinTemperature initialized.");
             }
-            if (PhysicsGlobals.ThermalDataDisplay)
-            {
-                skinTemperatureDisplay = skinTemperature.ToString ("F2");
-                skinThermalMassDisplay = skinThermalMass.ToString("F2");
-                RadiativeAreaDisplay = part.radiativeArea.ToString ("F2");
-                ExposedAreaDisplay = part.exposedArea.ToString("F2");
-            }
             //print("Starting UpdateSkinThermals() coroutine.");
             StartCoroutine (UpdateSkinThermals());
         }
@@ -302,7 +301,7 @@ namespace DeadlyReentry
                 //print(part.name + " PartThermalData HashCode = " + ptd.GetHashCode());              
                 if(PhysicsGlobals.ThermalConvectionEnabled && !part.ShieldedFromAirstream)
                     UpdateConvection();
-                if(PhysicsGlobals.ThermalRadiationEnabled)
+                if(PhysicsGlobals.ThermalRadiationEnabled && !part.ShieldedFromAirstream)
                     UpdateRadiation();
                 if(PhysicsGlobals.ThermalConductionEnabled)
                     UpdateSkinConduction();
@@ -327,10 +326,11 @@ namespace DeadlyReentry
                 CheckGeeForces();
                 if (PhysicsGlobals.ThermalDataDisplay)
                 {
-                    skinTemperatureDisplay = skinTemperature.ToString("F2");
+                    skinTemperatureDisplay = skinTemperature.ToString ("F2");
                     skinThermalMassDisplay = skinThermalMass.ToString("F2");
-                    RadiativeAreaDisplay = part.radiativeArea.ToString("F2");
+                    RadiativeAreaDisplay = part.radiativeArea.ToString ("F2");
                     ExposedAreaDisplay = part.exposedArea.ToString("F2");
+                    convFluxAreaDisplay = (part.thermalConvectionFlux / part.exposedArea).ToString("F4");
                 }
             }
             else
@@ -444,7 +444,8 @@ namespace DeadlyReentry
             double finalScalar = skinThermalMassReciprocal * thermalMassMult * (double)TimeWarp.fixedDeltaTime;
             double sunFlux = 0d;
             double exposedTemp = skinTemperature;
-            double restTemp = part.temperature; // assume non-exposed area is at the part's temp.
+            // TODO This needs to track two skin temperatures: exposed skinTemperature and unexposed skinTemperature
+            double restTemp = Math.Min(part.temperature, skinTemperature); // assume non-exposed area is at the part's temp.
             double exposedMult = convectionArea / part.radiativeArea;
             if (double.IsNaN(exposedMult))
                 exposedMult = 1d;
@@ -508,6 +509,8 @@ namespace DeadlyReentry
             
             skinTemperature = Math.Max(skinTemperature - temperatureLost, PhysicsGlobals.SpaceTemperature);
             part.AddThermalFlux(kilowatts);
+            if (PhysicsGlobals.ThermalDataDisplay)
+                skinCondFluxAreaDisplay = (kilowatts/part.radiativeArea).ToString("F4");
         }
         
         /*
@@ -538,6 +541,8 @@ namespace DeadlyReentry
                 Fields["skinThermalMassDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["RadiativeAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["ExposedAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields["convFluxAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields["skinCondFluxAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 if (myWindow != null)
                 {
                     myWindow.displayDirty = true;
@@ -985,7 +990,7 @@ namespace DeadlyReentry
                                 }
                                 try
                                 {
-                                    if (part.partPrefab != null && (!part.partPrefab.Modules.Contains("ModuleAeroReentry") || !part.partPrefab.Modules.Contains("ModuleHeatShield")))
+                                    if (part.partPrefab != null && !(part.partPrefab.Modules.Contains("ModuleAeroReentry") || part.partPrefab.Modules.Contains("ModuleHeatShield")))
                                         part.partPrefab.AddModule("ModuleAeroReentry");
                                 }
                                 catch (Exception e)
@@ -1035,22 +1040,204 @@ namespace DeadlyReentry
         
         public static bool debugging = false;
 
-        public void Awake()
+        public void Start()
         {
-            GameEvents.onVesselGoOffRails.Add(AddDREModule);
-        }
-
-        private void AddDREModule(Vessel v)
-        {
-            Debug.Log("ReentryPhysics " + v.name + " going off rails; adding ModuleAeroReentry");
-            foreach (Part part in v.parts)
+            if (!CompatibilityChecker.IsAllCompatible())
             {
-                if (!(part.Modules.Contains("ModuleAeroReentry") || part.Modules.Contains("ModuleHeatShield")))
+                isCompatible = false;
+                return;
+            }
+            enabled = true; // 0.24 compatibility
+            Debug.Log("[DRE] - ReentryPhysics.Start(): LoadSettings(), Difficulty: " + DeadlyReentryScenario.Instance.DifficultyName);
+            LoadSettings(); // Moved loading of REENTRY_EFFECTS into a generic loader which uses new difficulty settings
+        }
+        // TODO Move all G-Force related settings to static ReentryPhysics settings?
+        public static void LoadSettings()
+        {
+            foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
+            {
+                if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.Instance.DifficultyName)
                 {
-                    part.AddModule("ModuleAeroReentry");
-                    Debug.Log("Added ModuleAeroReentry to " + part.name);
+                    if (node.HasValue("machMultiplier"))
+                        double.TryParse(node.GetValue("machMultiplier"), out machMultiplier);
+                    if (node.HasValue("gToleranceMult"))
+                        float.TryParse(node.GetValue("gToleranceMult"), out gToleranceMult);                    
+                    if (node.HasValue("crewGClamp"))
+                        double.TryParse(node.GetValue("crewGClamp"), out ModuleAeroReentry.crewGClamp);
+                    if (node.HasValue("crewGPower"))
+                        double.TryParse(node.GetValue("crewGPower"), out ModuleAeroReentry.crewGPower);
+                    if (node.HasValue("crewGMin"))
+                        double.TryParse(node.GetValue("crewGMin"), out ModuleAeroReentry.crewGMin);
+                    if (node.HasValue("crewGWarn"))
+                        double.TryParse(node.GetValue("crewGWarn"), out ModuleAeroReentry.crewGWarn);
+                    if (node.HasValue("crewGLimit"))
+                        double.TryParse(node.GetValue("crewGLimit"), out ModuleAeroReentry.crewGLimit);
+                    if (node.HasValue("crewGKillChance"))
+                        double.TryParse(node.GetValue("crewGKillChance"), out ModuleAeroReentry.crewGKillChance);
+                    
+                    
+                    if(node.HasValue("debugging"))
+                        bool.TryParse (node.GetValue ("debugging"), out debugging);
+                    if(node.HasValue("legacyAero"))
+                    Debug.Log("[DRE] - debugging = " + debugging.ToString());
+                    break;
                 }
             }
+        }
+        
+        public static void SaveSettings()
+        {
+            foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
+            {
+                if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.Instance.DifficultyName)
+                {
+                    if (node.HasValue("gToleranceMult"))
+                        node.SetValue("gToleranceMult", gToleranceMult.ToString());
+                    
+                    if (node.HasValue("crewGClamp"))
+                        node.SetValue("crewGClamp", ModuleAeroReentry.crewGClamp.ToString());
+                    if (node.HasValue("crewGPower"))
+                        node.SetValue("crewGPower", ModuleAeroReentry.crewGPower.ToString());
+                    if (node.HasValue("crewGMin"))
+                        node.SetValue("crewGMin", ModuleAeroReentry.crewGMin.ToString());
+                    if (node.HasValue("crewGWarn"))
+                        node.SetValue("crewGWarn", ModuleAeroReentry.crewGWarn.ToString());
+                    if (node.HasValue("crewGLimit"))
+                        node.SetValue("crewGLimit", ModuleAeroReentry.crewGLimit.ToString());
+                    if (node.HasValue("crewGKillChance"))
+                        node.SetValue("crewGKillChance", ModuleAeroReentry.crewGKillChance.ToString());
+                    
+                    if(node.HasValue("debugging"))
+                        node.SetValue("debugging", debugging.ToString());
+                    break;
+                }
+            }
+            SaveCustomSettings();
+        }
+        public static void SaveCustomSettings()
+        {
+            string[] difficultyNames = {"Default"};
+            bool btmp;
+            float ftmp;
+            double dtmp;
+            
+            ConfigNode savenode = new ConfigNode();
+            foreach(string difficulty in difficultyNames)
+            {
+                foreach (ConfigNode settingNode in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
+                {
+                    if (settingNode.HasValue("name") && settingNode.GetValue("name") == difficulty)
+                    {
+                        // This is :Final because it represents player choices and must not be overridden by other mods.
+                        ConfigNode node = new ConfigNode("@REENTRY_EFFECTS[" + difficulty + "]:Final");
+                        
+                        if(settingNode.HasValue("shockwaveExponent"))
+                        {
+                            float.TryParse(settingNode.GetValue("shockwaveExponent"), out ftmp);
+                            node.AddValue ("@shockwaveExponent", ftmp);
+                        }
+                        if (settingNode.HasValue("shockwaveMultiplier"))
+                        {
+                            float.TryParse(settingNode.GetValue("shockwaveMultiplier"), out ftmp);
+                            node.AddValue ("@shockwaveMultiplier", ftmp);
+                        }
+                        if(settingNode.HasValue("heatMultiplier"))
+                        {
+                            float.TryParse (settingNode.GetValue ("heatMultiplier"), out ftmp);
+                            node.AddValue ("@heatMultiplier", ftmp);
+                        }
+                        if(settingNode.HasValue("startThermal"))
+                        {
+                            float.TryParse (settingNode.GetValue ("startThermal"), out ftmp);
+                            node.AddValue ("@startThermal", ftmp);
+                        }
+                        if(settingNode.HasValue("fullThermal"))
+                        {
+                            float.TryParse (settingNode.GetValue ("fullThermal"), out ftmp);
+                            node.AddValue ("@fullThermal", ftmp);
+                        }
+                        if (settingNode.HasValue("afxDensityExponent"))
+                        {
+                            float.TryParse(settingNode.GetValue("afxDensityExponent"), out ftmp);
+                            node.AddValue ("@afxDensityExponent", ftmp);
+                        }
+                        if(settingNode.HasValue("temperatureExponent"))
+                        {
+                            float.TryParse (settingNode.GetValue ("temperatureExponent"), out ftmp);
+                            node.AddValue ("@temperatureExponent", ftmp);
+                        }
+                        if(settingNode.HasValue("densityExponent"))
+                        {
+                            float.TryParse (settingNode.GetValue ("densityExponent"), out ftmp);
+                            node.AddValue ("@densityExponent", ftmp);
+                        }
+                        
+                        if (settingNode.HasValue("gToleranceMult"))
+                        {
+                            float.TryParse(settingNode.GetValue("gToleranceMult"), out ftmp);
+                            node.AddValue ("@gToleranceMult", ftmp);
+                        }
+                        
+                        if (settingNode.HasValue("parachuteTempMult"))
+                        {
+                            float.TryParse(settingNode.GetValue("parachuteTempMult"), out ftmp);
+                            node.AddValue ("@parachuteTempMult", ftmp);
+                        }
+                        if (settingNode.HasValue("crewGKillChance"))
+                        {
+                            float.TryParse(settingNode.GetValue("crewGKillChance"), out ftmp);
+                            node.AddValue ("@crewGKillChance", ftmp);
+                        }
+                        
+                        
+                        if (settingNode.HasValue("crewGClamp"))
+                        {
+                            double.TryParse(settingNode.GetValue("crewGClamp"), out dtmp);
+                            node.AddValue ("@crewGClamp", dtmp);
+                        }
+                        if (settingNode.HasValue("crewGPower"))
+                        {
+                            double.TryParse(settingNode.GetValue("crewGPower"), out dtmp);
+                            node.AddValue ("@crewGPower", dtmp);
+                        }
+                        if (settingNode.HasValue("crewGMin"))
+                        {
+                            double.TryParse(settingNode.GetValue("crewGMin"), out dtmp);
+                            node.AddValue ("@crewGMin", dtmp);
+                        }
+                        if (settingNode.HasValue("crewGWarn"))
+                        {
+                            double.TryParse(settingNode.GetValue("crewGWarn"), out dtmp);
+                            node.AddValue ("@crewGWarn", dtmp);
+                        }
+                        if (settingNode.HasValue("crewGLimit"))
+                        {
+                            double.TryParse(settingNode.GetValue("crewGLimit"), out dtmp);
+                            node.AddValue ("@crewGLimit", dtmp);
+                        }
+                        
+                        if(settingNode.HasValue("legacyAero"))
+                        {
+                            bool.TryParse(settingNode.GetValue("legacyAero"), out btmp);
+                            Debug.Log("[DRE] - legacyAero = " + btmp);
+                            node.AddValue ("@legacyAero", btmp.ToString());
+                        }
+                        if (settingNode.HasValue("dissipationCap"))
+                        {
+                            bool.TryParse(settingNode.GetValue("dissipationCap"), out btmp);
+                            node.AddValue("@dissipationCap", btmp.ToString());
+                        }
+                        if (settingNode.HasValue("useAlternateDensity"))
+                        {
+                            bool.TryParse(settingNode.GetValue("useAlternateDensity"), out btmp);
+                            node.AddValue("@useAlternateDensity", btmp.ToString());
+                        }
+                        savenode.AddNode (node);
+                        break;
+                    }
+                }
+            }
+            savenode.Save (KSPUtil.ApplicationRootPath.Replace ("\\", "/") + "GameData/DeadlyReentry/custom.cfg");
         }
     }
 }
