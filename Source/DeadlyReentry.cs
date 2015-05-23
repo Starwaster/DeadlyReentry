@@ -540,12 +540,20 @@ namespace DeadlyReentry
         {
             double timeConductionFactor = PhysicsGlobals.ConductionFactor * Time.fixedDeltaTime;
             double temperatureDelta = skinTemperature - part.temperature;
+            double conductArea = part.radiativeArea; // FIXME: should it be sum of weightedarea, since skin conducts even for joined parts?
+            if (convectionArea < conductArea && conductArea > 0d)
+            {
+                double exposedFrac = convectionArea / conductArea;
+                double unexposedFrac = 1d - exposedFrac;
+                temperatureDelta = temperatureDelta * exposedFrac +
+                    (Math.Max(part.temperature, skinTemperature * skinUnexposedTempFraction) - part.temperature) * unexposedFrac;
+            }
             double energyTransferred =
                 temperatureDelta
                     * Math.Min(skinThermalMass * thermalMassMult, part.thermalMass) * 0.5d
                     * UtilMath.Clamp01(timeConductionFactor
                                        * skinHeatConductivity
-                                       * part.radiativeArea);
+                                       * conductArea);
             
             double kilowatts = energyTransferred * FI.WarpReciprocal;
             double temperatureLost = energyTransferred * skinThermalMassReciprocal * thermalMassMult;
@@ -557,7 +565,7 @@ namespace DeadlyReentry
             skinTemperature = Math.Max(skinTemperature - temperatureLost, PhysicsGlobals.SpaceTemperature);
             part.AddThermalFlux(kilowatts);
             if (PhysicsGlobals.ThermalDataDisplay)
-                skinCondFluxAreaDisplay = (kilowatts/part.radiativeArea).ToString("F4");
+                skinCondFluxAreaDisplay = (kilowatts/part.radiativeArea).ToString("N4");
         }
         
         /*
@@ -911,12 +919,12 @@ namespace DeadlyReentry
         public double density = 1d;
         public double invDensity = 1d;
         
-        [KSPField(guiActive = true, guiName ="Ablation: ", guiUnits = " kg/sec", guiFormat = "F4")]
+        [KSPField(guiActive = true, guiName ="Ablation: ", guiUnits = " kg/sec")]
         string lossDisplay;
         
         double loss = 0d;
         
-        [KSPField(guiActive = true, guiName = "Pyrolysis Flux: ", guiUnits = " kW", guiFormat = "F4")]
+        [KSPField(guiActive = true, guiName = "Pyrolysis Flux: ", guiUnits = " kW")]
         string fluxDisplay;
         
         double flux = 0d;
@@ -982,8 +990,8 @@ namespace DeadlyReentry
                 else
                     part.maxTemp = depletedMaxTemp;
             }
-            fluxDisplay = flux.ToString("F2");
-            lossDisplay = loss.ToString("F2"    );
+            fluxDisplay = flux.ToString("N4");
+            lossDisplay = loss.ToString("N4");
         }
     }
     
