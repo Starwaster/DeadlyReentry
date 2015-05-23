@@ -508,9 +508,11 @@ namespace DeadlyReentry
             
             double exposedRadiationTemp = FI.backgroundRadiationTemp;
             // recalculate radiation temp from dynamic density
-            if(vessel.dynamicPressurekPa > 0d)
+            if(vessel.mach > 1d)
             {
-                double dynDensity = vessel.mainBody.GetDensity(vessel.staticPressurekPa + vessel.dynamicPressurekPa, vessel.externalTemperature);
+                double M2 = vessel.mach;
+                M2 *= M2;
+                double dynDensity = (vessel.mainBody.atmosphereAdiabaticIndex + 1d) * M2 / (2d + (vessel.mainBody.atmosphereAdiabaticIndex - 1d) * M2) * vessel.atmDensity;
                 double dyndensityThermalLerp = 1d - dynDensity;
                 if (dyndensityThermalLerp < 0.5d)
                 {
