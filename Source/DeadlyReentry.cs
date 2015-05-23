@@ -213,8 +213,16 @@ namespace DeadlyReentry
                 isCompatible = false;
                 return;
             }
+
+            // are we an engine?
+            for(int i = part.Modules.Count - 1; i >= 0; --i)
+                if (part.Modules[i] is ModuleEngines)
+                {
+                    is_engine = true;
+                    break;
+                }
         }
-        
+
         public virtual void Start()
         {
             if (!isCompatible)
@@ -242,6 +250,10 @@ namespace DeadlyReentry
         void OnDestroy()
         {
             FI = null;
+            if(_ablationFX != null && _ablationFX.audio != null)
+                DestroyImmediate(_ablationFX.audio);
+            if(_gForceFX != null && _gForceFX.audio != null)
+                DestroyImmediate(_gForceFX.audio);
         }
         
         public void OnVesselWasModified(Vessel v)
