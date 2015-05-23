@@ -120,9 +120,16 @@ namespace DeadlyReentry
         UIPartActionWindow myWindow 
         {
             get {
-                if(_myWindow == null) {
-                    foreach(UIPartActionWindow window in FindObjectsOfType (typeof(UIPartActionWindow))) {
-                        if(window.part == part) _myWindow = window;
+                if(_myWindow == null)
+                {
+                    UIPartActionWindow[] windows = FindObjectsOfType<UIPartActionWindow>();
+                    for(int i = windows.Length - 1; i >= 0; --i)
+                    {
+                        if (windows[i].part == part)
+                        {
+                            _myWindow = windows[i];
+                            break;
+                        }
                     }
                 }
                 return _myWindow;
@@ -720,10 +727,14 @@ namespace DeadlyReentry
                         
                         if (part.temperature > part.maxTemp || damage >= 1.0f)
                         { // has it burnt up completely?
-                            foreach (ParticleEmitter fx in ablationFX.fxEmitters)
-                                GameObject.DestroyImmediate(fx.gameObject);
-                            foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
-                                GameObject.DestroyImmediate(fx.gameObject);
+                            
+                            List<ParticleEmitter> fxs = ablationFX.fxEmitters;
+                            for(int i = fxs.Count-1; i >= 0; --i)
+                                GameObject.DestroyImmediate(fxs[i].gameObject);
+                            fxs = ablationSmokeFX.fxEmitters;
+                            for(int i = fxs.Count-1; i >= 0; --i)
+                                GameObject.DestroyImmediate(fxs[i].gameObject);
+
                             if (!dead)
                             {
                                 dead = true;
@@ -742,14 +753,19 @@ namespace DeadlyReentry
                         else
                         {
                             is_on_fire = true;
-                            foreach (ParticleEmitter fx in ablationFX.fxEmitters)
+                            List<ParticleEmitter> fxs = ablationFX.fxEmitters;
+                            ParticleEmitter fx;
+                            for (int i = fxs.Count - 1; i >= 0; --i)
                             {
+                                fx = fxs[i];
                                 fx.gameObject.SetActive(true);
                                 fx.gameObject.transform.LookAt(part.transform.position + vessel.srf_velocity);
                                 fx.gameObject.transform.Rotate(90, 0, 0);
                             }
-                            foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
+                            fxs = ablationSmokeFX.fxEmitters;
+                            for (int i = fxs.Count - 1; i >= 0; --i)
                             {
+                                fx = fxs[i];
                                 fx.gameObject.SetActive(vessel.atmDensity > 0.02);
                                 fx.gameObject.transform.LookAt(part.transform.position + vessel.srf_velocity);
                                 fx.gameObject.transform.Rotate(90, 0, 0);
@@ -762,10 +778,13 @@ namespace DeadlyReentry
                     else if (is_on_fire)
                     { // not on fire.
                         is_on_fire = false;
-                        foreach (ParticleEmitter fx in ablationFX.fxEmitters)
-                            fx.gameObject.SetActive(false);
-                        foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
-                            fx.gameObject.SetActive(false);
+
+                        List<ParticleEmitter> fxs = ablationFX.fxEmitters;
+                        for (int i = fxs.Count - 1; i >= 0; --i)
+                            fxs[i].gameObject.SetActive(false);
+                        fxs = ablationSmokeFX.fxEmitters;
+                        for (int i = fxs.Count - 1; i >= 0; --i)
+                            fxs[i].gameObject.SetActive(false);
                     }
                 }
             }
@@ -979,7 +998,8 @@ namespace DeadlyReentry
                                             {
                                                 if (module is ModuleEngines)
                                                     ((ModuleEngines)module).heatProduction *= (float)curScale;
-                                            }
+                                         
+ }
                                         }
                                     }
                                 }
@@ -990,8 +1010,21 @@ namespace DeadlyReentry
                                 }
                                 try
                                 {
-                                    if (part.partPrefab != null && !(part.partPrefab.Modules.Contains("ModuleAeroReentry") || part.partPrefab.Modules.Contains("ModuleHeatShield")))
-                                        part.partPrefab.AddModule("ModuleAeroReentry");
+                                    if (part.partPrefab != null)
+                                    {
+                                        bool add = true;
+                                        for (int i = part.partPrefab.Modules.Count - 1; i >= 0; --i)
+                                        {
+                                            // heat shield derives from this, so true for it too
+                                            if (part.partPrefab.Modules[i] is ModuleAeroReentry)
+                                            {
+                                                add = false;
+                                                break;
+                                            }
+                                        }
+                                        if (add)
+                                            part.partPrefab.AddModule("ModuleAeroReentry");
+                                    }
                                 }
                                 catch (Exception e)
                                 {
