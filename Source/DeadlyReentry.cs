@@ -31,6 +31,9 @@ namespace DeadlyReentry
         
         [KSPField(isPersistant = false)]
         public double skinHeatConductivity = 0.0012;
+
+        [KSPField(isPersistant = false)]
+        public double skinUnexposedTempFraction = 0.35;
         
         [KSPField(isPersistant = false)]
         public double skinThermalMass = -1.0;
@@ -244,6 +247,16 @@ namespace DeadlyReentry
                 skinThermalMass = (double)part.mass * PhysicsGlobals.StandardSpecificHeatCapacity * skinThermalMassModifier * skinThicknessFactor;
             skinThermalMassReciprocal = 1.0 / Math.Max (skinThermalMass, 0.001);
             GameEvents.onVesselWasModified.Add(OnVesselWasModified);
+
+            // edit part thermal mass modifier so we subtract out skin thermal mass
+            if (part.partInfo != null && part.partInfo.partPrefab != null)
+            {
+                if (part.thermalMassModifier == part.partInfo.partPrefab.thermalMassModifier)
+                {
+                    double baseTM = (double)part.mass * PhysicsGlobals.StandardSpecificHeatCapacity * part.thermalMassModifier;
+                    part.thermalMassModifier *= (baseTM - skinThermalMass) / baseTM;
+                }
+            }
             //print(part.name + " Flight Integrator ID = " + FI.GetInstanceID().ToString());
         }
 
@@ -464,7 +477,7 @@ namespace DeadlyReentry
             double sunFlux = 0d;
             double exposedTemp = skinTemperature;
             // TODO This needs to track two skin temperatures: exposed skinTemperature and unexposed skinTemperature
-            double restTemp = Math.Min(part.temperature, skinTemperature); // assume non-exposed area is at the part's temp.
+            double restTemp = Math.Max(part.temperature, skinTemperature * skinUnexposedTempFraction); // assume non-exposed area is at the part's temp.
             double exposedMult = convectionArea / part.radiativeArea;
             if (double.IsNaN(exposedMult))
                 exposedMult = 1d;
@@ -490,11 +503,26 @@ namespace DeadlyReentry
             
             // Radiative flux = S-Bconst*e*A * (T^4 - radInT^4)
             
-            //part.temperature = Math.Max(tempTemp, PhysicsGlobals.SpaceTemperature);
+            // get background radiation temperatures
             double lowLevelRadiationTemp = UtilMath.Lerp(FI.atmosphericTemperature, PhysicsGlobals.SpaceTemperature, FI.DensityThermalLerp);
             
+            double exposedRadiationTemp = FI.backgroundRadiationTemp;
+            // recalculate radiation temp from dynamic density
+            if(vessel.mach > 1d)
+            {
+                double M2 = vessel.mach;
+                M2 *= M2;
+                double dynDensity = (vessel.mainBody.atmosphereAdiabaticIndex + 1d) * M2 / (2d + (vessel.mainBody.atmosphereAdiabaticIndex - 1d) * M2) * vessel.atmDensity;
+                double dyndensityThermalLerp = 1d - dynDensity;
+                if (dyndensityThermalLerp < 0.5d)
+                {
+                    dyndensityThermalLerp = 0.25d / dynDensity;
+                }
+                exposedRadiationTemp = UtilMath.Lerp(FI.externalTemperature, PhysicsGlobals.SpaceTemperature, dyndensityThermalLerp);
+            }
+
             double exposedOut = -(Math.Pow(exposedTemp, PhysicsGlobals.PartEmissivityExponent)
-                              - Math.Pow(FI.backgroundRadiationTemp, PhysicsGlobals.PartEmissivityExponent))
+                              - Math.Pow(exposedRadiationTemp, PhysicsGlobals.PartEmissivityExponent))
                 * PhysicsGlobals.StefanBoltzmanConstant * scalar * convectionArea;
 
             double restOut = -(Math.Pow(restTemp, PhysicsGlobals.PartEmissivityExponent)
