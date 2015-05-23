@@ -1081,7 +1081,7 @@ namespace DeadlyReentry
         
         public static float gToleranceMult = 6.0f;
 
-        public static double machMultiplier  = 3.65;
+        public static double machMultiplier  = 1.0;
         
         public static bool debugging = false;
 
