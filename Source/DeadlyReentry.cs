@@ -120,9 +120,16 @@ namespace DeadlyReentry
         UIPartActionWindow myWindow 
         {
             get {
-                if(_myWindow == null) {
-                    foreach(UIPartActionWindow window in FindObjectsOfType (typeof(UIPartActionWindow))) {
-                        if(window.part == part) _myWindow = window;
+                if(_myWindow == null)
+                {
+                    UIPartActionWindow[] windows = FindObjectsOfType<UIPartActionWindow>();
+                    for(int i = windows.Length - 1; i >= 0; --i)
+                    {
+                        if (windows[i].part == part)
+                        {
+                            _myWindow = windows[i];
+                            break;
+                        }
                     }
                 }
                 return _myWindow;
@@ -206,8 +213,16 @@ namespace DeadlyReentry
                 isCompatible = false;
                 return;
             }
+
+            // are we an engine?
+            for(int i = part.Modules.Count - 1; i >= 0; --i)
+                if (part.Modules[i] is ModuleEngines)
+                {
+                    is_engine = true;
+                    break;
+                }
         }
-        
+
         public virtual void Start()
         {
             if (!isCompatible)
@@ -235,6 +250,10 @@ namespace DeadlyReentry
         void OnDestroy()
         {
             FI = null;
+            if(_ablationFX != null && _ablationFX.audio != null)
+                DestroyImmediate(_ablationFX.audio);
+            if(_gForceFX != null && _gForceFX.audio != null)
+                DestroyImmediate(_gForceFX.audio);
         }
         
         public void OnVesselWasModified(Vessel v)
@@ -291,7 +310,11 @@ namespace DeadlyReentry
                 float newExp, newRad, newTot;
                 CalculateAreas(out newRad, out newExp, out newTot);
                 part.exposedArea = newExp / newRad * part.radiativeArea;
+                if (double.IsNaN(part.exposedArea))
+                    part.exposedArea = 0d;
                 thermalMassMult = newRad / newTot;
+                if (double.IsNaN(thermalMassMult))
+                    thermalMassMult = 1.0d;
                 convectionArea = part.radiativeArea;
 
                 //print(part.name + " PartThermalData HashCode = " + ptd.GetHashCode());              
@@ -443,6 +466,8 @@ namespace DeadlyReentry
             // TODO This needs to track two skin temperatures: exposed skinTemperature and unexposed skinTemperature
             double restTemp = Math.Min(part.temperature, skinTemperature); // assume non-exposed area is at the part's temp.
             double exposedMult = convectionArea / part.radiativeArea;
+            if (double.IsNaN(exposedMult))
+                exposedMult = 1d;
             double restMult = 1d - exposedMult;
             
             if (vessel.directSunlight)
@@ -714,10 +739,14 @@ namespace DeadlyReentry
                         
                         if (part.temperature > part.maxTemp || damage >= 1.0f)
                         { // has it burnt up completely?
-                            foreach (ParticleEmitter fx in ablationFX.fxEmitters)
-                                GameObject.DestroyImmediate(fx.gameObject);
-                            foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
-                                GameObject.DestroyImmediate(fx.gameObject);
+                            
+                            List<ParticleEmitter> fxs = ablationFX.fxEmitters;
+                            for(int i = fxs.Count-1; i >= 0; --i)
+                                GameObject.DestroyImmediate(fxs[i].gameObject);
+                            fxs = ablationSmokeFX.fxEmitters;
+                            for(int i = fxs.Count-1; i >= 0; --i)
+                                GameObject.DestroyImmediate(fxs[i].gameObject);
+
                             if (!dead)
                             {
                                 dead = true;
@@ -736,14 +765,19 @@ namespace DeadlyReentry
                         else
                         {
                             is_on_fire = true;
-                            foreach (ParticleEmitter fx in ablationFX.fxEmitters)
+                            List<ParticleEmitter> fxs = ablationFX.fxEmitters;
+                            ParticleEmitter fx;
+                            for (int i = fxs.Count - 1; i >= 0; --i)
                             {
+                                fx = fxs[i];
                                 fx.gameObject.SetActive(true);
                                 fx.gameObject.transform.LookAt(part.transform.position + vessel.srf_velocity);
                                 fx.gameObject.transform.Rotate(90, 0, 0);
                             }
-                            foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
+                            fxs = ablationSmokeFX.fxEmitters;
+                            for (int i = fxs.Count - 1; i >= 0; --i)
                             {
+                                fx = fxs[i];
                                 fx.gameObject.SetActive(vessel.atmDensity > 0.02);
                                 fx.gameObject.transform.LookAt(part.transform.position + vessel.srf_velocity);
                                 fx.gameObject.transform.Rotate(90, 0, 0);
@@ -756,10 +790,13 @@ namespace DeadlyReentry
                     else if (is_on_fire)
                     { // not on fire.
                         is_on_fire = false;
-                        foreach (ParticleEmitter fx in ablationFX.fxEmitters)
-                            fx.gameObject.SetActive(false);
-                        foreach (ParticleEmitter fx in ablationSmokeFX.fxEmitters)
-                            fx.gameObject.SetActive(false);
+
+                        List<ParticleEmitter> fxs = ablationFX.fxEmitters;
+                        for (int i = fxs.Count - 1; i >= 0; --i)
+                            fxs[i].gameObject.SetActive(false);
+                        fxs = ablationSmokeFX.fxEmitters;
+                        for (int i = fxs.Count - 1; i >= 0; --i)
+                            fxs[i].gameObject.SetActive(false);
                     }
                 }
             }
@@ -973,7 +1010,8 @@ namespace DeadlyReentry
                                             {
                                                 if (module is ModuleEngines)
                                                     ((ModuleEngines)module).heatProduction *= (float)curScale;
-                                            }
+                                         
+ }
                                         }
                                     }
                                 }
@@ -984,8 +1022,21 @@ namespace DeadlyReentry
                                 }
                                 try
                                 {
-                                    if (part.partPrefab != null && !(part.partPrefab.Modules.Contains("ModuleAeroReentry") || part.partPrefab.Modules.Contains("ModuleHeatShield")))
-                                        part.partPrefab.AddModule("ModuleAeroReentry");
+                                    if (part.partPrefab != null)
+                                    {
+                                        bool add = true;
+                                        for (int i = part.partPrefab.Modules.Count - 1; i >= 0; --i)
+                                        {
+                                            // heat shield derives from this, so true for it too
+                                            if (part.partPrefab.Modules[i] is ModuleAeroReentry)
+                                            {
+                                                add = false;
+                                                break;
+                                            }
+                                        }
+                                        if (add)
+                                            part.partPrefab.AddModule("ModuleAeroReentry");
+                                    }
                                 }
                                 catch (Exception e)
                                 {
