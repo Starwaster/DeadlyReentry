@@ -963,7 +963,7 @@ namespace DeadlyReentry
             // Do we do charring?
             doChar = false;
             renderers = part.FindModelComponents<Renderer>();
-            if (renderers != null && renderers.Length > 0 && charMax != charMin)
+            if ((object)ablative != null && renderers != null && renderers.Length > 0 && charMax != charMin)
             {
                 try
                 {
