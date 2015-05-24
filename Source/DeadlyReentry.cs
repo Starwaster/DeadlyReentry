@@ -922,6 +922,7 @@ namespace DeadlyReentry
         public float charMin = 0f;
         [KSPField]
         public double charOffset = 0d; // offset to amount and maxamount
+        private bool doChar = false;
         
         // public fields
         public PartResource ablative = null; // pointer to the PartResource
@@ -959,7 +960,25 @@ namespace DeadlyReentry
             }
             origConductivity = part.heatConductivity;
 
+            // Do we do charring?
+            doChar = false;
             renderers = part.FindModelComponents<Renderer>();
+            if (renderers != null && renderers.Length > 0 && charMax != charMin)
+            {
+                try
+                {
+                    Color color = new Color(charMax, charMax, charMax, charAlpha);
+                    for (int i = renderers.Length - 1; i >= 0; --i)
+                    {
+                        renderers[i].material.SetColor(shaderPropertyBurnColor, color);
+                    }
+                    doChar = true;
+                }
+                catch
+                {
+                    doChar = false;
+                }
+            }
         }
         
         public override void FixedUpdate()
@@ -1009,7 +1028,7 @@ namespace DeadlyReentry
             }
             fluxDisplay = flux.ToString("N4");
             lossDisplay = loss.ToString("N4");
-            if (charMax != charMin)
+            if (doChar)
                 UpdateColor();
         }
         private void UpdateColor()
@@ -1020,7 +1039,7 @@ namespace DeadlyReentry
             float delta = charMax - charMin;
             float colorValue = charMin + delta * ratio;
             Color color = new Color(colorValue, colorValue, colorValue, charAlpha);
-            for (int i = renderers.Length - 1; i >= 0; i--)
+            for (int i = renderers.Length - 1; i >= 0; --i)
             {
                 renderers[i].material.SetColor(shaderPropertyBurnColor, color);
             }
