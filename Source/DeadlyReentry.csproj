@@ -42,6 +42,10 @@
     <Compile Include="DREFlightIntegrator.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="ModularFlightIntegrator">
+      <HintPath>..\..\..\..\..\..\Games\KSP_win1\GameData\ModularFlightIntegrator\ModularFlightIntegrator.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="UnityEngine">
       <HintPath>..\..\..\..\..\..\Games\KSP_win_1.0\KSP_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
@@ -71,10 +75,4 @@
       </Properties>
     </MonoDevelop>
   </ProjectExtensions>
-  <ItemGroup>
-    <ProjectReference Include="..\..\ModularFlightIntegrator\ModularFlightIntegrator.csproj">
-      <Project>{EE8094B7-3C3E-4BEE-B01A-5A83F36D745D}</Project>
-      <Name>ModularFlightIntegrator</Name>
-    </ProjectReference>
-  </ItemGroup>
 </Project>

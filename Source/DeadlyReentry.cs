@@ -540,12 +540,20 @@ namespace DeadlyReentry
         {
             double timeConductionFactor = PhysicsGlobals.ConductionFactor * Time.fixedDeltaTime;
             double temperatureDelta = skinTemperature - part.temperature;
+            double conductArea = part.radiativeArea; // FIXME: should it be sum of weightedarea, since skin conducts even for joined parts?
+            if (convectionArea < conductArea && conductArea > 0d)
+            {
+                double exposedFrac = convectionArea / conductArea;
+                double unexposedFrac = 1d - exposedFrac;
+                temperatureDelta = temperatureDelta * exposedFrac +
+                    (Math.Max(part.temperature, skinTemperature * skinUnexposedTempFraction) - part.temperature) * unexposedFrac;
+            }
             double energyTransferred =
                 temperatureDelta
                     * Math.Min(skinThermalMass * thermalMassMult, part.thermalMass) * 0.5d
                     * UtilMath.Clamp01(timeConductionFactor
                                        * skinHeatConductivity
-                                       * part.radiativeArea);
+                                       * conductArea);
             
             double kilowatts = energyTransferred * FI.WarpReciprocal;
             double temperatureLost = energyTransferred * skinThermalMassReciprocal * thermalMassMult;
@@ -557,7 +565,7 @@ namespace DeadlyReentry
             skinTemperature = Math.Max(skinTemperature - temperatureLost, PhysicsGlobals.SpaceTemperature);
             part.AddThermalFlux(kilowatts);
             if (PhysicsGlobals.ThermalDataDisplay)
-                skinCondFluxAreaDisplay = (kilowatts/part.radiativeArea).ToString("F4");
+                skinCondFluxAreaDisplay = (kilowatts/part.radiativeArea).ToString("N4");
         }
         
         /*
@@ -902,6 +910,18 @@ namespace DeadlyReentry
 
         [KSPField]
         public double depletedMaxTemp = 1300;
+
+        // Char stuff
+        private static int shaderPropertyBurnColor = Shader.PropertyToID("_BurnColor");
+        private Renderer[] renderers;
+        [KSPField]
+        public float charAlpha = 0.8f;
+        [KSPField]
+        public float charMax = 0.85f;
+        [KSPField]
+        public float charMin = 0f;
+        [KSPField]
+        public double charOffset = 0d; // offset to amount and maxamount
         
         // public fields
         public PartResource ablative = null; // pointer to the PartResource
@@ -911,12 +931,12 @@ namespace DeadlyReentry
         public double density = 1d;
         public double invDensity = 1d;
         
-        [KSPField(guiActive = true, guiName ="Ablation: ", guiUnits = " kg/sec", guiFormat = "F4")]
+        [KSPField(guiActive = true, guiName ="Ablation: ", guiUnits = " kg/sec")]
         string lossDisplay;
         
         double loss = 0d;
         
-        [KSPField(guiActive = true, guiName = "Pyrolysis Flux: ", guiUnits = " kW", guiFormat = "F4")]
+        [KSPField(guiActive = true, guiName = "Pyrolysis Flux: ", guiUnits = " kW")]
         string fluxDisplay;
         
         double flux = 0d;
@@ -938,6 +958,8 @@ namespace DeadlyReentry
                 }
             }
             origConductivity = part.heatConductivity;
+
+            renderers = part.FindModelComponents<Renderer>();
         }
         
         public override void FixedUpdate()
@@ -975,15 +997,33 @@ namespace DeadlyReentry
                         loss *= density;
                         flux = pyrolysisLoss * loss;
                         loss *= 1000.0;
-                        
-                        skinTemperature = Math.Max (skinTemperature - (flux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
-                    }                    
+
+                        skinTemperature = Math.Max(skinTemperature - (flux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
+                    }
                 }
                 else
-                    part.maxTemp = depletedMaxTemp;
+                {
+                    part.maxTemp = Math.Min(part.maxTemp, depletedMaxTemp);
+                    skinMaxTemp = Math.Min(skinMaxTemp, depletedMaxTemp);
+                }
             }
-            fluxDisplay = flux.ToString("F2");
-            lossDisplay = loss.ToString("F2"    );
+            fluxDisplay = flux.ToString("N4");
+            lossDisplay = loss.ToString("N4");
+            if (charMax != charMin)
+                UpdateColor();
+        }
+        private void UpdateColor()
+        {
+            float ratio = 0f;
+            if(ablative.amount > charOffset)
+                ratio = (float)((ablative.amount - charOffset) / (ablative.maxAmount - charOffset));
+            float delta = charMax - charMin;
+            float colorValue = charMin + delta * ratio;
+            Color color = new Color(colorValue, colorValue, colorValue, charAlpha);
+            for (int i = renderers.Length - 1; i >= 0; i--)
+            {
+                renderers[i].material.SetColor(shaderPropertyBurnColor, color);
+            }
         }
     }
     
