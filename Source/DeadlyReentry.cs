@@ -910,6 +910,18 @@ namespace DeadlyReentry
 
         [KSPField]
         public double depletedMaxTemp = 1300;
+
+        // Char stuff
+        private static int shaderPropertyBurnColor = Shader.PropertyToID("_BurnColor");
+        private Renderer[] renderers;
+        [KSPField]
+        public float charAlpha = 0.8f;
+        [KSPField]
+        public float charMax = 0.85f;
+        [KSPField]
+        public float charMin = 0f;
+        [KSPField]
+        public double charOffset = 0d; // offset to amount and maxamount
         
         // public fields
         public PartResource ablative = null; // pointer to the PartResource
@@ -946,6 +958,8 @@ namespace DeadlyReentry
                 }
             }
             origConductivity = part.heatConductivity;
+
+            renderers = part.FindModelComponents<Renderer>();
         }
         
         public override void FixedUpdate()
@@ -983,15 +997,33 @@ namespace DeadlyReentry
                         loss *= density;
                         flux = pyrolysisLoss * loss;
                         loss *= 1000.0;
-                        
-                        skinTemperature = Math.Max (skinTemperature - (flux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
-                    }                    
+
+                        skinTemperature = Math.Max(skinTemperature - (flux * skinThermalMassReciprocal * (double)TimeWarp.fixedDeltaTime), PhysicsGlobals.SpaceTemperature);
+                    }
                 }
                 else
-                    part.maxTemp = depletedMaxTemp;
+                {
+                    part.maxTemp = Math.Min(part.maxTemp, depletedMaxTemp);
+                    skinMaxTemp = Math.Min(skinMaxTemp, depletedMaxTemp);
+                }
             }
             fluxDisplay = flux.ToString("N4");
             lossDisplay = loss.ToString("N4");
+            if (charMax != charMin)
+                UpdateColor();
+        }
+        private void UpdateColor()
+        {
+            float ratio = 0f;
+            if(ablative.amount > charOffset)
+                ratio = (float)((ablative.amount - charOffset) / (ablative.maxAmount - charOffset));
+            float delta = charMax - charMin;
+            float colorValue = charMin + delta * ratio;
+            Color color = new Color(colorValue, colorValue, colorValue, charAlpha);
+            for (int i = renderers.Length - 1; i >= 0; i--)
+            {
+                renderers[i].material.SetColor(shaderPropertyBurnColor, color);
+            }
         }
     }
     
