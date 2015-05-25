@@ -602,6 +602,7 @@ namespace DeadlyReentry
                 Fields["RadiativeAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["ExposedAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["convFluxAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields["radFluxInAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["skinCondFluxAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 if (myWindow != null)
                 {
