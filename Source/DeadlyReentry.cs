@@ -59,6 +59,9 @@ namespace DeadlyReentry
         [KSPField(isPersistant = false, guiActive = false, guiName = "Flux /Area", guiUnits = " kW/m2",   guiFormat = "x.00")]
         public string convFluxAreaDisplay;
 
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Rad Flux /Area", guiUnits = " kW/m2", guiFormat = "x.00")]
+        public string radFluxInAreaDisplay;
+
         [KSPField(isPersistant = false, guiActive = false, guiName = "Skin Cond", guiUnits = " W/m2",   guiFormat = "x.00")]
         public string skinCondFluxAreaDisplay;
         
@@ -520,18 +523,20 @@ namespace DeadlyReentry
                 }
                 exposedRadiationTemp = UtilMath.Lerp(FI.externalTemperature, PhysicsGlobals.SpaceTemperature, dyndensityThermalLerp);
             }
+            double radIn = Math.Pow(exposedRadiationTemp, PhysicsGlobals.PartEmissivityExponent) * PhysicsGlobals.StefanBoltzmanConstant * scalar;
+            radFluxInAreaDisplay = (radIn / convectionArea).ToString("N4");
 
-            double exposedOut = -(Math.Pow(exposedTemp, PhysicsGlobals.PartEmissivityExponent)
-                              - Math.Pow(exposedRadiationTemp, PhysicsGlobals.PartEmissivityExponent))
-                * PhysicsGlobals.StefanBoltzmanConstant * scalar * convectionArea;
+            double exposedRad = -(Math.Pow(exposedTemp, PhysicsGlobals.PartEmissivityExponent) * PhysicsGlobals.StefanBoltzmanConstant * scalar
+                              - radIn)
+                              * convectionArea;
 
-            double restOut = -(Math.Pow(restTemp, PhysicsGlobals.PartEmissivityExponent)
+            double restRad = -(Math.Pow(restTemp, PhysicsGlobals.PartEmissivityExponent)
                               - Math.Pow(lowLevelRadiationTemp, PhysicsGlobals.PartEmissivityExponent))
                 * PhysicsGlobals.StefanBoltzmanConstant * scalar * (part.radiativeArea - convectionArea);
 
-            exposedTemp += (exposedOut + restOut) * finalScalar;
+            exposedTemp += (exposedRad + restRad) * finalScalar;
             //print("Temp + radOut =" + tempTemp.ToString("F4"));
-            part.thermalRadiationFlux = exposedOut + restOut + sunFlux;
+            part.thermalRadiationFlux = exposedRad + restRad + sunFlux;
             
             skinTemperature = Math.Max(exposedTemp, PhysicsGlobals.SpaceTemperature);
         }
