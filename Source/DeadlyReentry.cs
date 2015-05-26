@@ -59,6 +59,9 @@ namespace DeadlyReentry
         [KSPField(isPersistant = false, guiActive = false, guiName = "Flux /Area", guiUnits = " kW/m2",   guiFormat = "x.00")]
         public string convFluxAreaDisplay;
 
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Rad Flux /Area", guiUnits = " kW/m2", guiFormat = "x.00")]
+        public string radFluxInAreaDisplay;
+
         [KSPField(isPersistant = false, guiActive = false, guiName = "Skin Cond", guiUnits = " W/m2",   guiFormat = "x.00")]
         public string skinCondFluxAreaDisplay;
         
@@ -520,18 +523,20 @@ namespace DeadlyReentry
                 }
                 exposedRadiationTemp = UtilMath.Lerp(FI.externalTemperature, PhysicsGlobals.SpaceTemperature, dyndensityThermalLerp);
             }
+            double radIn = Math.Pow(exposedRadiationTemp, PhysicsGlobals.PartEmissivityExponent) * PhysicsGlobals.StefanBoltzmanConstant * scalar;
+            radFluxInAreaDisplay = (radIn / convectionArea).ToString("N4");
 
-            double exposedOut = -(Math.Pow(exposedTemp, PhysicsGlobals.PartEmissivityExponent)
-                              - Math.Pow(exposedRadiationTemp, PhysicsGlobals.PartEmissivityExponent))
-                * PhysicsGlobals.StefanBoltzmanConstant * scalar * convectionArea;
+            double exposedRad = -(Math.Pow(exposedTemp, PhysicsGlobals.PartEmissivityExponent) * PhysicsGlobals.StefanBoltzmanConstant * scalar
+                              - radIn)
+                              * convectionArea;
 
-            double restOut = -(Math.Pow(restTemp, PhysicsGlobals.PartEmissivityExponent)
+            double restRad = -(Math.Pow(restTemp, PhysicsGlobals.PartEmissivityExponent)
                               - Math.Pow(lowLevelRadiationTemp, PhysicsGlobals.PartEmissivityExponent))
                 * PhysicsGlobals.StefanBoltzmanConstant * scalar * (part.radiativeArea - convectionArea);
 
-            exposedTemp += (exposedOut + restOut) * finalScalar;
+            exposedTemp += (exposedRad + restRad) * finalScalar;
             //print("Temp + radOut =" + tempTemp.ToString("F4"));
-            part.thermalRadiationFlux = exposedOut + restOut + sunFlux;
+            part.thermalRadiationFlux = exposedRad + restRad + sunFlux;
             
             skinTemperature = Math.Max(exposedTemp, PhysicsGlobals.SpaceTemperature);
         }
@@ -597,6 +602,7 @@ namespace DeadlyReentry
                 Fields["RadiativeAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["ExposedAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["convFluxAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields["radFluxInAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["skinCondFluxAreaDisplay"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 if (myWindow != null)
                 {
@@ -922,6 +928,7 @@ namespace DeadlyReentry
         public float charMin = 0f;
         [KSPField]
         public double charOffset = 0d; // offset to amount and maxamount
+        private bool doChar = false;
         
         // public fields
         public PartResource ablative = null; // pointer to the PartResource
@@ -959,7 +966,25 @@ namespace DeadlyReentry
             }
             origConductivity = part.heatConductivity;
 
+            // Do we do charring?
+            doChar = false;
             renderers = part.FindModelComponents<Renderer>();
+            if ((object)ablative != null && renderers != null && renderers.Length > 0 && charMax != charMin)
+            {
+                try
+                {
+                    Color color = new Color(charMax, charMax, charMax, charAlpha);
+                    for (int i = renderers.Length - 1; i >= 0; --i)
+                    {
+                        renderers[i].material.SetColor(shaderPropertyBurnColor, color);
+                    }
+                    doChar = true;
+                }
+                catch
+                {
+                    doChar = false;
+                }
+            }
         }
         
         public override void FixedUpdate()
@@ -1009,7 +1034,7 @@ namespace DeadlyReentry
             }
             fluxDisplay = flux.ToString("N4");
             lossDisplay = loss.ToString("N4");
-            if (charMax != charMin)
+            if (doChar)
                 UpdateColor();
         }
         private void UpdateColor()
@@ -1020,7 +1045,7 @@ namespace DeadlyReentry
             float delta = charMax - charMin;
             float colorValue = charMin + delta * ratio;
             Color color = new Color(colorValue, colorValue, colorValue, charAlpha);
-            for (int i = renderers.Length - 1; i >= 0; i--)
+            for (int i = renderers.Length - 1; i >= 0; --i)
             {
                 renderers[i].material.SetColor(shaderPropertyBurnColor, color);
             }
