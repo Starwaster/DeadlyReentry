@@ -247,7 +247,7 @@ namespace DeadlyReentry
             
             // only one of skinThermalMassModifier and skinThicknessFactor should be configured
             if (skinThermalMass == -1.0)
-                skinThermalMass = (double)part.mass * PhysicsGlobals.StandardSpecificHeatCapacity * skinThermalMassModifier * skinThicknessFactor;
+                skinThermalMass = Math.Max((double)part.mass, 0.001D) * PhysicsGlobals.StandardSpecificHeatCapacity * skinThermalMassModifier * skinThicknessFactor;
             skinThermalMassReciprocal = 1.0 / Math.Max (skinThermalMass, 0.001);
             GameEvents.onVesselWasModified.Add(OnVesselWasModified);
 
