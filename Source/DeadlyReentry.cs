@@ -27,7 +27,7 @@ namespace DeadlyReentry
         public double skinThermalMassModifier = -1.0;
         
         [KSPField(isPersistant = false)]
-        public double skinThicknessFactor = 0.1;
+        public double skinThicknessFactor = 0.01;
         
         [KSPField(isPersistant = false)]
         public double skinHeatConductivity = 0.0012;
