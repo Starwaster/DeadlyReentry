@@ -256,7 +256,7 @@ namespace DeadlyReentry
             {
                 if (part.thermalMassModifier == part.partInfo.partPrefab.thermalMassModifier)
                 {
-                    double baseTM = (double)part.mass * PhysicsGlobals.StandardSpecificHeatCapacity * part.thermalMassModifier;
+                    double baseTM = Math.Max((double)part.mass, 0.001D) * PhysicsGlobals.StandardSpecificHeatCapacity * part.thermalMassModifier;
                     part.thermalMassModifier *= (baseTM - skinThermalMass) / baseTM;
                 }
             }
