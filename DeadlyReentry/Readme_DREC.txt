@@ -25,9 +25,10 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 Changelog:
 v7.1.0
 * Added heat shield char support. (not all shields)
-* Changes to skin conduction, radiation and convection
+* Major changes to skin conduction, radiation and convection
 * Skin percentage is now actually a percentage of thermal mass. (i.e. part thermal mass goes down as skin thermal mass goes up)
 * Heat shield aerodynamics fixed. (stable when blunt end forwards for all DRE shields & ADEPT shields)
+* Heat shield decoupler: texts fixed. Unused decouplers removed. 0.625m decoupler added.
 * NaN checking
 * MOAR NaN checking
 * Moved away from foreach usage. (you shouldn't use foreach, m'kay? foreach is bad.... m'kay?)
