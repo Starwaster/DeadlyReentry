@@ -23,6 +23,23 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v7.1.0
+* Added heat shield char support. (not all shields)
+* Changes to skin conduction, radiation and convection
+* Skin percentage is now actually a percentage of thermal mass. (i.e. part thermal mass goes down as skin thermal mass goes up)
+* Heat shield aerodynamics fixed. (stable when blunt end forwards for all DRE shields & ADEPT shields)
+* NaN checking
+* MOAR NaN checking
+* Moved away from foreach usage. (you shouldn't use foreach, m'kay? foreach is bad.... m'kay?)
+* Delete audio on destroy
+* reimplemented engine detection
+* RO support
+* Depleted shields burn easier
+* 1kg minimum part mass enforced. (in calculations only; part mass is not touched)
+* Fixed 3.75m shield normal map
+* Patching of KSO parts to remove obsolete pre DRE 7 configs.
+
+
 v7.0.3
 * Calculate what pecentage of skin is actually facing the shockwave and use only that percent for thermalMass
 * Add OnDestroy() and null the FlightIntegrator cache
