@@ -91,7 +91,7 @@ namespace DeadlyReentry
         private double lastGForce = 0;
         
         [KSPField(isPersistant = true)]
-        private bool dead;
+        public bool dead;
         
         [KSPField]
         public float gTolerance = -1;
@@ -480,7 +480,8 @@ namespace DeadlyReentry
             double sunFlux = 0d;
             double exposedTemp = skinTemperature;
             // TODO This needs to track two skin temperatures: exposed skinTemperature and unexposed skinTemperature
-            double restTemp = Math.Max(part.temperature, skinTemperature * skinUnexposedTempFraction); // assume non-exposed area is at the part's temp.
+            // No, can't do it this way. Can't use a different reference temperature than the value you're altering or it never equalizes!
+            double restTemp = skinTemperature;//Math.Max(part.temperature, skinTemperature * skinUnexposedTempFraction);
             double exposedMult = convectionArea / part.radiativeArea;
             if (double.IsNaN(exposedMult))
                 exposedMult = 1d;
@@ -524,8 +525,8 @@ namespace DeadlyReentry
                 exposedRadiationTemp = UtilMath.Lerp(FI.externalTemperature, PhysicsGlobals.SpaceTemperature, dyndensityThermalLerp);
             }
             double radIn = Math.Pow(exposedRadiationTemp, PhysicsGlobals.PartEmissivityExponent) * PhysicsGlobals.StefanBoltzmanConstant * scalar;
-            radFluxInAreaDisplay = (radIn / convectionArea).ToString("N4");
-
+            if (PhysicsGlobals.ThermalDataDisplay)
+                radFluxInAreaDisplay = (radIn / convectionArea).ToString("N4");
             double exposedRad = -(Math.Pow(exposedTemp, PhysicsGlobals.PartEmissivityExponent) * PhysicsGlobals.StefanBoltzmanConstant * scalar
                               - radIn)
                               * convectionArea;
@@ -915,7 +916,7 @@ namespace DeadlyReentry
         public double reentryConductivity = 0.01d;
 
         [KSPField]
-        public double depletedMaxTemp = 1300;
+        public double depletedMaxTemp = 1200;
 
         // Char stuff
         private static int shaderPropertyBurnColor = Shader.PropertyToID("_BurnColor");
