@@ -29,6 +29,7 @@ namespace DeadlyReentry
 
         public void Start()
         {
+            return;
             print("Attempting to register ProcessUpdateConvectionOverride with ModularFlightIntegrator");
             bool result=false;
             result =  ModularFlightIntegrator.RegisterUpdateConvectionOverride(ProcessUpdateConvection);
