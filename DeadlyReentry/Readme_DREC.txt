@@ -23,6 +23,17 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v7.2.0
+* Deadly Reentry no longer implements reentry heating. Instead it tweaks parameters to make stock reentry deadlier.
+* Deadly Reentry still handles G-force damage.
+* Still no menu. (sorry! Cute cat still there!)
+* Configs for all parts previously handled by Deadly Reentry have been edited to take advantage of new stock skin system.
+* Spaceplane handling is a bit experimental and relies on having a skin with VERY low thermal mass which increases the heat loss from radiation. 
+  (use VERY shallow reentries for spaceplanes and reentries will be survivable but difficult. Consider turning off the heat gauges or you will get a frightful scare when you do spaceplane reentries)
+* (no, seriously, turn the heat gauges off...)
+* skinMaxTemp tends to be higher than maxTemp which now represents internal temp, including resource temp.
+* ModularFlightIntegrator is still a dependency but is not currently used by Deadly Reentry.
+
 v7.1.0
 * Added heat shield char support. (not all shields)
 * Major changes to skin conduction, radiation and convection

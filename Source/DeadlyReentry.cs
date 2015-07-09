@@ -68,9 +68,27 @@ namespace DeadlyReentry
         private bool is_engine = false;
         private bool is_eva = false;
 
-        private double convectionArea;
+        protected double recordedHeatFlux = 0.0;
+
+        protected double maximumRecordedHeat = 0.0;
+
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Rec. Heat", guiUnits = "", guiFormat = "F4")]
+        protected string displayRecordedHeatFlux = "0 W"; // recorded incoming heat flux. (sort of, kind of, not really)
         
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Max. Rec. Heat", guiUnits = "", guiFormat = "F4")]
+        protected string displayMaximumRecordedHeat = "0 W";
         
+        [KSPEvent(guiName = "Reset Heat Record", guiActiveUnfocused = true, externalToEVAOnly = false, guiActive = false, unfocusedRange = 4f)]
+        public void ResetRecordedHeat()
+        {
+            displayRecordedHeatFlux = "0 W";
+            displayMaximumRecordedHeat = "0 W";
+            recordedHeatFlux = 0f;
+            maximumRecordedHeat = 0f;
+            if (myWindow != null)
+                myWindow.displayDirty = true;
+        }
+
         EventData<GameEvents.ExplosionReaction> ReentryReaction = GameEvents.onPartExplode;
         
         UIPartActionWindow _myWindow = null; 
@@ -102,7 +120,22 @@ namespace DeadlyReentry
             return hours.ToString ("D2") 
                 + ":" + minutes.ToString ("D2") + ":" + seconds.ToString ("D2");
         }
-        
+
+        static string FormatFlux(double flux)
+        {
+            if (flux >= 1000000000000.0)
+                return (flux / 1000000000000.0).ToString("F2") + " TW";
+            else if (flux >= 1000000000.0)
+                return (flux / 1000000000.0).ToString("F2") + " GW";
+            else if (flux >= 1000000.0)
+                return (flux / 1000000.0).ToString("F2") + " MW";
+            else if (flux >= 1000.0)
+                return (flux / 1000.0).ToString("F2") + " kW";
+            else
+                return flux.ToString("F2") + " W";
+
+        }
+
         public static void PlaySound(FXGroup fx, float volume)
         {
             if(fx.audio.isPlaying) {
@@ -121,7 +154,7 @@ namespace DeadlyReentry
         {
             get {
                 if(_gForceFX == null) {
-                    _gForceFX = new FXGroup (part.partName + "_Crushing");
+                    _gForceFX = new FXGroup (part.name + "_Crushing");
                     _gForceFX.audio = gameObject.AddComponent<AudioSource>();
                     _gForceFX.audio.clip = GameDatabase.Instance.GetAudioClip("DeadlyReentry/Sounds/gforce_damage");
                     _gForceFX.audio.volume = GameSettings.SHIP_VOLUME;
@@ -137,7 +170,7 @@ namespace DeadlyReentry
         {
             get {
                 if(_ablationSmokeFX == null) {
-                    _ablationSmokeFX = new FXGroup (part.partName + "_Smoking");
+                    _ablationSmokeFX = new FXGroup (part.name + "_Smoking");
                     _ablationSmokeFX.fxEmitters.Add (Emitter("fx_smokeTrail_medium").GetComponent<ParticleEmitter>());
                 }
                 return _ablationSmokeFX;
@@ -149,7 +182,7 @@ namespace DeadlyReentry
         {
             get {
                 if(_ablationFX == null) {
-                    _ablationFX = new FXGroup (part.partName + "_Burning");
+                    _ablationFX = new FXGroup (part.name + "_Burning");
                     _ablationFX.fxEmitters.Add (Emitter("fx_exhaustFlame_yellow").GetComponent<ParticleEmitter>());
                     _ablationFX.fxEmitters.Add(Emitter("fx_exhaustSparks_yellow").GetComponent<ParticleEmitter>());
                     _ablationFX.audio = gameObject.AddComponent<AudioSource>();
@@ -242,8 +275,19 @@ namespace DeadlyReentry
             // Looking kinda sparse these days...
             //CheckForFire();
             CheckGeeForces();
+            if (vessel.mach > 1.0)
+            {
+                recordedHeatFlux += part.thermalConvectionFlux;
+                maximumRecordedHeat = Math.Max(maximumRecordedHeat, part.thermalConvectionFlux);
+            }
+            if (is_debugging)
+            {
+                displayRecordedHeatFlux = FormatFlux(recordedHeatFlux);
+                displayMaximumRecordedHeat = FormatFlux(maximumRecordedHeat);
+            }
         }
 
+        /*
         public void CalculateAreas(out float radArea, out float exposedArea, out float totalArea)
         {
             exposedArea = 0f;
@@ -272,6 +316,7 @@ namespace DeadlyReentry
             if (float.IsNaN(exposedArea))
                 exposedArea = 0f;
         }
+        */
 
         /*
         public void UpdateSkinConduction()
@@ -299,6 +344,9 @@ namespace DeadlyReentry
                 is_debugging = PhysicsGlobals.ThermalDataDisplay;
 
                 //Fields["FIELD-TO-DISPLAY"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields["displayRecordedHeatFlux"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields["displayMaximumRecordedHeat"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Events["ResetRecordedHeat"].guiActive = PhysicsGlobals.ThermalDataDisplay;
 
                 if (myWindow != null)
                 {
@@ -575,13 +623,16 @@ namespace DeadlyReentry
         }
     }
 
-    // TODO PROBABLY deprecate ModuleHeatShield. For now though, just removing its functionality and extending ModuleAblator so as not to break anything that uses this class.
+    // TODO WOULD deprecate ModuleHeatShield but still needed for depletedMaxTemp.
     class ModuleHeatShield : ModuleAblator
     {
         public PartResource ablative = null; // pointer to the PartResource
 
         [KSPField()]
         protected double depletedMaxTemp = 1200.0;
+
+        [KSPField]
+        protected double depletedConductivity = 1.0;
 
         public new void Start()
         {
@@ -602,12 +653,15 @@ namespace DeadlyReentry
         {
             if (!HighLogic.LoadedSceneIsFlight || !FlightGlobals.ready)
                 return;
-            
+
             base.FixedUpdate ();
 
             if (ablative.amount <= 0.0)
             {
                 part.skinMaxTemp = Math.Min(part.skinMaxTemp, depletedMaxTemp);
+                part.heatConductivity = Math.Min(part.heatConductivity, depletedConductivity);
+                part.skinSkinConductionMult = Math.Min(part.skinSkinConductionMult, depletedConductivity);
+                part.skinInternalConductionMult = Math.Min(part.skinInternalConductionMult, depletedConductivity);
             }
         }
     }
@@ -734,8 +788,6 @@ namespace DeadlyReentry
         
         public static float gToleranceMult = 6.0f;
 
-        public static double machMultiplier  = 1.0;
-        
         public static bool debugging = false;
 
         public void Start()
@@ -756,8 +808,6 @@ namespace DeadlyReentry
             {
                 if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.Instance.DifficultyName)
                 {
-                    if (node.HasValue("machMultiplier"))
-                        double.TryParse(node.GetValue("machMultiplier"), out machMultiplier);
                     if (node.HasValue("gToleranceMult"))
                         float.TryParse(node.GetValue("gToleranceMult"), out gToleranceMult);                    
                     if (node.HasValue("crewGClamp"))
