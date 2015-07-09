@@ -29,6 +29,8 @@ namespace DeadlyReentry
 
         public void Start()
         {
+            /*
+            return;
             print("Attempting to register ProcessUpdateConvectionOverride with ModularFlightIntegrator");
             bool result=false;
             result =  ModularFlightIntegrator.RegisterUpdateConvectionOverride(ProcessUpdateConvection);
@@ -40,6 +42,7 @@ namespace DeadlyReentry
             result = ModularFlightIntegrator.RegisterUpdateRadiationOverride(ProcessUpdateRadiation);
             if (!result)
                 print("Unable to override stock radiant heating!");
+            */
         }
 
 
