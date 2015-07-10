@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Linq;
 using UnityEngine;
 using KSP;
-using ModularFI;
+//using ModularFI;
 
 namespace DeadlyReentry
 {
@@ -24,7 +24,8 @@ namespace DeadlyReentry
         
         [KSPField(isPersistant = false, guiActive = false, guiName = "Cumulative G", guiUnits = "", guiFormat = "F0")]
         public double gExperienced = 0;
-        
+
+        /*
         private ModularFlightIntegrator fi;
         public ModularFlightIntegrator FI
         {
@@ -38,7 +39,7 @@ namespace DeadlyReentry
         }
         
         public ModularFlightIntegrator.PartThermalData ptd;
-        
+        */
         private double lastGForce = 0;
         
         [KSPField(isPersistant = true)]
@@ -222,7 +223,7 @@ namespace DeadlyReentry
                 return;
             
             
-            FI = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
+            //FI = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
             if (part.skinThermalMassModifier == -1.0)
                 part.skinThermalMassModifier = part.thermalMassModifier;
             
@@ -232,7 +233,7 @@ namespace DeadlyReentry
             if (part.skinThermalMass == -1.0)
                 part.skinThermalMass = Math.Max((double)part.mass, 0.001D) * PhysicsGlobals.StandardSpecificHeatCapacity * part.skinThermalMassModifier;
             part.skinThermalMassRecip = 1.0 / Math.Max (part.skinThermalMass, 0.001);
-            GameEvents.onVesselWasModified.Add(OnVesselWasModified);
+            //GameEvents.onVesselWasModified.Add(OnVesselWasModified);
 
             // edit part thermal mass modifier so we subtract out skin thermal mass
             if (part.partInfo != null && part.partInfo.partPrefab != null)
@@ -248,19 +249,19 @@ namespace DeadlyReentry
 
         void OnDestroy()
         {
-            FI = null;
+            //FI = null;
             if(_ablationFX != null && _ablationFX.audio != null)
                 DestroyImmediate(_ablationFX.audio);
             if(_gForceFX != null && _gForceFX.audio != null)
                 DestroyImmediate(_gForceFX.audio);
         }
-        
+        /*
         public void OnVesselWasModified(Vessel v)
         {
             if (v == vessel)
                 FI = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
         }
-        
+        */
         public virtual void FixedUpdate()
         {
             if (!FlightGlobals.ready)
@@ -599,24 +600,7 @@ namespace DeadlyReentry
             return fx;
             
         }
-        
-        public double _GetBodyArea(ModularFlightIntegrator.PartThermalData ptd)
-        {
-            Part p = ptd.part;
-            if (p.DragCubes.None)
-                return 0d;
-            Vector3 bodyLocal = p.partTransform.InverseTransformDirection(-vessel.upAxis);
-            return p.DragCubes.GetCubeAreaDir(bodyLocal) * ptd.bodyAreaMultiplier;
-        }
-        
-        public double _GetSunArea(ModularFlightIntegrator fi, ModularFlightIntegrator.PartThermalData ptd)
-        {
-            Part p = ptd.part;
-            if (p.DragCubes.None)
-                return 0d;
-            Vector3 localSun = p.partTransform.InverseTransformDirection(FI.sunVector);
-            return p.DragCubes.GetCubeAreaDir(localSun) * ptd.sunAreaMultiplier;
-        }
+
         static void print(string msg)
         {
             MonoBehaviour.print("[DeadlyReentry.ModuleAeroReentry] " + msg);
