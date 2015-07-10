@@ -23,6 +23,9 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v7.2.1
+* Removed Modular Flight Integrator dependency
+
 v7.2.0
 * Deadly Reentry no longer implements reentry heating. Instead it tweaks parameters to make stock reentry deadlier.
 * Deadly Reentry still handles G-force damage.
