@@ -122,19 +122,21 @@ namespace DeadlyReentry
                 + ":" + minutes.ToString ("D2") + ":" + seconds.ToString ("D2");
         }
 
-        static string FormatFlux(double flux)
+        static string FormatFlux(double flux, bool scale = false)
         {
-            if (flux >= 1000000000000.0)
-                return (flux / 1000000000000.0).ToString("F2") + " TW";
-            else if (flux >= 1000000000.0)
-                return (flux / 1000000000.0).ToString("F2") + " GW";
+            if (scale)
+                flux *= TimeWarp.fixedDeltaTime;
+            if (flux >= 1000000000.0)
+                return (flux / 1000000000.0).ToString("F2") + " T";
             else if (flux >= 1000000.0)
-                return (flux / 1000000.0).ToString("F2") + " MW";
+                return (flux / 1000000.0).ToString("F2") + " G";
             else if (flux >= 1000.0)
-                return (flux / 1000.0).ToString("F2") + " kW";
+                return (flux / 1000.0).ToString("F2") + " M";
+            else if (flux >= 1.0)
+                return (flux).ToString("F2") + " k";
             else
-                return flux.ToString("F2") + " W";
-
+                return (flux * 1000.0).ToString("F2");
+            
         }
 
         public static void PlaySound(FXGroup fx, float volume)
@@ -283,8 +285,8 @@ namespace DeadlyReentry
             }
             if (is_debugging)
             {
-                displayRecordedHeatFlux = FormatFlux(recordedHeatFlux);
-                displayMaximumRecordedHeat = FormatFlux(maximumRecordedHeat);
+                displayRecordedHeatFlux = FormatFlux(recordedHeatFlux, true) + "J";
+                displayMaximumRecordedHeat = FormatFlux(maximumRecordedHeat) + "W";
             }
         }
 
@@ -427,7 +429,7 @@ namespace DeadlyReentry
                     if (gExperienced > crewGWarn && crew.Count > 0)
                     {
                         
-                        if (gExperienced < crewGLimit)
+                        if (DeadlyReentryScenario.Instance.displayCrewGForceWarning && gExperienced < crewGLimit)
                             ScreenMessages.PostScreenMessage(ReentryPhysics.crewGWarningMsg, false);
                         else
                         {
@@ -765,11 +767,10 @@ namespace DeadlyReentry
         public static Vector3 frameVelocity;
         
         public static GUIStyle warningMessageStyle = new GUIStyle();
+        public static FontStyle fontStyle = new FontStyle();
         
-        public static ScreenMessage chuteWarningMsg = new ScreenMessage("Warning: Chute deployment unsafe!", 1f, ScreenMessageStyle.UPPER_CENTER, warningMessageStyle);
-        public static ScreenMessage crewGWarningMsg = new ScreenMessage("Reaching Crew G limit!", 1f, ScreenMessageStyle.UPPER_CENTER, warningMessageStyle);
-        
-        
+        public static ScreenMessage crewGWarningMsg = new ScreenMessage("<color=#ff0000>Reaching Crew G limit!</color>", 1f, ScreenMessageStyle.UPPER_CENTER);
+
         public static float gToleranceMult = 6.0f;
 
         public static bool debugging = false;
@@ -783,9 +784,17 @@ namespace DeadlyReentry
             }
             enabled = true; // 0.24 compatibility
             Debug.Log("[DRE] - ReentryPhysics.Start(): LoadSettings(), Difficulty: " + DeadlyReentryScenario.Instance.DifficultyName);
+            warningMessageStyle.font = GUI.skin.font;
+            warningMessageStyle.fontSize = 32;
+            //warningMessageStyle.
+
+            warningMessageStyle.fontStyle = GUI.skin.label.fontStyle;
+
+            crewGWarningMsg.guiStyleOverride = warningMessageStyle;
+
+
             LoadSettings(); // Moved loading of REENTRY_EFFECTS into a generic loader which uses new difficulty settings
         }
-        // TODO Move all G-Force related settings to static ReentryPhysics settings?
         public static void LoadSettings()
         {
             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
