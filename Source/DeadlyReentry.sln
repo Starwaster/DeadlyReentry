@@ -32,7 +32,7 @@ Global
 		$2.inheritsSet = VisualStudio
 		$2.inheritsScope = text/plain
 		description = The Melificent Edition
-		version = 7.0.5
+		version = 7.2.2
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
