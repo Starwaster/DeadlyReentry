@@ -618,7 +618,7 @@ namespace DeadlyReentry
         protected double depletedMaxTemp = 1200.0;
 
         [KSPField]
-        protected double depletedConductivity = 1.0;
+        protected double depletedConductivity = 20.0;
 
         public new void Start()
         {
@@ -642,7 +642,7 @@ namespace DeadlyReentry
 
             base.FixedUpdate ();
 
-            if (ablative.amount <= 0.0)
+            if (ablative.amount <= ablative.maxAmount * 0.000001)
             {
                 part.skinMaxTemp = Math.Min(part.skinMaxTemp, depletedMaxTemp);
                 part.heatConductivity = Math.Min(part.heatConductivity, depletedConductivity);
