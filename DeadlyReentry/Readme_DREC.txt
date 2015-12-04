@@ -27,9 +27,33 @@ v7.3.0
 * KSP 1.0.5 compatibility update
 * Code cleanup of extraneous DRE 7.1.0 skin remnants.
 * Fire damage reinstated
+* Repairing of damage now requires an engineer on EVA - the  more badly damaged the part, the greater the skill required.
+* Damaged parts have lowered tolerance to further overheating and may break loose easier. (skinMaxTemp, breakingForce and breakingTorque are all reduced)
 * Part configuration patches tweaked.
 * It's still the Melificent Edition.
 * Almost reinstated DRE specific menu options.
+
+v7.2.2
+* Adjusted all DRE shield part cost and mass. (adjusted cost to account
+for resource  problem described in issue #24 and adjusted heat shield
+masses to saner values)
+* Adjusted cost in Procedural Fairings to account for resource problem
+described in issue #24. (both stock fairing and PF mod)
+* screen message formatting
+* Corrected flux formatting for displays.
+* Approximating total absorbed heat in joules. (displayed in part
+context menu for total convective heat when over Mach 1)
+* Removed settings for chute warning messages since DRE no longer
+implements chute failures.
+* Version revision restriction. From this point on, revision restriction
+	in effect. DRE will not run on anything older than 1.0.4 and will also
+	fail on future updates until an updated version is released.
+* RSS specific tweaks. (modify lossConst / pyrolysisLossFactor to allow shields to survive reentry)
+* globally changed reentryConductivity to 0.001 (insulation allows 1 W / kW)
+* Implemented depletion threshold for maxTemps/conductivity changes. 
+* increased depletedConductivity to 20 from 1. 
+  (insulation burns up and becomes useless. Fiery plasma sweeps through your craft incinerating all in its path. Hilarity ensues)
+* Space is a tough place where wimps eat flaming plasma death.
 
 v7.2.1
 * Removed Modular Flight Integrator dependency
