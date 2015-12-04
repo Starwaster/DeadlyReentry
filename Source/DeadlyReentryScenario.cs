@@ -34,7 +34,7 @@ namespace DeadlyReentry
 			}
 		}
 
-        private static string[] difficultyName = {"Easy", "Default", "Hard", "Alternate.Model", "RSS"};
+        private static string[] difficultyName = {"Easy", "Default", "Hard"};
 
         public string DifficultyName
         {

@@ -23,6 +23,14 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v7.3.0
+* KSP 1.0.5 compatibility update
+* Code cleanup of extraneous DRE 7.1.0 skin remnants.
+* Fire damage reinstated
+* Part configuration patches tweaked.
+* It's still the Melificent Edition.
+* Almost reinstated DRE specific menu options.
+
 v7.2.1
 * Removed Modular Flight Integrator dependency
 
