@@ -252,25 +252,11 @@ namespace DeadlyReentry
             if(_gForceFX != null && _gForceFX.audio != null)
                 DestroyImmediate(_gForceFX.audio);
         }
-        /*
-        public void OnVesselWasModified(Vessel v)
-        {
-            if (v == vessel)
-                FI = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
-        }
-        */
+
         public virtual void FixedUpdate()
         {
             if (!FlightGlobals.ready)
                 return;
-
-            //if (FI == null)
-            //{
-            //    print("FlightIntegrator null. Trying to retrieve correct FI");
-            //    FI = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
-            //}
-
-            // Looking kinda sparse these days...
 
             CheckForFire();
             CheckGeeForces();
