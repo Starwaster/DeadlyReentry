@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace DeadlyReentry
 {
-	[KSPAddon(KSPAddon.Startup.EveryScene, false)]
+    [KSPAddon(KSPAddon.Startup.EveryScene, true)]
 	public class DRToolbar : UnityEngine.MonoBehaviour
 	{
 		private static Rect windowPosition = new Rect(0,0,360,480);
@@ -136,7 +136,7 @@ namespace DeadlyReentry
 				//Set the GUI Skin
 				//GUI.skin = HighLogic.Skin;
 				
-				windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry 7.0.5 - The Melificent Edition", windowStyle);
+				windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry 7.3.0 - The Melificent Edition", windowStyle);
 			}
 		}
 		private void OnDestroy()

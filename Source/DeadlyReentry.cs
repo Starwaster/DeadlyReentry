@@ -97,7 +97,9 @@ namespace DeadlyReentry
             {
                 int requiredSkill = 0;
 
-                if (damage > 0.5)
+                if (damage > 0.75)
+                    requiredSkill = 5;
+                else if (damage > 0.5)
                     requiredSkill = 4;
                 else if (damage > 0.25)
                     requiredSkill = 3;
@@ -112,6 +114,8 @@ namespace DeadlyReentry
                     if (damage < 0)
                         damage = 0;
                 }
+                else
+                    ScreenMessages.PostScreenMessage("<color=orange>[DeadlyReentry]: " + this.part.partInfo.title + " is too badly damaged for this Kerbal's skill level.</color>", 6f, ScreenMessageStyle.UPPER_LEFT);
             }
             SetDamageLabel ();
             if (myWindow != null)
@@ -290,7 +294,7 @@ namespace DeadlyReentry
         
         public void CheckGeeForces()
         {
-            if (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready)
+            if (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready && !CheatOptions.UnbreakableJoints)
             {
                 if (dead || (object)vessel == null || TimeWarp.fixedDeltaTime > 0.5 || TimeWarp.fixedDeltaTime <= 0)
                     return; // don't check G-forces in warp
@@ -425,7 +429,7 @@ namespace DeadlyReentry
 
         public void CheckForFire()
         {
-            if (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready)
+            if (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready && !CheatOptions.IgnoreMaxTemperature)
             {
                 if (FlightGlobals.ActiveVessel.situation != Vessel.Situations.PRELAUNCH || FlightGlobals.ActiveVessel.missionTime > 2.0)
                 {
