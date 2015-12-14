@@ -23,6 +23,14 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v7.3.1
+* Added skill check for damage above 0.75 (requires skill level 5)
+* No fire damage if CheatOptions.IgnoreMaxTemperature == true
+* No G-Force damage if CheatOptions.UnbreakableJoints == true
+* Only run toolbar code once. (addresses duplicates created when database reloaded)
+* Tweaked Mk1 Pod thermals (max temp, heat shield) to address complaints that pod is burning up too easily.
+* Updated RSS fallback heat shield configs
+
 v7.3.0
 * KSP 1.0.5 compatibility update
 * Code cleanup of extraneous DRE 7.1.0 skin remnants.
