@@ -113,13 +113,15 @@ namespace DeadlyReentry
                     damage = damage - UnityEngine.Random.Range(0.0f, 0.1f);
                     if (damage < 0)
                         damage = 0;
+
+                    ProcessDamage();
+                    SetDamageLabel ();
+                    if (myWindow != null)
+                        myWindow.displayDirty = true;
                 }
                 else
                     ScreenMessages.PostScreenMessage("<color=orange>[DeadlyReentry]: " + this.part.partInfo.title + " is too badly damaged for this Kerbal's skill level.</color>", 6f, ScreenMessageStyle.UPPER_LEFT);
             }
-            SetDamageLabel ();
-            if (myWindow != null)
-                myWindow.displayDirty = true;
         }
 
         EventData<GameEvents.ExplosionReaction> ReentryReaction = GameEvents.onPartExplode;
@@ -402,14 +404,18 @@ namespace DeadlyReentry
             if(is_debugging)
                 print (part.partInfo.title + ": +" + dmg + " damage");
             damage += dmg;
+            ProcessDamage();
+            SetDamageLabel ();
+        }
+        
+        public void ProcessDamage()
+        {
             part.skinMaxTemp = part.partInfo.partPrefab.skinMaxTemp * (1 - 0.15f * damage);
             part.breakingForce = part.partInfo.partPrefab.breakingForce * (1 - damage);
             part.breakingTorque = part.partInfo.partPrefab.breakingTorque * (1 - damage);
             part.crashTolerance = part.partInfo.partPrefab.crashTolerance * (1 - 0.5f * damage);
-            SetDamageLabel ();
         }
-        
-        
+
         public void SetDamageLabel() 
         {
             if (Events == null)
@@ -534,8 +540,15 @@ namespace DeadlyReentry
             fx.transform.localPosition = new Vector3 (0, 0, 0);
             fx.transform.localRotation = Quaternion.identity;
             fx.SetActive (false);
-            return fx;
+            return fx;      
+        }
+
+        public override void OnStart(PartModule.StartState state)
+        {
+            if (!HighLogic.LoadedSceneIsFlight)
+                return;
             
+            ProcessDamage();
         }
 
         static void print(string msg)
@@ -615,7 +628,6 @@ namespace DeadlyReentry
                             {
                                 try
                                 {
-                                    // allow heat sinks. Also ignore engines until RF engine situation is finally sorted
                                     if (part.partPrefab != null && !(part.partPrefab.Modules.Contains("ModuleHeatShield") || part.partPrefab.Modules.Contains("ModuleAblator")))
                                     {
                                         if (part.partPrefab.Modules.Contains("ModuleAeroReentry"))
