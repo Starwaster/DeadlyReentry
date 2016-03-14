@@ -165,17 +165,15 @@ namespace DeadlyReentry
             GUILayout.EndVertical();
 
             GUI.DragWindow();
-            /*
+
             if (GUI.changed)
             {
-                //DeadlyReentry.ReentryPhysics.SaveSettings();
-                //DeadlyReentry.ReentryPhysics.SaveCustomSettings();
+                DeadlyReentry.ReentryPhysics.SaveSettings();
+                DeadlyReentry.ReentryPhysics.SaveCustomSettings();
                 if (!DeadlyReentryScenario.Instance.displayCrewGForceWarning)
                     ScreenMessages.RemoveMessage(ReentryPhysics.crewGWarningMsg);
-                if (!DeadlyReentryScenario.Instance.displayParachuteWarning)
-                    ScreenMessages.RemoveMessage(ReentryPhysics.chuteWarningMsg);
             }
-            */
+
 		}
 
         static void print(string msg)

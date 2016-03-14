@@ -57,14 +57,12 @@ namespace DeadlyReentry
 		
 		public override void OnSave(ConfigNode node)
 		{
-            return;
 			node.AddValue ("difficultySetting", difficultySetting);
             node.AddValue ("displayCrewGForceWarning", displayCrewGForceWarning);
 		}
 		
 		public override void OnLoad(ConfigNode node)
 		{
-            return;
 			if (node.HasValue ("difficultySetting"))
 				difficultySetting = int.Parse (node.GetValue ("difficultySetting"));
 		}

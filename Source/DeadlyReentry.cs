@@ -366,7 +366,7 @@ namespace DeadlyReentry
                     {
                         
                         if (DeadlyReentryScenario.Instance.displayCrewGForceWarning && gExperienced < crewGLimit)
-                            ScreenMessages.PostScreenMessage(ReentryPhysics.crewGWarningMsg, false);
+                            ScreenMessages.PostScreenMessage(ReentryPhysics.crewGWarningMsg);
                         else
                         {
                             // borrowed from TAC Life Support
@@ -737,7 +737,7 @@ namespace DeadlyReentry
 
             warningMessageStyle.fontStyle = GUI.skin.label.fontStyle;
 
-            crewGWarningMsg.guiStyleOverride = warningMessageStyle;
+            //crewGWarningMsg.guiStyleOverride = warningMessageStyle;
 
 
             LoadSettings(); // Moved loading of REENTRY_EFFECTS into a generic loader which uses new difficulty settings
