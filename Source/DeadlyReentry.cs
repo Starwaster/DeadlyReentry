@@ -69,22 +69,25 @@ namespace DeadlyReentry
         private bool is_engine = false;
         private bool is_eva = false;
 
-        protected double recordedHeatFlux = 0.0;
-
+        protected double recordedHeatLoad = 0.0;
         protected double maximumRecordedHeat = 0.0;
+        protected double heatFluxPerArea = 0.0;
 
         [KSPField(isPersistant = false, guiActive = false, guiName = "Rec. Heat", guiUnits = "", guiFormat = "F4")]
-        protected string displayRecordedHeatFlux = "0 W"; // recorded incoming heat flux. (sort of, kind of, not really)
+        protected string displayRecordedHeatLoad = "0 W";
         
         [KSPField(isPersistant = false, guiActive = false, guiName = "Max. Rec. Heat", guiUnits = "", guiFormat = "F4")]
         protected string displayMaximumRecordedHeat = "0 W";
-        
+
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Heat/m2", guiUnits = "", guiFormat = "F4")]
+        protected string displayHeatFluxPerArea = "0 W/m2";
+
         [KSPEvent(guiName = "Reset Heat Record", guiActiveUnfocused = true, externalToEVAOnly = false, guiActive = false, unfocusedRange = 4f)]
         public void ResetRecordedHeat()
         {
-            displayRecordedHeatFlux = "0 W";
+            displayRecordedHeatLoad = "0 W";
             displayMaximumRecordedHeat = "0 W";
-            recordedHeatFlux = 0f;
+            recordedHeatLoad = 0f;
             maximumRecordedHeat = 0f;
             if (myWindow != null)
                 myWindow.displayDirty = true;
@@ -268,11 +271,13 @@ namespace DeadlyReentry
             CheckGeeForces();
             if (is_debugging && vessel.mach > 1.0)
             {
-                recordedHeatFlux += part.thermalConvectionFlux;
+                recordedHeatLoad += part.thermalConvectionFlux;
                 maximumRecordedHeat = Math.Max(maximumRecordedHeat, part.thermalConvectionFlux);
+                heatFluxPerArea = part.thermalConvectionFlux / part.skinExposedArea;
 
-                displayRecordedHeatFlux = FormatFlux(recordedHeatFlux, true) + "J";
+                displayRecordedHeatLoad = FormatFlux(recordedHeatLoad, true) + "J";
                 displayMaximumRecordedHeat = FormatFlux(maximumRecordedHeat) + "W";
+                displayHeatFluxPerArea = FormatFlux(heatFluxPerArea) + "W/m2";
             }
         }
         
@@ -283,8 +288,9 @@ namespace DeadlyReentry
                 is_debugging = PhysicsGlobals.ThermalDataDisplay;
 
                 //Fields["FIELD-TO-DISPLAY"].guiActive = PhysicsGlobals.ThermalDataDisplay;
-                Fields["displayRecordedHeatFlux"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields["displayRecordedHeatLoad"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["displayMaximumRecordedHeat"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields ["displayHeatFluxPerArea"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Events["ResetRecordedHeat"].guiActive = PhysicsGlobals.ThermalDataDisplay;
 
                 if (myWindow != null)
@@ -731,16 +737,21 @@ namespace DeadlyReentry
             }
             enabled = true; // 0.24 compatibility
             Debug.Log("[DRE] - ReentryPhysics.Start(): LoadSettings(), Difficulty: " + DeadlyReentryScenario.Instance.DifficultyName);
-            warningMessageStyle.font = GUI.skin.font;
-            warningMessageStyle.fontSize = 32;
+            LoadSettings(); // Moved loading of REENTRY_EFFECTS into a generic loader which uses new difficulty settings
+            //warningMessageStyle.font = GUI.skin.font;
+            //warningMessageStyle.fontSize = 32;
             //warningMessageStyle.
+            //warningMessageStyle.fontStyle = GUI.skin.label.fontStyle;
+            //crewGWarningMsg.guiStyleOverride = warningMessageStyle;
 
-            warningMessageStyle.fontStyle = GUI.skin.label.fontStyle;
 
+<<<<<<< HEAD
             //crewGWarningMsg.guiStyleOverride = warningMessageStyle;
 
 
             LoadSettings(); // Moved loading of REENTRY_EFFECTS into a generic loader which uses new difficulty settings
+=======
+>>>>>>> refs/remotes/origin/master
         }
         public static void LoadSettings()
         {

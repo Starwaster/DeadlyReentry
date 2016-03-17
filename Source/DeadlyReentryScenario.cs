@@ -65,6 +65,8 @@ namespace DeadlyReentry
 		{
 			if (node.HasValue ("difficultySetting"))
 				difficultySetting = int.Parse (node.GetValue ("difficultySetting"));
+            if (node.HasValue("displayCrewGForceWarning"))
+                displayCrewGForceWarning = bool.Parse(node.GetValue("displayCrewGForceWarning"));
 		}
 	}
 }
