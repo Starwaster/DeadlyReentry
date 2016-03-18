@@ -5,14 +5,12 @@ using System.Text;
 using System.Reflection;
 using System.Diagnostics;
 using UnityEngine;
-<<<<<<< HEAD
 using KSP.UI.Screens;
-=======
-using System.IO;
-using KSP.IO;
-using Debug = UnityEngine.Debug;
-using File = KSP.IO.File;
->>>>>>> refs/remotes/origin/master
+
+//using System.IO;
+//using KSP.IO;
+//using Debug = UnityEngine.Debug;
+//using File = KSP.IO.File;
 
 namespace DeadlyReentry
 {
@@ -213,10 +211,6 @@ namespace DeadlyReentry
                 if (!DeadlyReentryScenario.Instance.displayCrewGForceWarning)
                     ScreenMessages.RemoveMessage(ReentryPhysics.crewGWarningMsg);
             }
-<<<<<<< HEAD
-
-=======
->>>>>>> refs/remotes/origin/master
 		}
 
         static void print(string msg)

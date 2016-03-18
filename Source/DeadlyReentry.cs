@@ -743,15 +743,6 @@ namespace DeadlyReentry
             //warningMessageStyle.
             //warningMessageStyle.fontStyle = GUI.skin.label.fontStyle;
             //crewGWarningMsg.guiStyleOverride = warningMessageStyle;
-
-
-<<<<<<< HEAD
-            //crewGWarningMsg.guiStyleOverride = warningMessageStyle;
-
-
-            LoadSettings(); // Moved loading of REENTRY_EFFECTS into a generic loader which uses new difficulty settings
-=======
->>>>>>> refs/remotes/origin/master
         }
         public static void LoadSettings()
         {
