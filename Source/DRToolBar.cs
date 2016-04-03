@@ -15,20 +15,20 @@ namespace DeadlyReentry
     [KSPAddon(KSPAddon.Startup.MainMenu, true)]
 	public class DRToolbar : MonoBehaviour
 	{
-		private static Rect windowPosition = new Rect(0,0,360,480);
-		private static GUIStyle windowStyle = null;
-        private static GUIStyle windowStyleCenter = null;
 
 		#region Fields
         private static ApplicationLauncherButton DRToolbarButton = new ApplicationLauncherButton();
         private static bool addButton = true;
         private static bool visible = false;
 
+        private static Rect windowPosition = new Rect(0,0,360,480);
+        private static GUIStyle windowStyle = null;
+        private static GUIStyle windowStyleCenter = null;
+
         private GUISkin skins = HighLogic.Skin;
 		private int id = Guid.NewGuid().GetHashCode();
 		//private bool visible = false, showing = true;
 		//private Rect window = new Rect(), button = new Rect();
-		private Texture2D buttonTexture = new Texture2D(1, 1);
         private Texture Melificent = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Melificent", false);
         private string DREVersionString = "";
 		#endregion
@@ -57,7 +57,8 @@ namespace DeadlyReentry
             FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
             DREVersionString = string.Format("{0}.{1}.{2}", fileVersionInfo.FileMajorPart, fileVersionInfo.FileMinorPart, fileVersionInfo.FileBuildPart);
         }
-		void Awake() 
+
+        void Awake() 
 		{
 			// Set up the stock toolbar
 			GameEvents.onGUIApplicationLauncherReady.Add(OnGUIAppLauncherReady);
