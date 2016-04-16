@@ -767,9 +767,6 @@ namespace DeadlyReentry
                     if (node.HasValue("crewGKillChance"))
                         double.TryParse(node.GetValue("crewGKillChance"), out crewGKillChance);
                     
-                    
-                    if(node.HasValue("debugging"))
-                        bool.TryParse (node.GetValue ("debugging"), out debugging);
                     break;
                 }
             }
@@ -782,8 +779,7 @@ namespace DeadlyReentry
                 if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.Instance.DifficultyName)
                 {
                     if (node.HasValue("gToleranceMult"))
-                        node.SetValue("gToleranceMult", gToleranceMult.ToString());
-                    
+                        node.SetValue("gToleranceMult", gToleranceMult.ToString());                  
                     if (node.HasValue("crewGClamp"))
                         node.SetValue("crewGClamp", crewGClamp.ToString());
                     if (node.HasValue("crewGPower"))
@@ -807,7 +803,6 @@ namespace DeadlyReentry
         public static void SaveCustomSettings()
         {
             string[] difficultyNames = {"Default"};
-            bool btmp;
             float ftmp;
             double dtmp;
             
@@ -821,107 +816,48 @@ namespace DeadlyReentry
                         // This is :Final because it represents player choices and must not be overridden by other mods.
                         ConfigNode node = new ConfigNode("@REENTRY_EFFECTS[" + difficulty + "]:Final");
                         
-                        if(settingNode.HasValue("shockwaveExponent"))
-                        {
-                            float.TryParse(settingNode.GetValue("shockwaveExponent"), out ftmp);
-                            node.AddValue ("@shockwaveExponent", ftmp);
-                        }
-                        if (settingNode.HasValue("shockwaveMultiplier"))
-                        {
-                            float.TryParse(settingNode.GetValue("shockwaveMultiplier"), out ftmp);
-                            node.AddValue ("@shockwaveMultiplier", ftmp);
-                        }
-                        if(settingNode.HasValue("heatMultiplier"))
-                        {
-                            float.TryParse (settingNode.GetValue ("heatMultiplier"), out ftmp);
-                            node.AddValue ("@heatMultiplier", ftmp);
-                        }
-                        if(settingNode.HasValue("startThermal"))
-                        {
-                            float.TryParse (settingNode.GetValue ("startThermal"), out ftmp);
-                            node.AddValue ("@startThermal", ftmp);
-                        }
-                        if(settingNode.HasValue("fullThermal"))
-                        {
-                            float.TryParse (settingNode.GetValue ("fullThermal"), out ftmp);
-                            node.AddValue ("@fullThermal", ftmp);
-                        }
-                        if (settingNode.HasValue("afxDensityExponent"))
-                        {
-                            float.TryParse(settingNode.GetValue("afxDensityExponent"), out ftmp);
-                            node.AddValue ("@afxDensityExponent", ftmp);
-                        }
-                        if(settingNode.HasValue("temperatureExponent"))
-                        {
-                            float.TryParse (settingNode.GetValue ("temperatureExponent"), out ftmp);
-                            node.AddValue ("@temperatureExponent", ftmp);
-                        }
-                        if(settingNode.HasValue("densityExponent"))
-                        {
-                            float.TryParse (settingNode.GetValue ("densityExponent"), out ftmp);
-                            node.AddValue ("@densityExponent", ftmp);
-                        }
-                        
                         if (settingNode.HasValue("gToleranceMult"))
                         {
                             float.TryParse(settingNode.GetValue("gToleranceMult"), out ftmp);
                             node.AddValue ("@gToleranceMult", ftmp);
                         }
-                        
-                        if (settingNode.HasValue("parachuteTempMult"))
-                        {
-                            float.TryParse(settingNode.GetValue("parachuteTempMult"), out ftmp);
-                            node.AddValue ("@parachuteTempMult", ftmp);
-                        }
+
                         if (settingNode.HasValue("crewGKillChance"))
                         {
                             float.TryParse(settingNode.GetValue("crewGKillChance"), out ftmp);
                             node.AddValue ("@crewGKillChance", ftmp);
-                        }
-                        
+                        }                        
                         
                         if (settingNode.HasValue("crewGClamp"))
                         {
                             double.TryParse(settingNode.GetValue("crewGClamp"), out dtmp);
                             node.AddValue ("@crewGClamp", dtmp);
                         }
+
                         if (settingNode.HasValue("crewGPower"))
                         {
                             double.TryParse(settingNode.GetValue("crewGPower"), out dtmp);
                             node.AddValue ("@crewGPower", dtmp);
                         }
+
                         if (settingNode.HasValue("crewGMin"))
                         {
                             double.TryParse(settingNode.GetValue("crewGMin"), out dtmp);
                             node.AddValue ("@crewGMin", dtmp);
                         }
+
                         if (settingNode.HasValue("crewGWarn"))
                         {
                             double.TryParse(settingNode.GetValue("crewGWarn"), out dtmp);
                             node.AddValue ("@crewGWarn", dtmp);
                         }
+
                         if (settingNode.HasValue("crewGLimit"))
                         {
                             double.TryParse(settingNode.GetValue("crewGLimit"), out dtmp);
                             node.AddValue ("@crewGLimit", dtmp);
                         }
                         
-                        if(settingNode.HasValue("legacyAero"))
-                        {
-                            bool.TryParse(settingNode.GetValue("legacyAero"), out btmp);
-                            Debug.Log("[DRE] - legacyAero = " + btmp);
-                            node.AddValue ("@legacyAero", btmp.ToString());
-                        }
-                        if (settingNode.HasValue("dissipationCap"))
-                        {
-                            bool.TryParse(settingNode.GetValue("dissipationCap"), out btmp);
-                            node.AddValue("@dissipationCap", btmp.ToString());
-                        }
-                        if (settingNode.HasValue("useAlternateDensity"))
-                        {
-                            bool.TryParse(settingNode.GetValue("useAlternateDensity"), out btmp);
-                            node.AddValue("@useAlternateDensity", btmp.ToString());
-                        }
                         savenode.AddNode (node);
                         break;
                     }
