@@ -54,13 +54,6 @@ namespace DeadlyReentry
         [KSPField(isPersistant = true)]
         public float damage = 0;
 
-        public static double crewGClamp = 30;
-        public static double crewGPower = 4;
-        public static double crewGMin = 5;
-        public static double crewGWarn = 300000;
-        public static double crewGLimit = 600000;
-        public static double crewGKillChance = 0.75f;
-        
         private bool isCompatible = true;
         
         private bool is_on_fire = false;
@@ -318,7 +311,7 @@ namespace DeadlyReentry
                     //keep a running average of G force over 1s, to further prevent absurd spikes (mostly decouplers & parachutes)
                     displayGForce = displayGForce * (1 - TimeWarp.fixedDeltaTime) + (float)(geeForce * TimeWarp.fixedDeltaTime);
                 }
-                if (displayGForce < crewGMin)
+                if (displayGForce < ReentryPhysics.crewGMin)
                     gExperienced = 0;
                 
                 //double gTolerance;
@@ -364,19 +357,19 @@ namespace DeadlyReentry
                     part.explode();
                     return;
                 }
-                if (Math.Max(displayGForce, geeForce) >= crewGMin)
+                if (Math.Max(displayGForce, geeForce) >= ReentryPhysics.crewGMin)
                 {
-                    gExperienced += Math.Pow(Math.Min(Math.Abs(Math.Max(displayGForce, geeForce)), crewGClamp), crewGPower) * TimeWarp.fixedDeltaTime;
+                    gExperienced += Math.Pow(Math.Min(Math.Abs(Math.Max(displayGForce, geeForce)), ReentryPhysics.crewGClamp), ReentryPhysics.crewGPower) * TimeWarp.fixedDeltaTime;
                     List<ProtoCrewMember> crew = part.protoModuleCrew; //vessel.GetVesselCrew();
-                    if (gExperienced > crewGWarn && crew.Count > 0)
+                    if (gExperienced > ReentryPhysics.crewGWarn && crew.Count > 0)
                     {
                         
-                        if (DeadlyReentryScenario.Instance.displayCrewGForceWarning && gExperienced < crewGLimit)
+                        if (DeadlyReentryScenario.Instance.displayCrewGForceWarning && gExperienced < ReentryPhysics.crewGLimit)
                             ScreenMessages.PostScreenMessage(ReentryPhysics.crewGWarningMsg, false);
                         else
                         {
                             // borrowed from TAC Life Support
-                            if (UnityEngine.Random.Range(0f, 1f) < crewGKillChance)
+                            if (UnityEngine.Random.Range(0f, 1f) < ReentryPhysics.crewGKillChance)
                             {
                                 int crewMemberIndex = UnityEngine.Random.Range(0, crew.Count - 1);
                                 if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA)
@@ -725,6 +718,13 @@ namespace DeadlyReentry
         public static ScreenMessage crewGWarningMsg = new ScreenMessage("<color=#ff0000>Reaching Crew G limit!</color>", 1f, ScreenMessageStyle.UPPER_CENTER);
 
         public static float gToleranceMult = 6.0f;
+        public static double crewGClamp = 30;
+        public static double crewGPower = 4;
+        public static double crewGMin = 5;
+        public static double crewGWarn = 300000;
+        public static double crewGLimit = 600000;
+        public static double crewGKillChance = 0.75f;
+
 
         public static bool debugging = false;
 
@@ -755,17 +755,17 @@ namespace DeadlyReentry
                     if (node.HasValue("gToleranceMult"))
                         float.TryParse(node.GetValue("gToleranceMult"), out gToleranceMult);                    
                     if (node.HasValue("crewGClamp"))
-                        double.TryParse(node.GetValue("crewGClamp"), out ModuleAeroReentry.crewGClamp);
+                        double.TryParse(node.GetValue("crewGClamp"), out crewGClamp);
                     if (node.HasValue("crewGPower"))
-                        double.TryParse(node.GetValue("crewGPower"), out ModuleAeroReentry.crewGPower);
+                        double.TryParse(node.GetValue("crewGPower"), out crewGPower);
                     if (node.HasValue("crewGMin"))
-                        double.TryParse(node.GetValue("crewGMin"), out ModuleAeroReentry.crewGMin);
+                        double.TryParse(node.GetValue("crewGMin"), out crewGMin);
                     if (node.HasValue("crewGWarn"))
-                        double.TryParse(node.GetValue("crewGWarn"), out ModuleAeroReentry.crewGWarn);
+                        double.TryParse(node.GetValue("crewGWarn"), out crewGWarn);
                     if (node.HasValue("crewGLimit"))
-                        double.TryParse(node.GetValue("crewGLimit"), out ModuleAeroReentry.crewGLimit);
+                        double.TryParse(node.GetValue("crewGLimit"), out crewGLimit);
                     if (node.HasValue("crewGKillChance"))
-                        double.TryParse(node.GetValue("crewGKillChance"), out ModuleAeroReentry.crewGKillChance);
+                        double.TryParse(node.GetValue("crewGKillChance"), out crewGKillChance);
                     
                     
                     if(node.HasValue("debugging"))
@@ -785,17 +785,17 @@ namespace DeadlyReentry
                         node.SetValue("gToleranceMult", gToleranceMult.ToString());
                     
                     if (node.HasValue("crewGClamp"))
-                        node.SetValue("crewGClamp", ModuleAeroReentry.crewGClamp.ToString());
+                        node.SetValue("crewGClamp", crewGClamp.ToString());
                     if (node.HasValue("crewGPower"))
-                        node.SetValue("crewGPower", ModuleAeroReentry.crewGPower.ToString());
+                        node.SetValue("crewGPower", crewGPower.ToString());
                     if (node.HasValue("crewGMin"))
-                        node.SetValue("crewGMin", ModuleAeroReentry.crewGMin.ToString());
+                        node.SetValue("crewGMin", crewGMin.ToString());
                     if (node.HasValue("crewGWarn"))
-                        node.SetValue("crewGWarn", ModuleAeroReentry.crewGWarn.ToString());
+                        node.SetValue("crewGWarn", crewGWarn.ToString());
                     if (node.HasValue("crewGLimit"))
-                        node.SetValue("crewGLimit", ModuleAeroReentry.crewGLimit.ToString());
+                        node.SetValue("crewGLimit", crewGLimit.ToString());
                     if (node.HasValue("crewGKillChance"))
-                        node.SetValue("crewGKillChance", ModuleAeroReentry.crewGKillChance.ToString());
+                        node.SetValue("crewGKillChance", crewGKillChance.ToString());
                     
                     if(node.HasValue("debugging"))
                         node.SetValue("debugging", debugging.ToString());

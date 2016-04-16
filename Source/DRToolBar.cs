@@ -5,30 +5,23 @@ using System.Text;
 using System.Reflection;
 using System.Diagnostics;
 using UnityEngine;
-using System.IO;
-using KSP.IO;
-using Debug = UnityEngine.Debug;
-using File = KSP.IO.File;
 
 namespace DeadlyReentry
 {
-    [KSPAddon(KSPAddon.Startup.MainMenu, true)]
+    [KSPAddon(KSPAddon.Startup.EveryScene, false)]
 	public class DRToolbar : MonoBehaviour
 	{
-
 		#region Fields
-        private static ApplicationLauncherButton DRToolbarButton = new ApplicationLauncherButton();
-        private static bool addButton = true;
-        private static bool visible = false;
-
         private static Rect windowPosition = new Rect(0,0,360,480);
         private static GUIStyle windowStyle = null;
+        private static GUIStyle labelStyle = null;
         private static GUIStyle windowStyleCenter = null;
 
         private GUISkin skins = HighLogic.Skin;
 		private int id = Guid.NewGuid().GetHashCode();
 		//private bool visible = false, showing = true;
 		//private Rect window = new Rect(), button = new Rect();
+        private Texture2D buttonTexture = new Texture2D(32, 32);
         private Texture Melificent = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Melificent", false);
         private string DREVersionString = "";
 		#endregion
@@ -49,13 +42,16 @@ namespace DeadlyReentry
 		}
 		#endregion
 		
-		
+        private ApplicationLauncherButton DRToolbarButton = null;
+        private bool visible = false;
 		
 		DRToolbar ()
 		{
             Assembly assembly = Assembly.GetExecutingAssembly();
             FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
             DREVersionString = string.Format("{0}.{1}.{2}", fileVersionInfo.FileMajorPart, fileVersionInfo.FileMinorPart, fileVersionInfo.FileBuildPart);
+            Melificent.height /= 2;
+            Melificent.width /= 2;
         }
 
         void Awake() 
@@ -74,8 +70,11 @@ namespace DeadlyReentry
 				&& HighLogic.LoadedScene <= GameScenes.TRACKSTATION)
             {
 				windowStyle = new GUIStyle (HighLogic.Skin.window);
+                windowStyle.stretchHeight = true;
                 windowStyleCenter = new GUIStyle (HighLogic.Skin.window);
                 windowStyleCenter.alignment = TextAnchor.MiddleCenter;
+                labelStyle = new GUIStyle(HighLogic.Skin.label);
+                labelStyle.fixedHeight = labelStyle.lineHeight + 4f;
 				RenderingManager.AddToPostDrawQueue (0, OnDraw);
                 OnGUIAppLauncherReady();
 			}
@@ -83,9 +82,9 @@ namespace DeadlyReentry
 		
 		void OnGUIAppLauncherReady()
 		{
-			if (ApplicationLauncher.Ready && addButton)
+            if (ApplicationLauncher.Ready && this.DRToolbarButton == null)
 			{
-				DRToolbarButton = ApplicationLauncher.Instance.AddModApplication(onAppLaunchToggleOn,
+                this.DRToolbarButton = ApplicationLauncher.Instance.AddModApplication(onAppLaunchToggleOn,
                                                                                       onAppLaunchToggleOff,
                                                                                       null,
                                                                                       null,
@@ -93,7 +92,6 @@ namespace DeadlyReentry
                                                                                       null,
                                                                                       ApplicationLauncher.AppScenes.ALWAYS,
                                                                                       (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/DR_icon_off", false));
-                addButton = false;
 			}
             else
                 print("OnGUIAppLauncherReady fired but AppLauncher not ready or button already created!");
@@ -160,44 +158,50 @@ namespace DeadlyReentry
             GUILayout.BeginVertical();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("G Tolerance Mult:", windowStyle);
+            GUILayout.Height(0);
+            GUILayout.Label("G Tolerance Mult:", labelStyle);
             string newGToleranceMult = GUILayout.TextField(ReentryPhysics.gToleranceMult.ToString(), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Crew G Max", windowStyle);
-            string newcrewGClamp = GUILayout.TextField(ModuleAeroReentry.crewGClamp.ToString(), GUILayout.MinWidth(100));
+            GUILayout.Height(0);
+            GUILayout.Label("Crew G Max", labelStyle);
+            string newcrewGClamp = GUILayout.TextField(ReentryPhysics.crewGClamp.ToString(), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Crew G Exponent", windowStyle);
-            string newcrewGPower = GUILayout.TextField(ModuleAeroReentry.crewGPower.ToString(), GUILayout.MinWidth(100));
+            GUILayout.Height(0);
+            GUILayout.Label("Crew G Exponent", labelStyle);
+            string newcrewGPower = GUILayout.TextField(ReentryPhysics.crewGPower.ToString(), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Crew G Min", windowStyle);
-            string newcrewGMin = GUILayout.TextField(ModuleAeroReentry.crewGMin.ToString(), GUILayout.MinWidth(100));
+            GUILayout.Height(0);
+            GUILayout.Label("Crew G Min", labelStyle);
+            string newcrewGMin = GUILayout.TextField(ReentryPhysics.crewGMin.ToString(), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Crew G Warn Level", windowStyle);
-            string newcrewGWarn = GUILayout.TextField(ModuleAeroReentry.crewGWarn.ToString(), GUILayout.MinWidth(100));
+            GUILayout.Height(0);
+            GUILayout.Label("Crew G Warn Level", labelStyle);
+            string newcrewGWarn = GUILayout.TextField(ReentryPhysics.crewGWarn.ToString(), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Crew G Kill threshold", windowStyle);
-            string newcrewGLimit = GUILayout.TextField(ModuleAeroReentry.crewGLimit.ToString(), GUILayout.MinWidth(100));
+            GUILayout.Height(0);
+            GUILayout.Label("Crew G Kill threshold", labelStyle);
+            string newcrewGLimit = GUILayout.TextField(ReentryPhysics.crewGLimit.ToString(), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Crew G Kill chance per update", windowStyle);
-            string newcrewGKillChance = GUILayout.TextField(ModuleAeroReentry.crewGKillChance.ToString(), GUILayout.MinWidth(100));
+            GUILayout.Height(0);
+            GUILayout.Label("Crew G Kill chance per update", labelStyle);
+            string newcrewGKillChance = GUILayout.TextField(ReentryPhysics.crewGKillChance.ToString(), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
-            GUILayout.Label("For other thermal settings, press F-12 then select Physics->Thermals.", windowStyleCenter);
-            GUILayout.Label(Melificent, windowStyleCenter);
-
             GUILayout.Width(0);
             GUILayout.Height(0);
+            GUILayout.Label("For other thermal settings, press F-12 then select Physics->Thermals.", windowStyleCenter);
+            GUILayout.Label(Melificent, windowStyleCenter);
 
             GUILayout.EndVertical();
 
@@ -205,8 +209,42 @@ namespace DeadlyReentry
 
             if (GUI.changed)
             {
-                //DeadlyReentry.ReentryPhysics.SaveSettings();
-                //DeadlyReentry.ReentryPhysics.SaveCustomSettings();
+                //print("GUI CHANGED!!!111oneone");
+                float newValue;
+
+                if (float.TryParse(newGToleranceMult, out newValue))
+                {
+                    ReentryPhysics.gToleranceMult = newValue;  
+                }
+
+                if (float.TryParse(newcrewGClamp, out newValue))
+                {
+                    ReentryPhysics.crewGClamp = newValue;
+                }
+
+                if (float.TryParse(newcrewGPower, out newValue))
+                {
+                    ReentryPhysics.crewGPower = newValue;
+                }
+
+                if (float.TryParse(newcrewGMin, out newValue))
+                {
+                    ReentryPhysics.crewGMin = newValue;
+                }
+                if (float.TryParse(newcrewGWarn, out newValue))
+                {
+                    ReentryPhysics.crewGWarn = newValue;
+                }
+                if (float.TryParse(newcrewGLimit, out newValue))
+                {
+                    ReentryPhysics.crewGLimit = newValue;
+                }
+                if (float.TryParse(newcrewGKillChance, out newValue))
+                {
+                    ReentryPhysics.crewGKillChance = newValue;
+                }
+                DeadlyReentry.ReentryPhysics.SaveSettings();
+                DeadlyReentry.ReentryPhysics.SaveCustomSettings();
                 if (!DeadlyReentryScenario.Instance.displayCrewGForceWarning)
                     ScreenMessages.RemoveMessage(ReentryPhysics.crewGWarningMsg);
             }
