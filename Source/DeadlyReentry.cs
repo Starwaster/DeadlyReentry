@@ -364,7 +364,7 @@ namespace DeadlyReentry
                     if (gExperienced > ReentryPhysics.crewGWarn && crew.Count > 0)
                     {
                         
-                        if (DeadlyReentryScenario.Instance.displayCrewGForceWarning && gExperienced < ReentryPhysics.crewGLimit)
+                        if (DeadlyReentryScenario.displayCrewGForceWarning && gExperienced < ReentryPhysics.crewGLimit)
                             ScreenMessages.PostScreenMessage(ReentryPhysics.crewGWarningMsg, false);
                         else
                         {
@@ -689,13 +689,9 @@ namespace DeadlyReentry
             }
         }
     }
-    [KSPAddon(KSPAddon.Startup.Flight, false)]
+    [KSPAddon(KSPAddon.Startup.SpaceCentre, false)]
     public class ReentryPhysics : MonoBehaviour
     {
-        static System.Version DREVersion = Assembly.GetExecutingAssembly().GetName().Version;
-        
-        
-        protected bool isCompatible = true;
         private static AerodynamicsFX _afx;
         
         public static AerodynamicsFX afx {
@@ -718,12 +714,12 @@ namespace DeadlyReentry
         public static ScreenMessage crewGWarningMsg = new ScreenMessage("<color=#ff0000>Reaching Crew G limit!</color>", 1f, ScreenMessageStyle.UPPER_CENTER);
 
         public static float gToleranceMult = 6.0f;
-        public static double crewGClamp = 30;
-        public static double crewGPower = 4;
-        public static double crewGMin = 5;
-        public static double crewGWarn = 300000;
-        public static double crewGLimit = 600000;
-        public static double crewGKillChance = 0.75f;
+        public static float crewGClamp = 30;
+        public static float crewGPower = 4;
+        public static float crewGMin = 5;
+        public static float crewGWarn = 300000;
+        public static float crewGLimit = 600000;
+        public static float crewGKillChance = 0.75f;
 
 
         public static bool debugging = false;
@@ -732,11 +728,10 @@ namespace DeadlyReentry
         {
             if (!CompatibilityChecker.IsAllCompatible())
             {
-                isCompatible = false;
                 return;
             }
             enabled = true; // 0.24 compatibility
-            Debug.Log("[DRE] - ReentryPhysics.Start(): LoadSettings(), Difficulty: " + DeadlyReentryScenario.Instance.DifficultyName);
+            Debug.Log("[DRE] - ReentryPhysics.Start(): LoadSettings(), Difficulty: " + DeadlyReentryScenario.DifficultyName);
             LoadSettings(); // Moved loading of REENTRY_EFFECTS into a generic loader which uses new difficulty settings
             //warningMessageStyle.font = GUI.skin.font;
             //warningMessageStyle.fontSize = 32;
@@ -750,22 +745,22 @@ namespace DeadlyReentry
         {
             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
             {
-                if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.Instance.DifficultyName)
+                if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.DifficultyName)
                 {
                     if (node.HasValue("gToleranceMult"))
                         float.TryParse(node.GetValue("gToleranceMult"), out gToleranceMult);                    
                     if (node.HasValue("crewGClamp"))
-                        double.TryParse(node.GetValue("crewGClamp"), out crewGClamp);
+                        float.TryParse(node.GetValue("crewGClamp"), out crewGClamp);
                     if (node.HasValue("crewGPower"))
-                        double.TryParse(node.GetValue("crewGPower"), out crewGPower);
+                        float.TryParse(node.GetValue("crewGPower"), out crewGPower);
                     if (node.HasValue("crewGMin"))
-                        double.TryParse(node.GetValue("crewGMin"), out crewGMin);
+                        float.TryParse(node.GetValue("crewGMin"), out crewGMin);
                     if (node.HasValue("crewGWarn"))
-                        double.TryParse(node.GetValue("crewGWarn"), out crewGWarn);
+                        float.TryParse(node.GetValue("crewGWarn"), out crewGWarn);
                     if (node.HasValue("crewGLimit"))
-                        double.TryParse(node.GetValue("crewGLimit"), out crewGLimit);
+                        float.TryParse(node.GetValue("crewGLimit"), out crewGLimit);
                     if (node.HasValue("crewGKillChance"))
-                        double.TryParse(node.GetValue("crewGKillChance"), out crewGKillChance);
+                        float.TryParse(node.GetValue("crewGKillChance"), out crewGKillChance);
                     
                     break;
                 }
@@ -776,7 +771,7 @@ namespace DeadlyReentry
         {
             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
             {
-                if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.Instance.DifficultyName)
+                if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.DifficultyName)
                 {
                     if (node.HasValue("gToleranceMult"))
                         node.SetValue("gToleranceMult", gToleranceMult.ToString());                  

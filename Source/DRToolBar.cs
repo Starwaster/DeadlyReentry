@@ -50,8 +50,8 @@ namespace DeadlyReentry
             Assembly assembly = Assembly.GetExecutingAssembly();
             FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
             DREVersionString = string.Format("{0}.{1}.{2}", fileVersionInfo.FileMajorPart, fileVersionInfo.FileMinorPart, fileVersionInfo.FileBuildPart);
-            Melificent.height /= 2;
-            Melificent.width /= 2;
+            //Melificent.height /= 2;
+            //Melificent.width /= 2;
         }
 
         void Awake() 
@@ -245,7 +245,7 @@ namespace DeadlyReentry
                 }
                 DeadlyReentry.ReentryPhysics.SaveSettings();
                 DeadlyReentry.ReentryPhysics.SaveCustomSettings();
-                if (!DeadlyReentryScenario.Instance.displayCrewGForceWarning)
+                if (!DeadlyReentryScenario.displayCrewGForceWarning)
                     ScreenMessages.RemoveMessage(ReentryPhysics.crewGWarningMsg);
             }
 		}

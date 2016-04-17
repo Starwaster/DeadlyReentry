@@ -2,6 +2,7 @@ using KSP;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngineInternal;
 using UnityEngine;
 
 namespace DeadlyReentry
@@ -13,22 +14,21 @@ namespace DeadlyReentry
 		{
 		}
 		
-		public static DeadlyReentryScenario Instance;
-        public bool displayCrewGForceWarning = true;
+        public static bool displayCrewGForceWarning = true;
 		
-		private int difficultySetting = 1;
+		private static int difficultySetting = 1;
 		
-		public int DifficultySetting
+        public static int DifficultySetting
 		{
 			get
 			{
-				return this.difficultySetting;
+				return difficultySetting;
 			}
 			set
 			{
-                if (this.difficultySetting != value)
+                if (difficultySetting != value)
                 {
-     				this.difficultySetting = value;
+     				difficultySetting = value;
                     //DeadlyReentry.ReentryPhysics.LoadSettings();
                 }
 			}
@@ -36,20 +36,14 @@ namespace DeadlyReentry
 
         private static string[] difficultyName = {"Easy", "Default", "Hard"};
 
-        public string DifficultyName
+        public static string DifficultyName
         {
             get
             {
-                return difficultyName[this.difficultySetting];
+                return difficultyName[difficultySetting];
             }
         }
 		
-		public override void OnAwake ()
-		{
-			DeadlyReentryScenario.Instance = this;
-            this.difficultySetting = 1;
-		}
-
         //public override void OnStart()
         //{
         //    ReentryPhysics.LoadSettings();
@@ -68,5 +62,9 @@ namespace DeadlyReentry
             if (node.HasValue("displayCrewGForceWarning"))
                 displayCrewGForceWarning = bool.Parse(node.GetValue("displayCrewGForceWarning"));
 		}
+        static void print(string msg)
+        {
+            MonoBehaviour.print("[DeadlyReentry.DeadlyReentryScenario] " + msg);
+        }
 	}
 }
