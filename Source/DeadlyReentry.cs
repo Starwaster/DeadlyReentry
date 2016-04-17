@@ -363,9 +363,8 @@ namespace DeadlyReentry
                     List<ProtoCrewMember> crew = part.protoModuleCrew; //vessel.GetVesselCrew();
                     if (gExperienced > ReentryPhysics.crewGWarn && crew.Count > 0)
                     {
-                        
                         if (DeadlyReentryScenario.displayCrewGForceWarning && gExperienced < ReentryPhysics.crewGLimit)
-                            ScreenMessages.PostScreenMessage(ReentryPhysics.crewGWarningMsg, false);
+                            ScreenMessages.PostScreenMessage(ReentryPhysics.crewGWarningMsg);
                         else
                         {
                             // borrowed from TAC Life Support
@@ -738,8 +737,6 @@ namespace DeadlyReentry
             //warningMessageStyle.
             //warningMessageStyle.fontStyle = GUI.skin.label.fontStyle;
             //crewGWarningMsg.guiStyleOverride = warningMessageStyle;
-
-
         }
         public static void LoadSettings()
         {

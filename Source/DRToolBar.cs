@@ -5,6 +5,7 @@ using System.Text;
 using System.Reflection;
 using System.Diagnostics;
 using UnityEngine;
+using KSP.UI.Screens;
 
 namespace DeadlyReentry
 {
