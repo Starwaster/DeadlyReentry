@@ -23,6 +23,19 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v7.3.2
+* Reimplemented menu. (reverted previous changes to get it functional
+again. Old menu duplication bug probably reverted as well)
+* Fixed issue with settings changes not applied.
+* Menu automatically writes changes to custom.cfg
+* Moved g force settings out of ModuleAeroReentry to ReentryPhysics
+* Added leaveTemp to spaceplane parts ModuleAeroReentry
+* Tweaked Space Plane part configs
+* Added missing gToleranceMult to default settings. (part G tolerance)
+* Updated versioning info
+* Removed deprecated config settings from code
+* Reworked DRE Scenario Module
+
 v7.3.1
 * Added skill check for damage above 0.75 (requires skill level 5)
 * No fire damage if CheatOptions.IgnoreMaxTemperature == true
