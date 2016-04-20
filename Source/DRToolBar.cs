@@ -5,6 +5,8 @@ using System.Text;
 using System.Reflection;
 using System.Diagnostics;
 using UnityEngine;
+//using UnityEngine.UI;
+using KSP.UI;
 using KSP.UI.Screens;
 
 namespace DeadlyReentry
@@ -13,10 +15,10 @@ namespace DeadlyReentry
 	public class DRToolbar : MonoBehaviour
 	{
 		#region Fields
-        private static Rect windowPosition = new Rect(0,0,360,480);
-        private static GUIStyle windowStyle = null;
-        private static GUIStyle labelStyle = null;
-        private static GUIStyle windowStyleCenter = null;
+        private Rect windowPosition;
+        private GUIStyle windowStyle = null;
+        private GUIStyle labelStyle = null;
+        private GUIStyle windowStyleCenter = null;
 
         private GUISkin skins = HighLogic.Skin;
 		private int id = Guid.NewGuid().GetHashCode();
@@ -58,6 +60,7 @@ namespace DeadlyReentry
         void Awake() 
 		{
 			// Set up the stock toolbar
+            this.windowPosition = new Rect(0,0,360,480);
 			GameEvents.onGUIApplicationLauncherReady.Add(OnGUIAppLauncherReady);
 			GameEvents.onGUIApplicationLauncherDestroyed.Add(OnGUIAppLauncherDestroyed);
             GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequestedForAppLauncher);
@@ -76,11 +79,30 @@ namespace DeadlyReentry
                 windowStyleCenter.alignment = TextAnchor.MiddleCenter;
                 labelStyle = new GUIStyle(HighLogic.Skin.label);
                 labelStyle.fixedHeight = labelStyle.lineHeight + 4f;
-				RenderingManager.AddToPostDrawQueue (0, OnDraw);
+				//RenderingManager.AddToPostDrawQueue (0, Draw);
                 OnGUIAppLauncherReady();
 			}
 		}
 		
+        private void OnGui()
+        {
+            print("OnGUI");
+            GUI.skin = HighLogic.Skin;
+            Draw();
+        }
+
+        void Draw()
+        {
+            if (visible)
+            {
+                //Set the GUI Skin
+                //GUI.skin = HighLogic.Skin;
+                print("Draw!!!");
+                this.windowPosition = GUILayout.Window(id, this.windowPosition, OnWindow, "Deadly Reentry " + DREVersionString + " - The Melificent Edition", windowStyle);
+            }
+        }
+
+
 		void OnGUIAppLauncherReady()
 		{
             if (ApplicationLauncher.Ready && this.DRToolbarButton == null)
@@ -132,17 +154,8 @@ namespace DeadlyReentry
 		void DummyVoid()
 		{
         }
-		private void OnDraw()
-		{
-			if (visible)
-			{
-				//Set the GUI Skin
-                //GUI.skin = HighLogic.Skin;
 
-                windowPosition = GUILayout.Window(id, windowPosition, OnWindow, "Deadly Reentry " + DREVersionString + " - The Melificent Edition", windowStyle);
-            }
-        }
-		private void OnDestroy()
+        private void OnDestroy()
 		{
             print("OnDestroy() called - destroying button");
 			// Remove the stock toolbar button
