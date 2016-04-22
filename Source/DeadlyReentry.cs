@@ -72,8 +72,8 @@ namespace DeadlyReentry
         [KSPField(isPersistant = false, guiActive = false, guiName = "Max. Rec. Heat", guiUnits = "", guiFormat = "F4")]
         protected string displayMaximumRecordedHeat = "0 W";
 
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Heat/m2", guiUnits = "", guiFormat = "F4")]
-        protected string displayHeatFluxPerArea = "0 W/m2";
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Heat/cm2", guiUnits = "", guiFormat = "F4")]
+        protected string displayHeatFluxPerArea = "0 W/cm2";
 
         [KSPEvent(guiName = "Reset Heat Record", guiActiveUnfocused = true, externalToEVAOnly = false, guiActive = false, unfocusedRange = 4f)]
         public void ResetRecordedHeat()
@@ -86,36 +86,35 @@ namespace DeadlyReentry
                 myWindow.displayDirty = true;
         }
 
-        [KSPEvent (guiName = "No Damage", guiActiveUnfocused = true, externalToEVAOnly = false, guiActive = false, unfocusedRange = 4f)]
+        [KSPEvent(guiName = "No Damage", guiActiveUnfocused = true, externalToEVAOnly = false, guiActive = false, unfocusedRange = 4f)]
         public void RepairDamage()
         {
-            if (damage > 0)
+            if(damage > 0)
             {
                 int requiredSkill = 0;
 
-                if (damage > 0.75)
+                if(damage > 0.75)
                     requiredSkill = 5;
-                else if (damage > 0.5)
+                else if(damage > 0.5)
                     requiredSkill = 4;
-                else if (damage > 0.25)
+                else if(damage > 0.25)
                     requiredSkill = 3;
-                else if (damage > 0.125)
+                else if(damage > 0.125)
                     requiredSkill = 2;
-                else if (damage > 0)
+                else if(damage > 0)
                     requiredSkill = 1;
 
-                if (FlightGlobals.ActiveVessel.VesselValues.RepairSkill.value >= requiredSkill)
+                if(FlightGlobals.ActiveVessel.VesselValues.RepairSkill.value >= requiredSkill)
                 {
                     damage = damage - UnityEngine.Random.Range(0.0f, 0.1f);
-                    if (damage < 0)
+                    if(damage < 0)
                         damage = 0;
 
                     ProcessDamage();
-                    SetDamageLabel ();
-                    if (myWindow != null)
+                    SetDamageLabel();
+                    if(myWindow != null)
                         myWindow.displayDirty = true;
-                }
-                else
+                } else
                     ScreenMessages.PostScreenMessage("<color=orange>[DeadlyReentry]: " + this.part.partInfo.title + " is too badly damaged for this Kerbal's skill level.</color>", 6f, ScreenMessageStyle.UPPER_LEFT);
             }
         }
@@ -244,6 +243,12 @@ namespace DeadlyReentry
                     is_engine = true;
                     break;
                 }
+            is_eva = part.Modules.Contains("KerbalEVA");
+            if (is_eva)
+            {
+                // disable any menu items that might cause trouble on an EVA Kerbal
+                Events["RepairDamage"].guiActive = false;
+            }
         }
 
         void OnDestroy()
@@ -270,7 +275,7 @@ namespace DeadlyReentry
 
                 displayRecordedHeatLoad = FormatFlux(recordedHeatLoad, true) + "J";
                 displayMaximumRecordedHeat = FormatFlux(maximumRecordedHeat) + "W";
-                displayHeatFluxPerArea = FormatFlux(heatFluxPerArea) + "W/m2";
+                displayHeatFluxPerArea = FormatFlux(heatFluxPerArea/10000) + "W/cm2";
             }
         }
         
@@ -283,7 +288,7 @@ namespace DeadlyReentry
                 //Fields["FIELD-TO-DISPLAY"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["displayRecordedHeatLoad"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["displayMaximumRecordedHeat"].guiActive = PhysicsGlobals.ThermalDataDisplay;
-                Fields ["displayHeatFluxPerArea"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields["displayHeatFluxPerArea"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Events["ResetRecordedHeat"].guiActive = PhysicsGlobals.ThermalDataDisplay;
 
                 if (myWindow != null)
@@ -346,7 +351,7 @@ namespace DeadlyReentry
                 if (damage >= 1.0f && !dead)
                 {
                     dead = true;
-                    FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
+                    FlightLogger.fetch.LogEvent("[" + FormatTime(vessel.missionTime) + "] "
                                               + part.partInfo.title + " exceeded g-force tolerance.");
                     
                     if ( part is StrutConnector )
@@ -378,7 +383,7 @@ namespace DeadlyReentry
                                 ProtoCrewMember member = crew[crewMemberIndex];
                                 
                                 ScreenMessages.PostScreenMessage(vessel.vesselName + ": Crewmember " + member.name + " died of G-force damage!", 30.0f, ScreenMessageStyle.UPPER_CENTER);
-                                FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
+                                FlightLogger.fetch.LogEvent("[" + FormatTime(vessel.missionTime) + "] "
                                                           + member.name + " died of G-force damage.");
                                 Debug.Log("*DRE* [" + Time.time + "]: " + vessel.vesselName + " - " + member.name + " died of G-force damage.");
                                 
@@ -408,26 +413,32 @@ namespace DeadlyReentry
         
         public void ProcessDamage()
         {
-            part.skinMaxTemp = part.partInfo.partPrefab.skinMaxTemp * (1 - 0.15f * damage);
-            part.breakingForce = part.partInfo.partPrefab.breakingForce * (1 - damage);
-            part.breakingTorque = part.partInfo.partPrefab.breakingTorque * (1 - damage);
-            part.crashTolerance = part.partInfo.partPrefab.crashTolerance * (1 - 0.5f * damage);
+            if (!is_eva)
+            {
+                part.skinMaxTemp = part.partInfo.partPrefab.skinMaxTemp * (1 - 0.15f * damage);
+                part.breakingForce = part.partInfo.partPrefab.breakingForce * (1 - damage);
+                part.breakingTorque = part.partInfo.partPrefab.breakingTorque * (1 - damage);
+                part.crashTolerance = part.partInfo.partPrefab.crashTolerance * (1 - 0.5f * damage);
+            }
         }
 
         public void SetDamageLabel() 
         {
-            if (Events == null)
-                return;
-            if (damage > 0.5)
-                Events["RepairDamage"].guiName = "Repair Critical Damage";
-            else if (damage > 0.25)
-                Events["RepairDamage"].guiName = "Repair Heavy Damage";
-            else if (damage > 0.125)
-                Events["RepairDamage"].guiName = "Repair Moderate Damage";
-            else if (damage > 0)
-                Events["RepairDamage"].guiName = "Repair Light Damage";
-            else
-                Events["RepairDamage"].guiName = "No Damage";
+            if(!is_eva)
+            {
+                if(Events == null)
+                    return;
+                if(damage > 0.5)
+                    Events["RepairDamage"].guiName = "Repair Critical Damage";
+                else if(damage > 0.25)
+                    Events["RepairDamage"].guiName = "Repair Heavy Damage";
+                else if(damage > 0.125)
+                    Events["RepairDamage"].guiName = "Repair Moderate Damage";
+                else if(damage > 0)
+                    Events["RepairDamage"].guiName = "Repair Light Damage";
+                else
+                    Events["RepairDamage"].guiName = "No Damage";
+            }
         }
 
 
@@ -478,9 +489,9 @@ namespace DeadlyReentry
                             if (!dead)
                             {
                                 dead = true;
-                                FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] "
-                                                          + part.partInfo.title + " burned up from overheating.");
-                                
+                                FlightLogger.fetch.LogEvent("[" + FormatTime(vessel.missionTime) + "] "
+                                    + part.partInfo.title + " burned up from overheating.");
+
                                 if ( part is StrutConnector )
                                 {
                                     ((StrutConnector)part).BreakJoint();

@@ -23,6 +23,9 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v7.4.0
+* Updated and compiled for KSP 1.1
+
 v7.3.2
 * Reimplemented menu. (reverted previous changes to get it functional
 again. Old menu duplication bug probably reverted as well)

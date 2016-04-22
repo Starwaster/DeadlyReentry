@@ -5,7 +5,7 @@ using System.Text;
 using System.Reflection;
 using System.Diagnostics;
 using UnityEngine;
-//using UnityEngine.UI;
+using UnityEngine.UI;
 using KSP.UI;
 using KSP.UI.Screens;
 
@@ -30,6 +30,8 @@ namespace DeadlyReentry
 		#endregion
 		
 		#region Properties
+        private static Vector3 mousePos = Vector3.zero;
+        private bool weLockedInputs = false;
 		private GUIStyle _buttonStyle = null;
 		private GUIStyle buttonStyle
 		{
@@ -61,12 +63,20 @@ namespace DeadlyReentry
 		{
 			// Set up the stock toolbar
             this.windowPosition = new Rect(0,0,360,480);
-			GameEvents.onGUIApplicationLauncherReady.Add(OnGUIAppLauncherReady);
+
+            windowStyle = new GUIStyle (HighLogic.Skin.window);
+            windowStyle.stretchHeight = true;
+            windowStyleCenter = new GUIStyle (HighLogic.Skin.window);
+            windowStyleCenter.alignment = TextAnchor.MiddleCenter;
+            labelStyle = new GUIStyle(HighLogic.Skin.label);
+            labelStyle.fixedHeight = labelStyle.lineHeight + 4f;
+
+            GameEvents.onGUIApplicationLauncherReady.Add(OnGUIAppLauncherReady);
 			GameEvents.onGUIApplicationLauncherDestroyed.Add(OnGUIAppLauncherDestroyed);
             GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequestedForAppLauncher);
             //Texture Melificent =
 		}
-		
+/*		
 		void Start() 
 		{
             print("Start method called Initializing GUIs");
@@ -83,11 +93,15 @@ namespace DeadlyReentry
                 OnGUIAppLauncherReady();
 			}
 		}
-		
-        private void OnGui()
+*/		
+        public void OnGUI()
         {
-            print("OnGUI");
             GUI.skin = HighLogic.Skin;
+
+            if (HighLogic.LoadedSceneIsEditor) PreventEditorClickthrough();
+            if (HighLogic.LoadedSceneIsFlight || HighLogic.LoadedSceneHasPlanetarium) PreventInFlightClickthrough();
+
+
             Draw();
         }
 
@@ -97,11 +111,46 @@ namespace DeadlyReentry
             {
                 //Set the GUI Skin
                 //GUI.skin = HighLogic.Skin;
-                print("Draw!!!");
                 this.windowPosition = GUILayout.Window(id, this.windowPosition, OnWindow, "Deadly Reentry " + DREVersionString + " - The Melificent Edition", windowStyle);
             }
         }
 
+        bool MouseIsOverWindow()
+        {
+            mousePos = Input.mousePosition;
+            mousePos.y = Screen.height - mousePos.y;
+            return windowPosition.Contains(mousePos);
+        }
+
+        void PreventEditorClickthrough()
+        {
+            bool mouseOverWindow = MouseIsOverWindow();
+            if (visible && !weLockedInputs && mouseOverWindow && !Input.GetMouseButton(1))
+            {
+                EditorLogic.fetch.Lock(true, true, true, "DREMenuLock");
+                weLockedInputs = true;
+            }
+            if (weLockedInputs && (!mouseOverWindow || !visible))
+            {
+                EditorLogic.fetch.Unlock("DREMenuLock");
+                weLockedInputs = false;
+            }
+        }
+
+        void PreventInFlightClickthrough()
+        {
+            bool mouseOverWindow = MouseIsOverWindow();
+            if (visible && !weLockedInputs && mouseOverWindow && !Input.GetMouseButton(1))
+            {
+                InputLockManager.SetControlLock(ControlTypes.CAMERACONTROLS | ControlTypes.MAP, "DREMenuLock");
+                weLockedInputs = true;
+            }
+            if (weLockedInputs && (!mouseOverWindow || !visible))
+            {
+                InputLockManager.RemoveControlLock("DREMenuLock");
+                weLockedInputs = false;
+            }
+        }
 
 		void OnGUIAppLauncherReady()
 		{
