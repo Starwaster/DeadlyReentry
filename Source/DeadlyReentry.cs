@@ -274,7 +274,9 @@ namespace DeadlyReentry
                 heatFluxPerArea = part.thermalConvectionFlux / part.skinExposedArea;
 
                 displayRecordedHeatLoad = FormatFlux(recordedHeatLoad, true) + "J";
-                displayMaximumRecordedHeat = FormatFlux(maximumRecordedHeat) + "W";
+                //displayMaximumRecordedHeat = FormatFlux(maximumRecordedHeat) + "W";
+                displayMaximumRecordedHeat = part.skinExposedArea.ToString("F2") + " / " + part.radiativeArea.ToString("F2") + "  m2";
+;
                 displayHeatFluxPerArea = FormatFlux(heatFluxPerArea/10000) + "W/cm2";
             }
         }
@@ -362,6 +364,8 @@ namespace DeadlyReentry
                     part.explode();
                     return;
                 }
+
+                float crewGKillChance = 1f-Mathf.Pow(1f-ReentryPhysics.crewGKillChance, TimeWarp.fixedDeltaTime / 0.02f);
                 if (Math.Max(displayGForce, geeForce) >= ReentryPhysics.crewGMin)
                 {
                     gExperienced += Math.Pow(Math.Min(Math.Abs(Math.Max(displayGForce, geeForce)), ReentryPhysics.crewGClamp), ReentryPhysics.crewGPower) * TimeWarp.fixedDeltaTime;
@@ -373,7 +377,7 @@ namespace DeadlyReentry
                         else
                         {
                             // borrowed from TAC Life Support
-                            if (UnityEngine.Random.Range(0f, 1f) < ReentryPhysics.crewGKillChance)
+                            if (UnityEngine.Random.Range(0f, 1f) < crewGKillChance)
                             {
                                 int crewMemberIndex = UnityEngine.Random.Range(0, crew.Count - 1);
                                 if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA)
