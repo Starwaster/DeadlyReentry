@@ -274,8 +274,8 @@ namespace DeadlyReentry
                 heatFluxPerArea = part.thermalConvectionFlux / part.skinExposedArea;
 
                 displayRecordedHeatLoad = FormatFlux(recordedHeatLoad, true) + "J";
-                //displayMaximumRecordedHeat = FormatFlux(maximumRecordedHeat) + "W";
-                displayMaximumRecordedHeat = part.skinExposedArea.ToString("F2") + " / " + part.radiativeArea.ToString("F2") + "  m2";
+                displayMaximumRecordedHeat = FormatFlux(maximumRecordedHeat) + "W";
+                //displayMaximumRecordedHeat = part.skinExposedArea.ToString("F2") + " / " + part.radiativeArea.ToString("F2") + "  m2";
 ;
                 displayHeatFluxPerArea = FormatFlux(heatFluxPerArea/10000) + "W/cm2";
             }
