@@ -5,9 +5,6 @@ License remains CC-BY-SA as modified by ialdabaoth.
 Also included: Module Manager (by sarbian, swamp_ig, and ialdabaoth). See Module Manager thread for details and license and source: http://http://forum.kerbalspaceprogram.com/threads/55219
 Module Manager is required for DREC to work.
 
-Note: Does not support any KSP 64 bit versions past, present or future.
-
-
 Deadly Reentry 7.0 for KSP 1.0.*
 A note on settings:
 Coming Soon
@@ -23,6 +20,10 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v7.4.1
+* Disabled some damage system code if part is KerbalEVA. (esp in OnStart())
+* Inflatable heat shield rebalancing: Reduced mass to 1 ton. Reduced thermal mass modifier to to 1. Increased skin thermal mass modifier to 1.41. Adjusted absorptiveConstant. Adjusted conductive factors.
+
 v7.4.0
 * Updated and compiled for KSP 1.1
 
