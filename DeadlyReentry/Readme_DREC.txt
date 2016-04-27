@@ -20,6 +20,10 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v7.4.2
+* Fixed DefaultSettings.cfg (crew G limits and crew G Min were accidentally reverted to older bad values)
+* Adjusted crew G limits (metric is 20g starts to be dangerous after 10 sec. 6g after 77sec)
+
 v7.4.1
 * Disabled some damage system code if part is KerbalEVA. (esp in OnStart())
 * Inflatable heat shield rebalancing: Reduced mass to 1 ton. Reduced thermal mass modifier to to 1. Increased skin thermal mass modifier to 1.41. Adjusted absorptiveConstant. Adjusted conductive factors.
