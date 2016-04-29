@@ -142,7 +142,8 @@ namespace DeadlyReentry
             bool mouseOverWindow = MouseIsOverWindow();
             if (visible && !weLockedInputs && mouseOverWindow && !Input.GetMouseButton(1))
             {
-                InputLockManager.SetControlLock(ControlTypes.CAMERACONTROLS | ControlTypes.MAP, "DREMenuLock");
+                //InputLockManager.SetControlLock(ControlTypes.CAMERACONTROLS | ControlTypes.MAP, "DREMenuLock");
+                InputLockManager.SetControlLock(ControlTypes.ALLBUTCAMERAS, "DREMenuLock");
                 weLockedInputs = true;
             }
             if (weLockedInputs && (!mouseOverWindow || !visible))
