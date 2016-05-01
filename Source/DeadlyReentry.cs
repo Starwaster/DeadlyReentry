@@ -60,7 +60,6 @@ namespace DeadlyReentry
         private bool is_gforce_fx_playing = false;
         
         private bool is_engine = false;
-        private bool is_eva = false;
 
         protected double recordedHeatLoad = 0.0;
         protected double maximumRecordedHeat = 0.0;
@@ -243,12 +242,6 @@ namespace DeadlyReentry
                     is_engine = true;
                     break;
                 }
-            is_eva = part.Modules.Contains("KerbalEVA");
-            if (is_eva)
-            {
-                // disable any menu items that might cause trouble on an EVA Kerbal
-                Events["RepairDamage"].guiActive = false;
-            }
         }
 
         void OnDestroy()
@@ -334,7 +327,7 @@ namespace DeadlyReentry
                 if (gTolerance >= 0 && displayGForce > gTolerance)
                 { // G tolerance is based roughly on crashTolerance
                     AddDamage(TimeWarp.fixedDeltaTime * (float)(displayGForce / gTolerance - 1));
-                    if (!is_eva)
+                    if (!vessel.isEVA)
                     { // kerbal bones shouldn't sound like metal when they break.
                         gForceFX.audio.pitch = (float)(displayGForce / gTolerance);
                         PlaySound(gForceFX, damage * 0.3f + 0.7f);
@@ -417,7 +410,7 @@ namespace DeadlyReentry
         
         public void ProcessDamage()
         {
-            if (!is_eva)
+            if (!vessel.isEVA)
             {
                 part.skinMaxTemp = part.partInfo.partPrefab.skinMaxTemp * (1 - 0.15f * damage);
                 part.breakingForce = part.partInfo.partPrefab.breakingForce * (1 - damage);
@@ -428,7 +421,7 @@ namespace DeadlyReentry
 
         public void SetDamageLabel() 
         {
-            if(!is_eva)
+            if(!vessel.isEVA)
             {
                 if(Events == null)
                     return;
@@ -458,7 +451,7 @@ namespace DeadlyReentry
                     
                     if (is_engine && damage < 1)
                         damageThreshold = part.skinMaxTemp * 0.975;
-                    else if (is_eva)
+                    else if (vessel.isEVA)
                     {
                         damageThreshold = 800 * (1 - damage) * (1 - damage);
                         part.skinMaxTemp = 900;
@@ -561,7 +554,11 @@ namespace DeadlyReentry
             if (!HighLogic.LoadedSceneIsFlight)
                 return;
             
-            ProcessDamage();
+            // disable any menu items that might cause trouble on an EVA Kerbal
+            if (vessel.isEVA)
+                Events["RepairDamage"].guiActive = false;
+            else
+                ProcessDamage();
         }
 
         static void print(string msg)
@@ -737,6 +734,7 @@ namespace DeadlyReentry
 
 
         public static bool debugging = false;
+        private static bool isCompatible = true;
 
         public void Start()
         {
@@ -755,6 +753,11 @@ namespace DeadlyReentry
         }
         public static void LoadSettings()
         {
+            if (!CompatibilityChecker.IsAllCompatible())
+            {
+                isCompatible = false;
+                return;
+            }
             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
             {
                 if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.DifficultyName)
@@ -781,6 +784,11 @@ namespace DeadlyReentry
         
         public static void SaveSettings()
         {
+            if (!CompatibilityChecker.IsAllCompatible())
+            {
+                isCompatible = false;
+                return;
+            }
             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
             {
                 if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.DifficultyName)
@@ -809,6 +817,11 @@ namespace DeadlyReentry
         }
         public static void SaveCustomSettings()
         {
+            if (!CompatibilityChecker.IsAllCompatible())
+            {
+                isCompatible = false;
+                return;
+            }
             string[] difficultyNames = {"Default"};
             float ftmp;
             double dtmp;

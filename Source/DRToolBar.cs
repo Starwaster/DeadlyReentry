@@ -27,6 +27,7 @@ namespace DeadlyReentry
         private Texture2D buttonTexture = new Texture2D(32, 32);
         private Texture Melificent = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Melificent", false);
         private string DREVersionString = "";
+        private bool isCompatible = true;
 		#endregion
 		
 		#region Properties
@@ -62,6 +63,11 @@ namespace DeadlyReentry
         void Awake() 
 		{
 			// Set up the stock toolbar
+            if (!CompatibilityChecker.IsAllCompatible())
+            {
+                isCompatible = false;
+                return;
+            }
             this.windowPosition = new Rect(0,0,360,480);
 
             windowStyle = new GUIStyle (HighLogic.Skin.window);
@@ -79,6 +85,11 @@ namespace DeadlyReentry
 /*		
 		void Start() 
 		{
+            if (!CompatibilityChecker.IsAllCompatible())
+            {
+                isCompatible = false;
+                return;
+            }
             print("Start method called Initializing GUIs");
 			if (HighLogic.LoadedScene >= GameScenes.SPACECENTER
 				&& HighLogic.LoadedScene <= GameScenes.TRACKSTATION)
@@ -96,6 +107,11 @@ namespace DeadlyReentry
 */		
         public void OnGUI()
         {
+            if (!CompatibilityChecker.IsAllCompatible())
+            {
+                isCompatible = false;
+                return;
+            }
             GUI.skin = HighLogic.Skin;
 
             if (HighLogic.LoadedSceneIsEditor) PreventEditorClickthrough();
@@ -107,6 +123,11 @@ namespace DeadlyReentry
 
         void Draw()
         {
+            if (!CompatibilityChecker.IsAllCompatible())
+            {
+                isCompatible = false;
+                return;
+            }
             if (visible)
             {
                 //Set the GUI Skin
@@ -217,6 +238,11 @@ namespace DeadlyReentry
 		
         private void OnWindow(int windowID)
         {
+            if (!CompatibilityChecker.IsAllCompatible())
+            {
+                isCompatible = false;
+                return;
+            }
             GUILayout.ExpandWidth(true);
             GUILayout.ExpandHeight(true);
             GUILayout.BeginVertical();
