@@ -586,7 +586,7 @@ namespace DeadlyReentry
             base.Start();
             if (ablativeResource != null && ablativeResource != "")
             {
-                if (part.Resources.Contains(ablativeResource) && lossExp < 0)
+                if (part.Resources.Contains(ablativeResource))
                 {
                     ablative = part.Resources[ablativeResource];
                 }
@@ -599,7 +599,7 @@ namespace DeadlyReentry
                 return;
 
             base.FixedUpdate ();
-
+            print("base.FixedUpdate() finished executing");
             if (ablative.amount <= ablative.maxAmount * 0.000001)
             {
                 part.skinMaxTemp = Math.Min(part.skinMaxTemp, depletedMaxTemp);
