@@ -584,22 +584,25 @@ namespace DeadlyReentry
                 return;
             
             base.Start();
-            if (ablativeResource != null && ablativeResource != "")
+            if(ablativeResource != null && ablativeResource != "")
             {
-                if (part.Resources.Contains(ablativeResource))
+                if(part.Resources.Contains(ablativeResource))
                 {
                     ablative = part.Resources[ablativeResource];
-                }
-            }
+                } else
+                    print("ablative lookup failed!");
+            } else
+                print("Heat shield missing ablative!");
         }
 
         public new void FixedUpdate()
         {
             if (!HighLogic.LoadedSceneIsFlight || !FlightGlobals.ready)
                 return;
-
+            if ((object)ablative == null)
+                // silently fail. This will have consequences for third party mods that are still using outdated heat shield configs
+                return;
             base.FixedUpdate ();
-            print("base.FixedUpdate() finished executing");
             if (ablative.amount <= ablative.maxAmount * 0.000001)
             {
                 part.skinMaxTemp = Math.Min(part.skinMaxTemp, depletedMaxTemp);
