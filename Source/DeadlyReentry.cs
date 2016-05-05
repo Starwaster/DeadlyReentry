@@ -570,7 +570,7 @@ namespace DeadlyReentry
     // TODO WOULD deprecate ModuleHeatShield but still needed for depletedMaxTemp.
     class ModuleHeatShield : ModuleAblator
     {
-        public PartResource ablative = null; // pointer to the PartResource
+        public PartResource _ablative = null; // pointer to the PartResource
 
         [KSPField()]
         protected double depletedMaxTemp = 1200.0;
@@ -588,22 +588,23 @@ namespace DeadlyReentry
             {
                 if(part.Resources.Contains(ablativeResource))
                 {
-                    ablative = part.Resources[ablativeResource];
+                    _ablative = part.Resources[ablativeResource];
                 } else
                     print("ablative lookup failed!");
-            } else
-                print("Heat shield missing ablative!");
+            }
+            else
+                print("Heat shield missing ablative! If you are seeing this then a third party mod is using outdated ModuleHeatShield configs!");
         }
 
         public new void FixedUpdate()
         {
             if (!HighLogic.LoadedSceneIsFlight || !FlightGlobals.ready)
                 return;
-            if ((object)ablative == null)
-                // silently fail. This will have consequences for third party mods that are still using outdated heat shield configs
-                return;
+            //if (ablativeResource == "")
+                // silently fail.
+            //    return;
             base.FixedUpdate ();
-            if (ablative.amount <= ablative.maxAmount * 0.000001)
+            if (_ablative.amount <= _ablative.maxAmount * 0.000001)
             {
                 part.skinMaxTemp = Math.Min(part.skinMaxTemp, depletedMaxTemp);
                 part.heatConductivity = Math.Min(part.heatConductivity, depletedConductivity);
