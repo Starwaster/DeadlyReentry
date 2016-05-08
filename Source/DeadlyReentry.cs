@@ -184,10 +184,12 @@ namespace DeadlyReentry
         FXGroup gForceFX 
         {
             get {
-                if(_gForceFX == null) {
+                if(_gForceFX == null)
+                {
                     _gForceFX = new FXGroup (part.name + "_Crushing");
                     _gForceFX.audio = gameObject.AddComponent<AudioSource>();
                     _gForceFX.audio.clip = GameDatabase.Instance.GetAudioClip("DeadlyReentry/Sounds/gforce_damage");
+                    _gForceFX.audio.spatialBlend = 1f;
                     _gForceFX.audio.volume = GameSettings.SHIP_VOLUME;
                     _gForceFX.audio.Stop ();
                 }
@@ -218,6 +220,7 @@ namespace DeadlyReentry
                     _ablationFX.fxEmitters.Add(Emitter("fx_exhaustSparks_yellow").GetComponent<ParticleEmitter>());
                     _ablationFX.audio = gameObject.AddComponent<AudioSource>();
                     _ablationFX.audio.clip = GameDatabase.Instance.GetAudioClip("DeadlyReentry/Sounds/fire_damage");
+                    _ablationFX.audio.spatialBlend = 1f;
                     _ablationFX.audio.volume = GameSettings.SHIP_VOLUME;
                     _ablationFX.audio.Stop ();
                     
