@@ -20,6 +20,17 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v7.4.4
+* Adjusting RSS fallback config. (used when Real Solar System is installed but Realism Overhaul is not and RSSROConfig is not set.
+* Possible fix for explosion/burning sounds being too loud for distant objects.
+
+v7.4.3
+* Reworked previous fix for KIS/KAS. (catch KerbalEVA and prevent damage code from running on it during part initialization)
+* Updated ModuleManager for KSP 1.1.2
+* Recompiled for KSP 1.1.2
+* Updated versioning information
+* Extended compatibility checking to more code sections.
+
 v7.4.2
 * Fixed DefaultSettings.cfg (crew G limits and crew G Min were accidentally reverted to older bad values)
 * Adjusted crew G limits (metric is 20g starts to be dangerous after 10 sec. 6g after 77sec)
@@ -287,33 +298,27 @@ v1 === \/
 *added gToleranceMult to tweak the g limits of parts. Works as a global scalar. Currently set to 2.5
 
 DOCUMENTATION ON THE HEAT SHIELD MODULE
-First documented confignode code, then notes.
+As of KSP 1.0, Deadly Reentry no longer implements its own heat shield. Use the same config as for the stock ModuleAblator. The following two fields are also allowed in ModuleHeatShield:
+
+depletedMaxTemp // when shield ablator is depleted it's maximum allowed temperature is reduced to this value
+depletedConductivity // When shield ablator is depleted, the shield will conduct heat at this value. (higher)
+
 MODULE
 {
 	name = ModuleHeatShield
-	direction = 0, -1, 0 // a vector pointing in the direction of the shielding.
-	// That means "towards the back of the stack". If you want a spaceplane part to be
-	//  shielded "down-forwards", use something like 0, 0.7, -0.7
-	// which is, for spaceplanes, halfway between the "forwards" (+Y) axis and the "down" (-Z) axis
-	
-	// the direction establishes an angle at which the shield applies. If the velocity vector strays
-	// too far from this direction, the below advantages will not apply.
-	reflective = 0.05 // 5% of heat is ignored at correct angle
-	
-	// now comes the parameters for if the shield is ablative.
-	ablative = AblativeShielding // what resource to use up when ablating.
-	loss
-	{ // Set the loss rates at various *shockwave* temperatures. The actual loss rate will also be modified by atmospheric density at the time.
-		key = 650 0 0 0 // start ablating at 650 degrees C
-		key = 1000 64 0 0 // peak ablation at 1000 degrees C
-		key = 3000 80 0 0 // max ablation at 3000 degrees C
-	}
-	dissipation
-	{ // Sets the dissipation at various *part* temperatures. The actual dissipation will be the loss of shielding during that tick times this rate.
-			key = 300 0 0 0 // begin ablating at 300 degrees C
-			key = 500 180 0 0 // maximum dissipation at 500 degrees C
-	}
+	ablativeResource = AblativeShielding
+	lossExp = -7500
+	lossConst = 1
+	pyrolysisLossFactor = 6000
+	reentryConductivity = 0.001
+	ablationTempThresh = 500
+	depletedMaxTemp = 1200
+	depletedConductivity = 20
+	charMin = 1
+	charMax = 1
 }
+
+
 // Then add a resource node.
 RESOURCE
 {
@@ -321,24 +326,4 @@ RESOURCE
 	amount = 250
 	maxAmount = 250
 }
-NOTES:
-Note that KSP (and Deadly Reentry) model temperature, not heat. For this reason, a 5m heat shield will change temperature just as much as a 1m heat shield. For this reason, you need to set your loss and dissipation rates with the shield's maximum amount of ablative shielding in mind. Basically, you want loss * dissipation to equal the shield's effectiveness (so if you want two shields to have the same heat dissipation per second, even if they have different amounts of AblativeShielding, make sure those products are equal). Larger shields should have larger amounts of shielding, proportionally larger loss rates, and proportionally *lower* dissipation rates.
 
-Finally, for use in RSS you'll want to increase the loss node's maximum reentry shockwave temperature and set the dissipation much higher. Something like:
-MODULE[ModuleHeatShield]
-{ 
-	direction = 0, -1, 0 // bottom of pod
-	reflective = 0.05 // 5% of heat is ignored at correct angle
-	ablative = AblativeShielding
-	loss
-	{ // loss is based on the shockwave temperature (also based on density)
-		key = 650 0 0 0 // start ablating at 650 degrees C
-		key = 2000 160 0 0 // peak ablation at 2000 degrees C
-		key = 5000 200 0 0 // max ablation at 5000 degrees C
-	}
-	dissipation
-	{ // dissipation is based on the part's current temperature
-			key = 300 0 0 0 // begin ablating at 300 degrees C
-			key = 800 480 0 0 // maximum dissipation at 800 degrees C
-	}
-}

@@ -650,13 +650,17 @@ namespace DeadlyReentry
                                         if (part.partPrefab.Modules.Contains("ModuleAeroReentry"))
                                         {
                                             if (((ModuleAeroReentry)(part.partPrefab.Modules["ModuleAeroReentry"])).leaveTemp)
+                                            {
+                                                Debug.Log("[DRE] skipping part " + part.name + " (leaveTemp = True)");
                                                 continue;
+                                            }
                                         }
                                         double oldTemp = part.partPrefab.maxTemp;
                                         bool changed = false;
                                         if (part.partPrefab.maxTemp > maxTemp)
                                         {
                                             part.partPrefab.maxTemp = Math.Min(part.partPrefab.maxTemp * scale, maxTemp);
+                                            Debug.Log("[DRE] rebalancing OP maxTemp for part " + part.name);
                                             changed = true;
                                         }
                                         if (changed)
