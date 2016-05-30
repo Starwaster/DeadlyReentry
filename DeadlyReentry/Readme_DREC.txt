@@ -20,6 +20,19 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v7.4.5
+* Fix flag exploding when switching to flag. (prevent flag from having
+ModuleAeroReentry added to it)
+* Add additional debug logging to FixMaxTemps(). Status of parts that
+are skipped due to leaveTemp = true are logged. Parts that are adjusted
+are logged.
+* Adjusting RSS fallback config. (used when Real Solar System is
+installed but Realism Overhaul is not and RSSROConfig is not set.
+* Possible fix for explosion/burning sounds being too loud for distant
+objects.
+* Added additional case handling for #leaveTemp.
+* Removed toolbar from Main Menu
+
 v7.4.4
 * Adjusting RSS fallback config. (used when Real Solar System is installed but Realism Overhaul is not and RSSROConfig is not set.
 * Possible fix for explosion/burning sounds being too loud for distant objects.

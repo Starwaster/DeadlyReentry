@@ -176,16 +176,21 @@ namespace DeadlyReentry
 
 		void OnGUIAppLauncherReady()
 		{
+            ApplicationLauncher.AppScenes visibleInScenes = 
+                ApplicationLauncher.AppScenes.FLIGHT | 
+                ApplicationLauncher.AppScenes.MAPVIEW | 
+                ApplicationLauncher.AppScenes.SPACECENTER | 
+                ApplicationLauncher.AppScenes.TRACKSTATION;
             if (ApplicationLauncher.Ready && this.DRToolbarButton == null)
 			{
                 this.DRToolbarButton = ApplicationLauncher.Instance.AddModApplication(onAppLaunchToggleOn,
-                                                                                      onAppLaunchToggleOff,
-                                                                                      null,
-                                                                                      null,
-                                                                                      null,
-                                                                                      null,
-                                                                                      ApplicationLauncher.AppScenes.ALWAYS,
-                                                                                      (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/DR_icon_off", false));
+                    onAppLaunchToggleOff,
+                    null,
+                    null,
+                    null,
+                    null,
+                    visibleInScenes,
+                    (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/DR_icon_off", false));
 			}
             else
                 print("OnGUIAppLauncherReady fired but AppLauncher not ready or button already created!");
