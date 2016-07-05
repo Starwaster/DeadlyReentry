@@ -2,7 +2,6 @@ using KSP;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngineInternal;
 using UnityEngine;
 
 namespace DeadlyReentry
