@@ -5,6 +5,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeadlyReentry", "DeadlyReen
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModularFlightIntegrator", "..\..\ModularFlightIntegrator\ModularFlightIntegrator.csproj", "{EE8094B7-3C3E-4BEE-B01A-5A83F36D745D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Animation2Value", "Animation2Value\Animation2Value.csproj", "{693BACEC-CB40-4BC6-8C70-79C88AA01C19}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,6 +21,10 @@ Global
 		{F6F826CC-5CED-421B-B05F-5758D402976A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F6F826CC-5CED-421B-B05F-5758D402976A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F6F826CC-5CED-421B-B05F-5758D402976A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{693BACEC-CB40-4BC6-8C70-79C88AA01C19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{693BACEC-CB40-4BC6-8C70-79C88AA01C19}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{693BACEC-CB40-4BC6-8C70-79C88AA01C19}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{693BACEC-CB40-4BC6-8C70-79C88AA01C19}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0
@@ -31,7 +37,7 @@ Global
 		$2.inheritsSet = VisualStudio
 		$2.inheritsScope = text/plain
 		description = The Melificent Edition
-		version = 7.3.1
+		version = 7.4.6
 		StartupItem = DeadlyReentry.csproj
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
