@@ -35,7 +35,10 @@ namespace DeadlyReentry
                     fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
                 return fi;
             }
-            set {fi = value;}
+            set
+            {
+                fi = value;
+            }
         }
         
         public ModularFlightIntegrator.PartThermalData ptd;
@@ -123,7 +126,8 @@ namespace DeadlyReentry
         UIPartActionWindow _myWindow = null; 
         UIPartActionWindow myWindow 
         {
-            get {
+            get
+            {
                 if((object)_myWindow == null)
                 {
                     UIPartActionWindow[] windows = FindObjectsOfType<UIPartActionWindow>();
@@ -169,7 +173,8 @@ namespace DeadlyReentry
 
         public static void PlaySound(FXGroup fx, float volume)
         {
-            if(fx.audio.isPlaying) {
+            if(fx.audio.isPlaying)
+                {
                 if(fx.audio.volume < volume)
                     fx.audio.volume = volume;
             } else {
@@ -183,7 +188,8 @@ namespace DeadlyReentry
         FXGroup _gForceFX = null;
         FXGroup gForceFX 
         {
-            get {
+            get
+            {
                 if((object)_gForceFX == null)
                 {
                     _gForceFX = new FXGroup (part.name + "_Crushing");
@@ -201,8 +207,10 @@ namespace DeadlyReentry
         FXGroup _ablationSmokeFX = null;
         FXGroup ablationSmokeFX 
         {
-            get {
-                if((object)_ablationSmokeFX == null) {
+            get
+            {
+                if((object)_ablationSmokeFX == null)
+                {
                     _ablationSmokeFX = new FXGroup (part.name + "_Smoking");
                     _ablationSmokeFX.fxEmitters.Add (Emitter("fx_smokeTrail_medium").GetComponent<ParticleEmitter>());
                 }
@@ -213,8 +221,10 @@ namespace DeadlyReentry
         FXGroup _ablationFX = null;
         FXGroup ablationFX 
         {
-            get {
-                if((object)_ablationFX == null) {
+            get
+            {
+                if((object)_ablationFX == null)
+                {
                     _ablationFX = new FXGroup (part.name + "_Burning");
                     _ablationFX.fxEmitters.Add (Emitter("fx_exhaustFlame_yellow").GetComponent<ParticleEmitter>());
                     _ablationFX.fxEmitters.Add(Emitter("fx_exhaustSparks_yellow").GetComponent<ParticleEmitter>());
@@ -235,16 +245,18 @@ namespace DeadlyReentry
             if (!CompatibilityChecker.IsAllCompatible())
             {
                 isCompatible = false;
-                return;
             }
+            else
+            {
 
-            // are we an engine?
-            for(int i = part.Modules.Count - 1; i >= 0; --i)
-                if (part.Modules[i] is ModuleEngines)
-                {
-                    is_engine = true;
-                    break;
-                }
+                // are we an engine?
+                for (int i = part.Modules.Count - 1; i >= 0; --i)
+                    if (part.Modules[i] is ModuleEngines)
+                    {
+                        is_engine = true;
+                        break;
+                    }
+            }
         }
 
         void OnDestroy()
@@ -351,11 +363,11 @@ namespace DeadlyReentry
                     dead = true;
                     FlightLogger.fetch.LogEvent("[" + FormatTime(vessel.missionTime) + "] "
                                               + part.partInfo.title + " exceeded g-force tolerance.");
-                    
-                    if ( part is StrutConnector )
-                    {
-                        ((StrutConnector)part).BreakJoint();
-                    }
+                    // TODO See if we still need this or similar code. Rewrite if needed. Remove if obsolete.
+                    //if ( part is StrutConnector )
+                    //{
+                    //    ((StrutConnector)part).BreakJoint();
+                    //}
                     
                     part.explode();
                     return;
@@ -491,11 +503,12 @@ namespace DeadlyReentry
                                 dead = true;
                                 FlightLogger.fetch.LogEvent("[" + FormatTime(vessel.missionTime) + "] "
                                     + part.partInfo.title + " burned up from overheating.");
-
-                                if ( part is StrutConnector )
-                                {
-                                    ((StrutConnector)part).BreakJoint();
-                                }
+                                
+                                // TODO See if we still need this or similar code. Rewrite if needed. Remove if obsolete.
+                                //if ( part is StrutConnector )
+                                //{
+                                //    ((StrutConnector)part).BreakJoint();
+                                //}
                                 
                                 part.explode();
                                 return;
@@ -727,10 +740,13 @@ namespace DeadlyReentry
         private static AerodynamicsFX _afx;
         
         public static AerodynamicsFX afx {
-            get {
-                if ((object)_afx == null) {
+            get
+            {
+                if ((object)_afx == null)
+                {
                     GameObject fx = GameObject.Find ("FXLogic");
-                    if ((object)fx != null) {
+                    if ((object)fx != null)
+                {
                         _afx = fx.GetComponent<AerodynamicsFX> ();
                     }
                 }

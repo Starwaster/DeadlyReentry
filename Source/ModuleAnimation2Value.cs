@@ -116,4 +116,95 @@ namespace DeadlyReentry
             }
         }
     }
+
+    public class ModuleTransform2Value : PartModule
+    {
+        [KSPField(isPersistant = false)]
+        public string valueModule = "";
+
+        [KSPField(isPersistant = false)]
+        public string valueName = "";
+
+        [KSPField(isPersistant = false)]
+        public string transformName = "";
+
+        [KSPField(isPersistant = false)]
+        public FloatCurve valueCurve = new FloatCurve();
+
+        protected Transform trans;
+        protected PartModule module;
+        protected Type moduleType;
+        protected FieldInfo field;
+        protected PropertyInfo property;
+        //protected float currentTime;
+
+        public override void OnStart(PartModule.StartState state)
+        {
+            if (state != PartModule.StartState.Editor)
+            {
+                //anims = part.FindModelAnimators(animationName);
+                trans = this.part.FindModelTransform(transformName);
+
+                if (trans == null)
+                {
+                    print("ModuleTransform2Value - transform not found: " + transformName);
+                }
+
+                moduleType = part.GetType();
+                if (valueModule != "")
+                {
+                    if (part.Modules.Contains(valueModule))
+                    {
+                        module = part.Modules[valueModule];
+                        moduleType = module.GetType();
+                    }
+                    else
+                    {
+                        print("ModuleTransform2Value - module not found: " + valueModule);
+                    }
+                }
+
+                field = moduleType.GetField(valueName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+                if (field == null)
+                {
+                    property = moduleType.GetProperty(valueName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (property == null)
+                    {
+                        print("ModuleTransform2Value - field/property not found: " + valueName);
+                    }
+                }
+            }
+
+            base.OnStart(state);
+        }
+
+        public void Update()
+        {
+            if (FlightGlobals.ready)
+            {
+                if (trans != null && ((field != null) || (property != null)))
+                {
+                    object target = part;
+
+                    if (module != null)
+                    {
+                        target = module;
+                    }
+
+                    float index = trans.gameObject.activeSelf ? 0 : 1;
+
+                    print("ModuleTransform2Value - transform " + transformName + " State = " + index.ToString());
+
+                    if (field != null)
+                    {
+                        field.SetValue(target, valueCurve.Evaluate(index));
+                    }
+                    else
+                    {
+                        property.SetValue(target, valueCurve.Evaluate(index), null);
+                    }
+                }
+            }
+        }
+    }
 }
