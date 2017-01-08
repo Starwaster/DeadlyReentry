@@ -8,17 +8,25 @@
         "REPOSITORY":"DeadlyReentry",
         "ALLOW_PRE_RELEASE":false,
     },
-    "VERSION":
-    {
-        "MAJOR":7,
-        "MINOR":4,
-        "PATCH":7,
-        "BUILD":0
-    },
-    "KSP_VERSION":
-    {
-        "MAJOR":1,
-        "MINOR":1,
-        "PATCH":3
-    },
+	
+	"KSP_VERSION":
+	{
+		"MAJOR": 1,
+		"MINOR": 2,
+		"PATCH": 0
+	},
+
+	"KSP_VERSION_MIN":
+	{
+		"MAJOR": 1,
+		"MINOR": 2,
+		"PATCH": 0
+	},
+
+	"KSP_VERSION_MAX":
+	{
+		"MAJOR": 1,
+		"MINOR": 2,
+		"PATCH": 99
+	}
 }
