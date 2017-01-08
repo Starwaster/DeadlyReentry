@@ -193,8 +193,6 @@ namespace DeadlyReentry
 
                     float index = trans.gameObject.activeSelf ? 0 : 1;
 
-                    print("ModuleTransform2Value - transform " + transformName + " State = " + index.ToString());
-
                     if (field != null)
                     {
                         field.SetValue(target, valueCurve.Evaluate(index));

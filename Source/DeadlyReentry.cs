@@ -14,6 +14,12 @@ namespace DeadlyReentry
         [KSPField]
         public bool leaveTemp = false;
 
+        [KSPField]
+        public double maxOperationalTemp = -1;
+
+        [KSPField]
+        public double maxSkinOperationalTemp = -1;
+
         public bool is_debugging;
         
         [KSPField(isPersistant = false, guiActive = false, guiName = "Acceleration", guiUnits = " G",   guiFormat = "F3")]
@@ -245,18 +251,23 @@ namespace DeadlyReentry
             if (!CompatibilityChecker.IsAllCompatible())
             {
                 isCompatible = false;
+                return;
             }
-            else
-            {
 
-                // are we an engine?
-                for (int i = part.Modules.Count - 1; i >= 0; --i)
-                    if (part.Modules[i] is ModuleEngines)
-                    {
-                        is_engine = true;
-                        break;
-                    }
+            // are we an engine?
+            for (int i = part.Modules.Count - 1; i >= 0; --i)
+            {
+                if (part.Modules[i] is ModuleEngines)
+                {
+                    is_engine = true;
+                    break;
+                }
             }
+
+            if (maxOperationalTemp == -1)
+                maxOperationalTemp = part.maxTemp * 0.85;
+            if (maxSkinOperationalTemp == -1)
+                maxSkinOperationalTemp = part.skinMaxTemp * 0.85;
         }
 
         void OnDestroy()
@@ -427,7 +438,7 @@ namespace DeadlyReentry
         {
             if (!vessel.isEVA)
             {
-                part.skinMaxTemp = part.partInfo.partPrefab.skinMaxTemp * (1 - 0.15f * damage);
+                //part.skinMaxTemp = part.partInfo.partPrefab.skinMaxTemp * (1 - 0.15f * damage);
                 part.breakingForce = part.partInfo.partPrefab.breakingForce * (1 - damage);
                 part.breakingTorque = part.partInfo.partPrefab.breakingTorque * (1 - damage);
                 part.crashTolerance = part.partInfo.partPrefab.crashTolerance * (1 - 0.5f * damage);
@@ -473,6 +484,7 @@ namespace DeadlyReentry
                     }
                     else
                         damageThreshold = part.skinMaxTemp * 0.85;
+                    
                     if (part.skinTemperature > damageThreshold)
                     {
                         // Handle client-side fire stuff.
