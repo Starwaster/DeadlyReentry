@@ -142,7 +142,6 @@ namespace DeadlyReentry
         {
             if (state != PartModule.StartState.Editor)
             {
-                //anims = part.FindModelAnimators(animationName);
                 trans = this.part.FindModelTransform(transformName);
 
                 if (trans == null)
