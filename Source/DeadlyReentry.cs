@@ -18,7 +18,7 @@ namespace DeadlyReentry
         public double maxOperationalTemp = -1;
 
         [KSPField]
-        public double maxSkinOperationalTemp = -1;
+        public double skinMaxOperationalTemp = -1;
 
         public bool is_debugging;
         
@@ -266,8 +266,8 @@ namespace DeadlyReentry
 
             if (maxOperationalTemp == -1)
                 maxOperationalTemp = part.maxTemp * 0.85;
-            if (maxSkinOperationalTemp == -1)
-                maxSkinOperationalTemp = part.skinMaxTemp * 0.85;
+            if (skinMaxOperationalTemp == -1)
+                skinMaxOperationalTemp = part.skinMaxTemp * 0.85;
         }
 
         void OnDestroy()
@@ -494,11 +494,12 @@ namespace DeadlyReentry
                         AddDamage(TimeWarp.deltaTime * (float)((damage + 1.0) * tempRatio));
                         float soundTempRatio = (float)(part.skinTemperature / part.skinMaxTemp);
                         PlaySound(ablationFX, soundTempRatio * soundTempRatio);
-                        
-                        if (is_engine && damage < 1)
-                            part.skinTemperature = UnityEngine.Random.Range(0.97f + 0.05f * damage, 0.98f + 0.05f * damage) * part.skinMaxTemp;
-                        else if (damage < 1)// non-engines can keep burning
-                            part.skinTemperature += UnityEngine.Random.Range(0.5f + 0.5f * damage, 1.0f + 0.5f * damage) * (tempRatio * 0.04f * part.skinMaxTemp * TimeWarp.fixedDeltaTime);
+
+                        // TODO: This badly needs reworking. Temperature should never be directly adjusted. Pre KSP 1.0 holdover :(
+                        //if (is_engine && damage < 1)
+                        //    part.skinTemperature = UnityEngine.Random.Range(0.97f + 0.05f * damage, 0.98f + 0.05f * damage) * part.skinMaxTemp;
+                        //else if (damage < 1)// non-engines can keep burning
+                        //    part.skinTemperature += UnityEngine.Random.Range(0.5f + 0.5f * damage, 1.0f + 0.5f * damage) * (tempRatio * 0.04f * part.skinMaxTemp * TimeWarp.fixedDeltaTime);
                         
                         if (part.skinTemperature > part.skinMaxTemp || damage >= 1.0f)
                         { // has it burnt up completely?
