@@ -265,9 +265,9 @@ namespace DeadlyReentry
             }
 
             if (maxOperationalTemp == -1)
-                maxOperationalTemp = part.maxTemp * 0.85;
+                maxOperationalTemp = part.maxTemp * (is_engine ? 0.975 : 0.85);
             if (skinMaxOperationalTemp == -1)
-                skinMaxOperationalTemp = part.skinMaxTemp * 0.85;
+                skinMaxOperationalTemp = part.skinMaxTemp * (is_engine ? 0.975 : 0.85);
         }
 
         void OnDestroy()
@@ -473,23 +473,20 @@ namespace DeadlyReentry
                 {
                     if (dead)
                         return;
-                    double damageThreshold;
                     
                     if (is_engine && damage < 1)
-                        damageThreshold = part.skinMaxTemp * 0.975;
+                        skinMaxOperationalTemp = part.skinMaxTemp * 0.975;
                     else if (vessel.isEVA)
                     {
-                        damageThreshold = 800 * (1 - damage) * (1 - damage);
+                        skinMaxOperationalTemp = 800 * (1 - damage) * (1 - damage);
                         part.skinMaxTemp = 900;
                     }
-                    else
-                        damageThreshold = part.skinMaxTemp * 0.85;
-                    
-                    if (part.skinTemperature > damageThreshold)
+
+                    if (part.skinTemperature > skinMaxOperationalTemp)
                     {
                         // Handle client-side fire stuff.
                         // OH GOD IT'S ON FIRE.
-                        float tempRatio = (float)((part.skinTemperature / damageThreshold) - 1.0);
+                        float tempRatio = (float)((part.skinTemperature / skinMaxOperationalTemp) - 1.0);
                         tempRatio *= (float)((part.skinTemperature / part.skinMaxTemp) * (part.skinTemperature / part.skinMaxTemp) * 4.0);
                         AddDamage(TimeWarp.deltaTime * (float)((damage + 1.0) * tempRatio));
                         float soundTempRatio = (float)(part.skinTemperature / part.skinMaxTemp);
@@ -547,7 +544,7 @@ namespace DeadlyReentry
                                 fx.gameObject.transform.LookAt(part.transform.position + vessel.srf_velocity);
                                 fx.gameObject.transform.Rotate(90, 0, 0);
                             }
-                            float severity = (float)((this.part.skinMaxTemp * 0.85) / this.part.skinMaxTemp);
+                            float severity = (float)((skinMaxOperationalTemp) / this.part.skinMaxTemp);
                             float distance = Vector3.Distance(this.part.partTransform.position, FlightGlobals.ActiveVessel.vesselTransform.position);
                             ReentryReaction.Fire(new GameEvents.ExplosionReaction(distance, severity));
                         }
