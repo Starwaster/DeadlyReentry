@@ -115,7 +115,7 @@ namespace DeadlyReentry
                 if(FlightGlobals.ActiveVessel.VesselValues.RepairSkill.value >= requiredSkill)
                 {
                     damage = damage - UnityEngine.Random.Range(0.0f, 0.1f);
-                    if(damage < 0)
+                    if (damage < 0)
                         damage = 0;
 
                     ProcessDamage();
@@ -474,13 +474,13 @@ namespace DeadlyReentry
                     if (dead)
                         return;
                     
-                    if (is_engine && damage < 1)
-                        skinMaxOperationalTemp = part.skinMaxTemp * 0.975;
-                    else if (vessel.isEVA)
-                    {
-                        skinMaxOperationalTemp = 800 * (1 - damage) * (1 - damage);
-                        part.skinMaxTemp = 900;
-                    }
+                    //if (is_engine && damage < 1)
+                    //    skinMaxOperationalTemp = part.skinMaxTemp * 0.975;
+                    //else if (vessel.isEVA)
+                    //{
+                    //    skinMaxOperationalTemp = 800 * (1 - damage) * (1 - damage);
+                    //    part.skinMaxTemp = 900;
+                    //}
 
                     if (part.skinTemperature > skinMaxOperationalTemp)
                     {
