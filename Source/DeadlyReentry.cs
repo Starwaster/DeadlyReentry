@@ -14,20 +14,17 @@ namespace DeadlyReentry
         [KSPField]
         public bool leaveTemp = false;
 
-        [KSPField]
-        public double maxOperationalTemp = -1.0;
+        [KSPField(isPersistant = false, guiActive = true, guiName = "maxOperationalTemp", guiUnits = " K", guiFormat = "F2")]
+        public double maxOperationalTemp = -1d;
 
-        [KSPField]
-        public double skinMaxOperationalTemp = -1.0;
+        [KSPField(isPersistant = false, guiActive = true, guiName = "skinMaxOperationalTemp", guiUnits = " K", guiFormat = "F2")]
+        public double skinMaxOperationalTemp = -1d;
 
         public bool is_debugging;
-        
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Acceleration", guiUnits = " G",   guiFormat = "F3")]
+
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Acceleration", guiUnits = " G", guiFormat = "F3")]
         public double displayGForce;
-        
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Damage", guiUnits = "",   guiFormat = "G")]
-        public string displayDamage;
-        
+
         [KSPField(isPersistant = false, guiActive = false, guiName = "Cumulative G", guiUnits = "", guiFormat = "F0")]
         public double gExperienced = 0;
 
@@ -50,34 +47,36 @@ namespace DeadlyReentry
         public ModularFlightIntegrator.PartThermalData ptd;
         */
         private double lastGForce = 0;
-        private double lastTemperature;
-        private double _toBeSkin;
-        private double _toBeInternal;
-        
+        protected double lastTemperature;
+
         [KSPField(isPersistant = true)]
         public bool dead;
-        
+
         [KSPField]
         public float gTolerance = -1;
-        
+
         [KSPField(isPersistant = true)]
         public float crashTolerance = 8;
 
         private bool isCompatible = true;
-        
+
         private bool is_on_fire = false;
         private bool is_gforce_fx_playing = false;
-        
+
         private bool is_engine = false;
+        private DateTime nextScream = DateTime.Now;
 
         protected double recordedHeatLoad = 0.0;
         protected double maximumRecordedHeat = 0.0;
         protected double heatFluxPerArea = 0.0;
         protected DamageCube damageCube = new DamageCube();
 
+        [KSPField(isPersistant = true)]
+        protected float internalDamage;
+
         [KSPField(isPersistant = false, guiActive = false, guiName = "Rec. Heat", guiUnits = "", guiFormat = "F4")]
         protected string displayRecordedHeatLoad = "0 W";
-        
+
         [KSPField(isPersistant = false, guiActive = false, guiName = "Max. Rec. Heat", guiUnits = "", guiFormat = "F4")]
         protected string displayMaximumRecordedHeat = "0 W";
 
@@ -100,37 +99,42 @@ namespace DeadlyReentry
         {
             // We pass this off to the damage cube now.
             this.damageCube.RepairCubeDamage(FlightGlobals.ActiveVessel.VesselValues.RepairSkill.value);
-/*
-            if(skinDamage > 0)
+            this.RepairInternalDamage(FlightGlobals.ActiveVessel.VesselValues.RepairSkill.value);
+
+            ProcessDamage();
+            SetDamageLabel();
+            if ((object)myWindow != null)
+                myWindow.displayDirty = true;
+        }
+
+        public void RepairInternalDamage(int repairSkill)
+        {
+            //int requiredSkill;
+
+            if(internalDamage > 0)
             {
                 int requiredSkill = 0;
 
-                if(skinDamage > 0.75)
+                if(internalDamage > 0.75)
                     requiredSkill = 5;
-                else if(skinDamage > 0.375)
+                else if(internalDamage > 0.375)
                     requiredSkill = 4;
-                else if(skinDamage > 0.1875)
+                else if(internalDamage > 0.1875)
                     requiredSkill = 3;
-                else if(skinDamage > 0.09375)
+                else if(internalDamage > 0.09375)
                     requiredSkill = 2;
-                else if(skinDamage > 0)
+                else if(internalDamage > 0)
                     requiredSkill = 1;
 
                 if(FlightGlobals.ActiveVessel.VesselValues.RepairSkill.value >= requiredSkill)
                 {
-                    skinDamage = skinDamage - UnityEngine.Random.Range(0.0f, 0.1f);
-                    if (skinDamage < 0)
-                        skinDamage = 0;
-
-
-                } else
-                    ScreenMessages.PostScreenMessage("<color=orange>[DeadlyReentry]: " + this.part.partInfo.title + " is too badly damaged for this Kerbal's skill level.</color>", 6f, ScreenMessageStyle.UPPER_LEFT);
+                    internalDamage = internalDamage - UnityEngine.Random.Range(0.0f, 0.1f);
+                    if (internalDamage < 0)
+                        internalDamage = 0;
+                } 
+                else
+                    ScreenMessages.PostScreenMessage("<color=orange>[DeadlyReentry]: " + this.part.partInfo.title + " is too badly damaged internally for this Kerbal's skill level.</color>", 6f, ScreenMessageStyle.UPPER_LEFT);
             }
-*/
-            ProcessDamage();
-            SetDamageLabel();
-            if((object)myWindow != null)
-                myWindow.displayDirty = true;
         }
 
         EventData<GameEvents.ExplosionReaction> ReentryReaction = GameEvents.onPartExplode;
@@ -250,6 +254,24 @@ namespace DeadlyReentry
                 return _ablationFX;
             }
         }
+
+        FXGroup _screamFX = null;
+        FXGroup screamFX
+        {
+            get
+            {
+                if ((object)_screamFX == null)
+                {
+                    _screamFX = new FXGroup(part.name + "_Screaming");
+                    _screamFX.audio = gameObject.AddComponent<AudioSource>();
+                    _screamFX.audio.clip = GameDatabase.Instance.GetAudioClip("DeadlyReentry/Sounds/scream");
+                    _screamFX.audio.spatialBlend = 1f;
+                    _screamFX.audio.volume = GameSettings.SHIP_VOLUME;
+                    _screamFX.audio.Stop();
+                }
+                return _screamFX;
+            }
+        }
         
         public override void OnAwake()
         {
@@ -263,7 +285,7 @@ namespace DeadlyReentry
             // are we an engine?
             for (int i = part.Modules.Count - 1; i >= 0; --i)
             {
-                if (part.Modules[i] is ModuleEngines)
+                if (part.FindModuleImplementing<ModuleEngines>() != null)
                 {
                     is_engine = true;
                     break;
@@ -283,19 +305,17 @@ namespace DeadlyReentry
         public override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
+            /*
             if (node.HasValue("maxOperationalTemp") && double.TryParse(node.GetValue("maxOperationalTemp"), out maxOperationalTemp))
             {
                 Debug.Log("part " + part.name + ".maxOperationalTemp = " + maxOperationalTemp.ToString());
             }
-            if (maxOperationalTemp < 0.0)
-                maxOperationalTemp = part.maxTemp * (is_engine ? 0.975 : 0.85);
             if (node.HasValue("skinMaxOperationalTemp") && double.TryParse(node.GetValue("skinMaxOperationalTemp"), out skinMaxOperationalTemp))
             {
                 Debug.Log("part " + part.name + ".skinMaxOperationalTemp = " + skinMaxOperationalTemp.ToString());
             }
-            if (skinMaxOperationalTemp < 0.0)
-                skinMaxOperationalTemp = part.skinMaxTemp * (is_engine ? 0.975 : 0.85);
-            
+            */
+
             if (node.HasValue("damageCube"))
             {
                 this.damageCube.LoadFromString(node.GetValue("damageCube"));
@@ -314,6 +334,14 @@ namespace DeadlyReentry
             if (!FlightGlobals.ready)
                 return;
 
+            displayDamage = internalDamage.ToString();
+
+            // sanity check for parts whose max temps might change
+            if (part.maxTemp < maxOperationalTemp)
+                maxOperationalTemp = part.maxTemp * 0.85;
+            if (part.skinMaxTemp < skinMaxOperationalTemp)
+                skinMaxOperationalTemp = part.skinMaxTemp * 0.85;
+            
             CheckForFire();
             CheckGeeForces();
             if (is_debugging && vessel.mach > 1.0)
@@ -347,6 +375,7 @@ namespace DeadlyReentry
                 Fields["displayMaximumRecordedHeat"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["displayHeatFluxPerArea"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Events["ResetRecordedHeat"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields["displayDamage"].guiActive = PhysicsGlobals.ThermalDataDisplay;
 
                 if ((object)myWindow != null)
                 {
@@ -405,7 +434,7 @@ namespace DeadlyReentry
                         is_gforce_fx_playing = false;
                     }
                 }
-                if (damageCube.averageDamage >= 1.0f && !dead)
+                if ((damageCube.averageDamage >= 1.0f || internalDamage >= 1f) && !dead)
                 {
                     dead = true;
                     FlightLogger.fetch.LogEvent("[" + FormatTime(vessel.missionTime) + "] "
@@ -463,8 +492,8 @@ namespace DeadlyReentry
         {
             if (dead || (object)part == null || (object)part.partInfo == null || (object)part.partInfo.partPrefab == null)
                 return;
-            if(is_debugging)
-                print (part.partInfo.title + ": +" + dmg + " damage");
+            //if(is_debugging)
+            //    print (part.partInfo.title + ": +" + dmg + " damage");
             if (dir == Vector3.zero)
                 damageCube.AddCubeDamageAll(dmg);
             else
@@ -472,6 +501,14 @@ namespace DeadlyReentry
 
             ProcessDamage();
             SetDamageLabel ();
+        }
+
+        public void AddInternalDamage(float dmg)
+        {
+            print("Internal Damage!!! " + dmg);
+            this.internalDamage = Mathf.Clamp01(this.internalDamage + (dmg / 100));
+            ProcessDamage();
+            SetDamageLabel();
         }
         
         public void ProcessDamage()
@@ -491,19 +528,31 @@ namespace DeadlyReentry
             {
                 if((object)Events == null)
                     return;
-                if(damageCube.maxDamage > 0.5)
+
+                float maxDamage = Mathf.Max(internalDamage, damageCube.maxDamage);
+
+                if(maxDamage > 0.5)
                     Events["RepairDamage"].guiName = "Repair Critical Damage";
-                else if(damageCube.maxDamage > 0.25)
+                else if(maxDamage > 0.25)
                     Events["RepairDamage"].guiName = "Repair Heavy Damage";
-                else if(damageCube.maxDamage > 0.125)
+                else if(maxDamage > 0.125)
                     Events["RepairDamage"].guiName = "Repair Moderate Damage";
-                else if(damageCube.maxDamage > 0)
+                else if(maxDamage > 0)
                     Events["RepairDamage"].guiName = "Repair Light Damage";
                 else
                     Events["RepairDamage"].guiName = "No Damage";
             }
         }
 
+        public float RangePercent(float min, float max, float value)
+        {
+            return (value - min) / (max - min);
+        }
+
+        public double RangePercent(double min, double max, double value)
+        {
+            return (value - min) / (max - min);
+        }
 
         public void CheckForFire()
         {
@@ -513,7 +562,7 @@ namespace DeadlyReentry
                 {
                     if (dead)
                         return;
-                    
+
                     //if (is_engine && damage < 1)
                     //    skinMaxOperationalTemp = part.skinMaxTemp * 0.975;
                     //else if (vessel.isEVA)
@@ -522,15 +571,35 @@ namespace DeadlyReentry
                     //    part.skinMaxTemp = 900;
                     //}
 
-                    if (part.skinTemperature > skinMaxOperationalTemp)
+                    if (part.temperature > maxOperationalTemp)
+                    {
+                        float tempRatio = (float)RangePercent(maxOperationalTemp, part.maxTemp, part.temperature);
+
+                        if (part.mass > 1)
+                            tempRatio /= part.mass;
+                        
+                        AddInternalDamage(TimeWarp.fixedDeltaTime * tempRatio);
+
+                        if (vessel.isEVA && tempRatio >= 0.089 && nextScream <= DateTime.Now)
+                        {
+                            ReentryReaction.Fire(new GameEvents.ExplosionReaction(0, tempRatio * 2));
+                            PlaySound(screamFX, 1f);
+                            nextScream = DateTime.Now.AddSeconds(15);
+                        }
+                    }
+
+                    if (part.skinTemperature > skinMaxOperationalTemp && damageCube != null)
                     {
                         // Handle client-side fire stuff.
                         // OH GOD IT'S ON FIRE.
-                        float tempRatio = (float)((part.skinTemperature / skinMaxOperationalTemp) - 1.0);
-                        tempRatio *= (float)((part.skinTemperature / part.skinMaxTemp) * (part.skinTemperature / part.skinMaxTemp) * 4.0);
-                        AddDamage(TimeWarp.deltaTime * (float)((damageCube.averageDamage + 1.0) * tempRatio), part.partTransform.InverseTransformDirection(-this.vessel.upAxis));
-                        float soundTempRatio = (float)(part.skinTemperature / part.skinMaxTemp);
-                        PlaySound(ablationFX, soundTempRatio * soundTempRatio);
+                        float tempRatio = (float)RangePercent(skinMaxOperationalTemp, part.skinMaxTemp, part.skinTemperature);
+                        tempRatio *= (float)(part.skinTemperature / part.skinMaxTemp);
+                        AddDamage(TimeWarp.fixedDeltaTime * tempRatio, part.partTransform.InverseTransformDirection(-this.vessel.upAxis));
+                        float soundTempRatio = (float)(tempRatio);
+                        PlaySound(ablationFX, soundTempRatio);
+
+                        if (vessel.isEVA)
+                            PlaySound(screamFX, 1f);
 
                         if (damageCube.averageDamage >= 1.0f)
                         { // has it burnt up completely?
@@ -539,6 +608,9 @@ namespace DeadlyReentry
                             for (int i = fxs.Count - 1; i >= 0; --i)
                                 GameObject.DestroyImmediate(fxs[i].gameObject);
                             fxs = ablationSmokeFX.fxEmitters;
+                            for (int i = fxs.Count - 1; i >= 0; --i)
+                                GameObject.DestroyImmediate(fxs[i].gameObject);
+                            fxs = screamFX.fxEmitters;
                             for (int i = fxs.Count - 1; i >= 0; --i)
                                 GameObject.DestroyImmediate(fxs[i].gameObject);
                             
@@ -578,9 +650,8 @@ namespace DeadlyReentry
                                 fx.gameObject.transform.LookAt(part.transform.position + vessel.srf_velocity);
                                 fx.gameObject.transform.Rotate(90, 0, 0);
                             }
-                            float severity = (float)((skinMaxOperationalTemp) / this.part.skinMaxTemp);
                             float distance = Vector3.Distance(this.part.partTransform.position, FlightGlobals.ActiveVessel.vesselTransform.position);
-                            ReentryReaction.Fire(new GameEvents.ExplosionReaction(distance, severity));
+                            ReentryReaction.Fire(new GameEvents.ExplosionReaction(distance, tempRatio));
                         }
                     }
                     else if (is_on_fire)
@@ -598,18 +669,18 @@ namespace DeadlyReentry
                     if (part.machNumber >= 1)
                     {
                         float damage = damageCube.GetCubeDamageFacing(part.partTransform.InverseTransformDirection(-this.vessel.upAxis));
-                        if (damage > 0f)
+                        if (damage > 0f && vessel.externalTemperature > part.temperature)
                         {
-                            double convectiveFluxLeak = part.thermalConvectionFlux * (double)damage;
+                            double convectiveFluxLeak = part.thermalConvectionFlux * (vessel.externalTemperature - part.temperature) * (double)damage;
                             part.AddThermalFlux(convectiveFluxLeak * 2d);
                         }
                     }
                     else
                     {
                         float damage = damageCube.averageDamage;
-                        if (damage > 0f)
+                        if (damage > 0f && part.ptd != null)
                         {
-                            double convectiveFluxLeak = (double)damage * part.ptd.convectionFlux * (part.ptd.postShockExtTemp - part.temperature);
+                            double convectiveFluxLeak = (double)damage * Math.Abs(part.ptd.convectionFlux) * (part.ptd.postShockExtTemp - part.temperature);
                             part.AddThermalFlux(convectiveFluxLeak * 2d);
                         }
                     }
@@ -630,14 +701,22 @@ namespace DeadlyReentry
 
         public override void OnStart(PartModule.StartState state)
         {
+            if (maxOperationalTemp < 0d || maxOperationalTemp > part.maxTemp)
+                maxOperationalTemp = part.maxTemp * (is_engine ? 0.975 : 0.85);
+            if (skinMaxOperationalTemp < 0d || skinMaxOperationalTemp > part.skinMaxTemp)
+                skinMaxOperationalTemp = part.skinMaxTemp * (is_engine ? 0.975 : 0.85);
+
             if (!HighLogic.LoadedSceneIsFlight)
                 return;
-            
+
             // disable any menu items that might cause trouble on an EVA Kerbal
             if (vessel.isEVA)
                 Events["RepairDamage"].guiActive = false;
             else
+            {
                 ProcessDamage();
+                SetDamageLabel();
+            }
         }
 
         static void print(string msg)
@@ -772,6 +851,53 @@ namespace DeadlyReentry
                 return text;
             }
         }
+    }
+
+    class ModuleKerbalAeroReentry : ModuleAeroReentry, IAnalyticTemperatureModifier
+    {
+        [KSPField]
+        double heatRejection = 0.5;
+
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Health", guiUnits = "%", guiFormat = "F0")]
+        string injury = "";
+
+        private double _toBeSkin;
+        private double _toBeInternal;
+        private double desiredSuitTemp = 297.6;
+
+        public override void OnStart(PartModule.StartState state)
+        {
+            base.OnStart(state);
+            part.temperature = desiredSuitTemp;
+        }
+
+        public override void FixedUpdate()
+        {
+            // give Kerbals minimal heat rejection ability
+            double tempDelta = part.temperature - desiredSuitTemp;
+
+            if (tempDelta > 0)
+            {
+                // TODO maybe put in safeguards against excessively high cooling rates but the default is low enough to be fine
+                part.AddThermalFlux(-heatRejection * 2.0); // double heat added/removed until this is fixed in next KSP update
+                part.AddSkinThermalFlux(heatRejection * 2.0);
+            }
+
+            base.FixedUpdate();
+
+            if (tempDelta <= 0 && this.internalDamage > 0)
+            {
+                this.internalDamage = Mathf.Clamp01(this.internalDamage - 0.00001f); // Kerbals will heal internal damage as long as they are not overheated.
+            }
+
+            if (this.internalDamage > 0)
+            {
+                Fields["injury"].guiActive = true;
+                this.injury = ((1 - this.internalDamage) * 100).ToString();
+            }
+            else
+                Fields["injury"].guiActive = false;
+        }
 
         #region IAnalyticTemperatureModifier
         // Analytic Interface - only purpose is to pin Kerbal internal to a reasonable value
@@ -874,11 +1000,12 @@ namespace DeadlyReentry
                             {
                                 try
                                 {
-                                    if ((object)part.partPrefab != null && !(part.partPrefab.Modules.Contains("ModuleHeatShield") || part.partPrefab.Modules.Contains("ModuleAblator")))
+                                    if ((object)part.partPrefab != null && !(part.partPrefab.FindModuleImplementing<ModuleHeatShield>() || part.partPrefab.FindModuleImplementing<ModuleAblator>()))
                                     {
-                                        if (part.partPrefab.Modules.Contains("ModuleAeroReentry"))
+                                        ModuleAeroReentry _ModuleAeroReentry = part.partPrefab.FindModuleImplementing<ModuleAeroReentry>();
+                                        if (_ModuleAeroReentry != null)
                                         {
-                                            if (((ModuleAeroReentry)(part.partPrefab.Modules["ModuleAeroReentry"])).leaveTemp)
+                                            if (_ModuleAeroReentry.leaveTemp)
                                             {
                                                 Debug.Log("[DRE] skipping part " + part.name + " (leaveTemp = True)");
                                                 continue;
@@ -905,6 +1032,7 @@ namespace DeadlyReentry
                                             {
                                                 if (module is ModuleEngines)
                                                     ((ModuleEngines)module).heatProduction *= (float)curScale;
+                                                Debug.Log("Adjusted heat production of engine module " + module.name);
                                             }
                                         }
                                     }
@@ -940,6 +1068,8 @@ namespace DeadlyReentry
                                             part.partPrefab.AddModule("ModuleAeroReentry");
                                         }
                                     }
+                                    else
+                                        print("Error adding ModuleAeroReentry to " + part.name + "(either partPrefab or partPrefab.Modules was null)");
                                 }
                                 catch (Exception e)
                                 {
@@ -953,7 +1083,12 @@ namespace DeadlyReentry
                 }
             }
         }
+        static void print(string msg)
+        {
+            MonoBehaviour.print("[DeadlyReentry.FixMaxTemps] " + msg);
+        }
     }
+
     [KSPAddon(KSPAddon.Startup.SpaceCentre, false)]
     public class ReentryPhysics : MonoBehaviour
     {

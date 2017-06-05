@@ -26,6 +26,7 @@ namespace DeadlyReentry
 		//private Rect window = new Rect(), button = new Rect();
         private Texture2D buttonTexture = new Texture2D(32, 32);
         private Texture Melificent = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Melificent", false);
+        private Texture Ariel = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Ariel1", false);
         private string DREVersionString = "";
         private bool isCompatible = true;
 		#endregion
@@ -132,7 +133,7 @@ namespace DeadlyReentry
             {
                 //Set the GUI Skin
                 //GUI.skin = HighLogic.Skin;
-                this.windowPosition = GUILayout.Window(id, this.windowPosition, OnWindow, "Deadly Reentry " + DREVersionString + " - The Melificent Edition", windowStyle);
+                this.windowPosition = GUILayout.Window(id, this.windowPosition, OnWindow, "Deadly Reentry " + DREVersionString + " - The Ariel Edition", windowStyle);
             }
         }
 
@@ -293,10 +294,14 @@ namespace DeadlyReentry
             GUILayout.Label("Crew G Kill chance per update", labelStyle);
             string newcrewGKillChance = GUILayout.TextField(ReentryPhysics.crewGKillChance.ToString(), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Height(0);
+            DeadlyReentryScenario.displayCrewGForceWarning = GUILayout.Toggle(DeadlyReentryScenario.displayCrewGForceWarning, "Warn crew G forces are becoming dangerous!");
+            GUILayout.EndHorizontal();
             GUILayout.Width(0);
             GUILayout.Height(0);
             GUILayout.Label("For other thermal settings, press F-12 then select Physics->Thermals.", windowStyleCenter);
-            GUILayout.Label(Melificent, windowStyleCenter);
+            GUILayout.Label(Ariel, windowStyleCenter);
 
             GUILayout.EndVertical();
 

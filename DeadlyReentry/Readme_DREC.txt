@@ -20,6 +20,24 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v7.5.0
+* KSP compatibility 1.2.2 Update.
+* Commented out StrutConnector fixes. (StrutConnector changes? Have to monitor strut situation and see if original problem still exists)
+* Fixes to RSSROConfig handling
+* Added ModuleTransform2Value (works like ModuleAnimation2Value except that the value depends on the state (active/inactive) of a designated mesh object) (all chutes use this now both stock and RC)
+* Added framework configuring max/operation temp values inModuleAeroReentry
+
+v7.4.7.1
+* Removed ablator from PF fairings. (addresses negative cost issue)
+
+v7.4.7
+Compiled for KSP 1.1.3
+Updated versioning information
+
+v7.4.5.1
+* Don't delete leaveTemp. (causes errors in latest versions of Module Manager)
+* Changes to vernier thermals. (increased survivability of the Vernor RCS part)
+
 v7.4.5
 * Fix flag exploding when switching to flag. (prevent flag from having
 ModuleAeroReentry added to it)
