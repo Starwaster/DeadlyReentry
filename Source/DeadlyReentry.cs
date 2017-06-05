@@ -25,6 +25,9 @@ namespace DeadlyReentry
         [KSPField(isPersistant = false, guiActive = false, guiName = "Acceleration", guiUnits = " G", guiFormat = "F3")]
         public double displayGForce;
 
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Damage", guiUnits = "", guiFormat = "G")]
+        public string displayDamage;
+
         [KSPField(isPersistant = false, guiActive = false, guiName = "Cumulative G", guiUnits = "", guiFormat = "F0")]
         public double gExperienced = 0;
 
