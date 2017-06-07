@@ -8,12 +8,11 @@
         "REPOSITORY":"DeadlyReentry",
         "ALLOW_PRE_RELEASE":false,
     },
-    	"VERSION" :
+    "VERSION" :
 	{
 	    "MAJOR" : 7,
 	    "MINOR" : 6,
-	    "PATCH" : 0,
-	    "BUILD" : 1
+	    "PATCH" : 1,
 	},
 	
 	"KSP_VERSION":
