@@ -192,8 +192,9 @@ namespace DeadlyReentry
 
         public static void PlaySound(FXGroup fx, float volume)
         {
+            volume = Mathf.Clamp01(volume);
             if(fx.audio.isPlaying)
-                {
+            {
                 if(fx.audio.volume < volume)
                     fx.audio.volume = volume;
             } else {
@@ -202,7 +203,6 @@ namespace DeadlyReentry
             }
             //if(this.is_debugging)
             //    print (fx.audio.clip.name);
-            
         }
         FXGroup _gForceFX = null;
         FXGroup gForceFX 
@@ -508,7 +508,6 @@ namespace DeadlyReentry
 
         public void AddInternalDamage(float dmg)
         {
-            print("Internal Damage!!! " + dmg);
             this.internalDamage = Mathf.Clamp01(this.internalDamage + (dmg / 100));
             ProcessDamage();
             SetDamageLabel();
@@ -576,7 +575,8 @@ namespace DeadlyReentry
 
                     if (part.temperature > maxOperationalTemp)
                     {
-                        float tempRatio = (float)RangePercent(maxOperationalTemp, part.maxTemp, part.temperature);
+                        // for scream / fear reaction ratio, useGUILayout scalding water as upper value
+                        float tempRatio = (float)RangePercent(maxOperationalTemp, 322.15, part.temperature);
 
                         if (part.mass > 1)
                             tempRatio /= part.mass;
@@ -585,8 +585,8 @@ namespace DeadlyReentry
 
                         if (vessel.isEVA && tempRatio >= 0.089 && nextScream <= DateTime.Now)
                         {
-                            ReentryReaction.Fire(new GameEvents.ExplosionReaction(0, tempRatio * 2));
-                            PlaySound(screamFX, 1f);
+                            ReentryReaction.Fire(new GameEvents.ExplosionReaction(0, tempRatio));
+                            PlaySound(screamFX, tempRatio);
                             nextScream = DateTime.Now.AddSeconds(15);
                         }
                     }
@@ -868,10 +868,23 @@ namespace DeadlyReentry
         private double _toBeInternal;
         private double desiredSuitTemp = 297.6;
 
+        [KSPField(isPersistant = true)]
+        public bool needsSuitTempInit = true;
+
+        private string EVATestProperty = "default value";
+
         public override void OnStart(PartModule.StartState state)
         {
+            GameEvents.onCrewOnEva.Add(OnCrewOnEva);
+
             base.OnStart(state);
-            part.temperature = desiredSuitTemp;
+
+            if (this.needsSuitTempInit)
+            {
+                this.part.temperature = desiredSuitTemp;
+                this.needsSuitTempInit = false;
+            }
+            Debug.Log("[ModuleKerbalAeroReentry.OnStart()] EVATestProperty = " + EVATestProperty);
         }
 
         public override void FixedUpdate()
@@ -890,7 +903,7 @@ namespace DeadlyReentry
 
             if (tempDelta <= 0 && this.internalDamage > 0)
             {
-                this.internalDamage = Mathf.Clamp01(this.internalDamage - 0.00001f); // Kerbals will heal internal damage as long as they are not overheated.
+                this.internalDamage = Mathf.Clamp01(this.internalDamage - (0.00001f * TimeWarp.fixedDeltaTime)); // Kerbals will heal internal damage as long as they are not overheated.
             }
 
             if (this.internalDamage > 0)
@@ -900,7 +913,19 @@ namespace DeadlyReentry
             }
             else
                 Fields["injury"].guiActive = false;
+
+            if (EVATestProperty != "default value")
+            {
+                Debug.Log("EVATestProperty = " + EVATestProperty);
+                EVATestProperty = "default value";
+            }
         }
+
+        public void OnCrewOnEva(GameEvents.FromToAction<Part, Part> eventData)
+        {
+            this.EVATestProperty = "value changed";
+            Debug.Log("[ModuleKerbalAeroReentry.OnCrewOnEva()] EVATestProperty = " + EVATestProperty);
+    }
 
         #region IAnalyticTemperatureModifier
         // Analytic Interface - only purpose is to pin Kerbal internal to a reasonable value
