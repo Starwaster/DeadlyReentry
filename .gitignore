@@ -160,3 +160,4 @@ DeadlyReentry/custom.cfg
 *.zip
 DeadlyReentry.userprefs
 Source/DeadlyReentry.csproj
+DeadlyReentry/Plugins/UnityEngine.xml
