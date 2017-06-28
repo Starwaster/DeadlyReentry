@@ -1059,8 +1059,11 @@ namespace DeadlyReentry
                                             foreach (PartModule module in part.partPrefab.Modules)
                                             {
                                                 if (module is ModuleEngines)
+                                                {
                                                     ((ModuleEngines)module).heatProduction *= (float)curScale;
-                                                Debug.Log("Adjusted heat production of engine module " + module.name);
+                                                    Debug.Log("Adjusted heat production of engine module " + module.name);
+                                                    is_engine = true;
+                                                }
                                             }
                                         }
                                     }
