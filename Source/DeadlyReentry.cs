@@ -360,7 +360,7 @@ namespace DeadlyReentry
                 displayRecordedHeatLoad = FormatFlux(recordedHeatLoad, true) + "J";
                 displayMaximumRecordedHeat = FormatFlux(maximumRecordedHeat) + "W";
                 //displayMaximumRecordedHeat = part.skinExposedArea.ToString("F2") + " / " + part.radiativeArea.ToString("F2") + "  m2";
-;
+
                 displayHeatFluxPerArea = FormatFlux(heatFluxPerArea/10000) + "W/cm2";
             }
             if (TimeWarp.CurrentRate <= PhysicsGlobals.ThermalMaxIntegrationWarp)
@@ -575,7 +575,7 @@ namespace DeadlyReentry
 
                     if (part.temperature > maxOperationalTemp)
                     {
-                        // for scream / fear reaction ratio, useGUILayout scalding water as upper value
+                        // for scream / fear reaction ratio, use scalding water as upper value
                         float tempRatio = (float)RangePercent(maxOperationalTemp, 322.15, part.temperature);
 
                         if (part.mass > 1)
@@ -617,7 +617,7 @@ namespace DeadlyReentry
                             for (int i = fxs.Count - 1; i >= 0; --i)
                                 GameObject.DestroyImmediate(fxs[i].gameObject);
                             
-                            if (!dead)
+                            if (false && !dead)
                             {
                                 dead = true;
                                 FlightLogger.fetch.LogEvent("[" + FormatTime(vessel.missionTime) + "] "
