@@ -1045,15 +1045,17 @@ namespace DeadlyReentry
                                             continue;
                                         }
                                         double oldTemp = part.partPrefab.maxTemp;
-                                        bool changed = false;
+
                                         if (part.partPrefab.maxTemp > maxTemp)
                                         {
                                             part.partPrefab.maxTemp = Math.Min(part.partPrefab.maxTemp * scale, maxTemp);
+
+                                            // THIS probably isn't necessary; should have been handled in PartLoader before we even got here.
+                                            if (part.partPrefab.skinMaxTemp < 0.0)
+                                                part.partPrefab.skinMaxTemp = part.partPrefab.maxTemp;
+                                            
                                             Debug.Log("[DRE] rebalancing OP maxTemp for part " + part.name);
-                                            changed = true;
-                                        }
-                                        if (changed)
-                                        {
+
                                             double curScale = part.partPrefab.maxTemp / oldTemp;
 
                                             foreach (PartModule module in part.partPrefab.Modules)
@@ -1064,6 +1066,12 @@ namespace DeadlyReentry
                                                     Debug.Log("Adjusted heat production of engine module " + module.name);
                                                 }
                                             }
+                                        }
+
+                                        if (part.partPrefab.skinMaxTemp > maxTemp)
+                                        {
+                                            part.partPrefab.skinMaxTemp = Math.Min(part.partPrefab.skinMaxTemp * scale, maxTemp);
+                                            Debug.Log("[DRE] rebalancing OP maxTemp for part " + part.name);
                                         }
                                     }
                                 }
