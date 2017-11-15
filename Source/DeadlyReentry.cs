@@ -349,7 +349,7 @@ namespace DeadlyReentry
             CheckGeeForces();
             if (is_debugging && vessel.mach > 1.0)
             {
-                double thermalConvectionFlux = part.thermalConvectionFlux == double.NaN ? 0d : part.thermalConvectionFlux;
+                double thermalConvectionFlux = double.IsNaN(part.thermalConvectionFlux) ? 0d : part.thermalConvectionFlux;
                 if (thermalConvectionFlux > 0)
                 {
                     recordedHeatLoad += thermalConvectionFlux;
