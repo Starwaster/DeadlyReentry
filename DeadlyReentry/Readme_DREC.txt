@@ -20,6 +20,33 @@ Hold down ALT+D+R to enable debugging. This lets you change settings in-game, an
 
 ==========
 Changelog:
+v7.6.1
+* Recompiled for KSP 1.3.0
+* Rescaled tempRatio for inner kerbal temps. Lower limit = 317K and upper = 322 (scalding) - Clamped to 0-1 for sound volume. Unclamped for fear reaction animation
+* Fixed Kerbals not spawning with correct inner temp.
+* Fixed Kerbals not healing at *fixedDeltaTime
+* Updated files for main DeadlyReentry.cfg,
+* Scaled up star systems support. 
+* (may not be adequate for all custom star systems. This is REALLY something that should be handled by those star system mods)
+* Updated RealChute settings
+* Moved inflatable configs into their own file
+* Fixed 15m HIAD mass (what, like YOU were never off by three orders of magnitude???)
+* Updated categories
+* Disable overheating destruction. (Parts still burn up due to stock heating)
+* skinMaxTemp wasn't being handled during temperature rebalancing.
+* NaN detection changed to use Double.isNaN instead of comparing to Double.NaN
+
+v7.6.0
+* Finalized implementation of Max Operational Temp system
+* Implemented 'damage cubes' similar to drag cubes except that hull damage is now directional.
+* If vehicle skin takes enough damage facing its velocity vector then hot reentry gasses can enter the ship and damage internals directly
+* Internal damage handled separately and is not directionally based.
+* Kerbal max temp rebalance finalized. Suits (skin) can withstand up to ~900 K but the Kerbal inside starts taking damage at 317 K
+* EVA Kerbals now have a small amount of cooling. (500 watts but subject to rebalancing)
+* Kerbals scream when on fire.
+* Reinstituted menu setting for turning off crew g-force warning message.
+* Fixed problem with calling part.Modules[*] (replaced with FindModuleImplementing)
+
 v7.5.0
 * KSP compatibility 1.2.2 Update.
 * Commented out StrutConnector fixes. (StrutConnector changes? Have to monitor strut situation and see if original problem still exists)
