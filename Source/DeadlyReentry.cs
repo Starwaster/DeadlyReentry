@@ -86,6 +86,9 @@ namespace DeadlyReentry
         [KSPField(isPersistant = false, guiActive = false, guiName = "Heat/cm2", guiUnits = "", guiFormat = "F4")]
         protected string displayHeatFluxPerArea = "0 W/cm2";
 
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Exposed Area", guiUnits = "", guiFormat = "F2")]
+        protected string displayExposedAreas = "0";
+
         [KSPEvent(guiName = "Reset Heat Record", guiActiveUnfocused = true, externalToEVAOnly = false, guiActive = false, unfocusedRange = 4f)]
         public void ResetRecordedHeat()
         {
@@ -300,9 +303,9 @@ namespace DeadlyReentry
         {
             //FI = null;
             if((object)_ablationFX != null && (object)_ablationFX.audio != null)
-                DestroyImmediate(_ablationFX.audio);
+                Destroy(_ablationFX.audio);
             if((object)_gForceFX != null && (object)_gForceFX.audio != null)
-                DestroyImmediate(_gForceFX.audio);
+                Destroy(_gForceFX.audio);
         }
 
         public override void OnLoad(ConfigNode node)
@@ -344,6 +347,12 @@ namespace DeadlyReentry
                 maxOperationalTemp = part.maxTemp * 0.85;
             if (part.skinMaxTemp < skinMaxOperationalTemp)
                 skinMaxOperationalTemp = part.skinMaxTemp * 0.85;
+
+            // sanity checking
+            if (Double.IsNaN(part.temperature))
+                part.temperature = 297.6;
+            if (Double.IsNaN(part.skinTemperature))
+                part.skinTemperature = Math.Min(this.skinMaxOperationalTemp, vessel.externalTemperature);
             
             CheckForFire();
             CheckGeeForces();
@@ -355,7 +364,12 @@ namespace DeadlyReentry
                     recordedHeatLoad += thermalConvectionFlux;
                     maximumRecordedHeat = Math.Max(maximumRecordedHeat, part.thermalConvectionFlux);
                 }
+
                 heatFluxPerArea = part.thermalConvectionFlux / part.skinExposedArea;
+                if (Double.IsNaN(heatFluxPerArea))
+                    heatFluxPerArea = 0;
+                
+                displayExposedAreas = part.skinExposedArea.ToString("F2") + "/" + part.exposedArea.ToString("F2");
 
                 displayRecordedHeatLoad = FormatFlux(recordedHeatLoad, true) + "J";
                 displayMaximumRecordedHeat = FormatFlux(maximumRecordedHeat) + "W";
@@ -379,6 +393,7 @@ namespace DeadlyReentry
                 Fields["displayHeatFluxPerArea"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Events["ResetRecordedHeat"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["displayDamage"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields["displayExposedAreas"].guiActive = PhysicsGlobals.ThermalDataDisplay;
 
                 if ((object)myWindow != null)
                 {
@@ -609,13 +624,13 @@ namespace DeadlyReentry
 
                             List<ParticleEmitter> fxs = ablationFX.fxEmitters;
                             for (int i = fxs.Count - 1; i >= 0; --i)
-                                GameObject.DestroyImmediate(fxs[i].gameObject);
+                                GameObject.Destroy(fxs[i].gameObject);
                             fxs = ablationSmokeFX.fxEmitters;
                             for (int i = fxs.Count - 1; i >= 0; --i)
-                                GameObject.DestroyImmediate(fxs[i].gameObject);
+                                GameObject.Destroy(fxs[i].gameObject);
                             fxs = screamFX.fxEmitters;
                             for (int i = fxs.Count - 1; i >= 0; --i)
-                                GameObject.DestroyImmediate(fxs[i].gameObject);
+                                GameObject.Destroy(fxs[i].gameObject);
                             
                             if (false && !dead)
                             {

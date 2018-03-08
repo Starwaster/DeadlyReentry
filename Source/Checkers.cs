@@ -186,7 +186,7 @@ namespace DeadlyReentry
 
             if ((incompatible.Length > 0) || (incompatibleUnity.Length > 0))// || IsWin64())
             {
-                PopupDialog.SpawnPopupDialog(new Vector2(0, 0), new Vector2(0, 0), "CompatibilityChecker", "Incompatible Mods Detected", message, "OK", true, HighLogic.UISkin);
+                //PopupDialog.SpawnPopupDialog(new Vector2(0, 0), new Vector2(0, 0), "CompatibilityChecker", "Incompatible Mods Detected", message, "OK", true, HighLogic.UISkin);
             }
         }
 
