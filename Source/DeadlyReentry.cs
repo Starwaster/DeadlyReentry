@@ -234,7 +234,7 @@ namespace DeadlyReentry
                 if((object)_ablationSmokeFX == null)
                 {
                     _ablationSmokeFX = new FXGroup (part.name + "_Smoking");
-                    _ablationSmokeFX.fxEmitters.Add (Emitter("fx_smokeTrail_medium").GetComponent<ParticleEmitter>());
+                    _ablationSmokeFX.fxEmittersNewSystem.Add (Emitter("fx_smokeTrail_medium").GetComponent<ParticleSystem>());
                 }
                 return _ablationSmokeFX;
             }
@@ -248,8 +248,8 @@ namespace DeadlyReentry
                 if((object)_ablationFX == null)
                 {
                     _ablationFX = new FXGroup (part.name + "_Burning");
-                    _ablationFX.fxEmitters.Add (Emitter("fx_exhaustFlame_yellow").GetComponent<ParticleEmitter>());
-                    _ablationFX.fxEmitters.Add(Emitter("fx_exhaustSparks_yellow").GetComponent<ParticleEmitter>());
+                    _ablationFX.fxEmittersNewSystem.Add (Emitter("fx_exhaustFlame_yellow").GetComponent<ParticleSystem>());
+                    _ablationFX.fxEmittersNewSystem.Add(Emitter("fx_exhaustSparks_yellow").GetComponent<ParticleSystem>());
                     _ablationFX.audio = gameObject.AddComponent<AudioSource>();
                     _ablationFX.audio.clip = GameDatabase.Instance.GetAudioClip("DeadlyReentry/Sounds/fire_damage");
                     _ablationFX.audio.spatialBlend = 1f;
@@ -622,13 +622,13 @@ namespace DeadlyReentry
                         if (damageCube.averageDamage >= 1.0f)
                         { // has it burnt up completely?
 
-                            List<ParticleEmitter> fxs = ablationFX.fxEmitters;
+                            List<ParticleSystem> fxs = ablationFX.fxEmittersNewSystem;
                             for (int i = fxs.Count - 1; i >= 0; --i)
                                 GameObject.Destroy(fxs[i].gameObject);
-                            fxs = ablationSmokeFX.fxEmitters;
+                            fxs = ablationSmokeFX.fxEmittersNewSystem;
                             for (int i = fxs.Count - 1; i >= 0; --i)
                                 GameObject.Destroy(fxs[i].gameObject);
-                            fxs = screamFX.fxEmitters;
+                            fxs = screamFX.fxEmittersNewSystem;
                             for (int i = fxs.Count - 1; i >= 0; --i)
                                 GameObject.Destroy(fxs[i].gameObject);
                             
@@ -651,8 +651,8 @@ namespace DeadlyReentry
                         else
                         {
                             is_on_fire = true;
-                            List<ParticleEmitter> fxs = ablationFX.fxEmitters;
-                            ParticleEmitter fx;
+                            List<ParticleSystem> fxs = ablationFX.fxEmittersNewSystem;
+                            ParticleSystem fx;
                             for (int i = fxs.Count - 1; i >= 0; --i)
                             {
                                 fx = fxs[i];
@@ -660,7 +660,7 @@ namespace DeadlyReentry
                                 fx.gameObject.transform.LookAt(part.transform.position + vessel.srf_velocity);
                                 fx.gameObject.transform.Rotate(90, 0, 0);
                             }
-                            fxs = ablationSmokeFX.fxEmitters;
+                            fxs = ablationSmokeFX.fxEmittersNewSystem;
                             for (int i = fxs.Count - 1; i >= 0; --i)
                             {
                                 fx = fxs[i];
@@ -676,10 +676,10 @@ namespace DeadlyReentry
                     { // not on fire.
                         is_on_fire = false;
 
-                        List<ParticleEmitter> fxs = ablationFX.fxEmitters;
+                        List<ParticleSystem> fxs = ablationFX.fxEmittersNewSystem;
                         for (int i = fxs.Count - 1; i >= 0; --i)
                             fxs[i].gameObject.SetActive(false);
-                        fxs = ablationSmokeFX.fxEmitters;
+                        fxs = ablationSmokeFX.fxEmittersNewSystem;
                         for (int i = fxs.Count - 1; i >= 0; --i)
                             fxs[i].gameObject.SetActive(false);
                     }
@@ -874,7 +874,7 @@ namespace DeadlyReentry
     class ModuleKerbalAeroReentry : ModuleAeroReentry, IAnalyticTemperatureModifier
     {
         [KSPField]
-        double heatRejection = 0.5;
+        double heatRejection = 0.1; // real suit could get rid of 297 watts but KSP thermal is weak and forgiving and we're not adding body heat
 
         [KSPField(isPersistant = false, guiActive = false, guiName = "Health", guiUnits = "%", guiFormat = "F0")]
         string injury = "";
@@ -910,8 +910,8 @@ namespace DeadlyReentry
             if (tempDelta > 0)
             {
                 // TODO maybe put in safeguards against excessively high cooling rates but the default is low enough to be fine
-                part.AddThermalFlux(-heatRejection * 2.0); // double heat added/removed until this is fixed in next KSP update
-                part.AddSkinThermalFlux(heatRejection * 2.0);
+                part.AddThermalFlux(-heatRejection); // double heat added/removed until this is fixed in next KSP update
+                part.AddSkinThermalFlux(heatRejection);
             }
 
             base.FixedUpdate();

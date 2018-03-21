@@ -11,7 +11,7 @@ using KSP.UI.Screens;
 
 namespace DeadlyReentry
 {
-    [KSPAddon(KSPAddon.Startup.EveryScene, false)]
+    [KSPAddon(KSPAddon.Startup.MainMenu, true)]
 	public class DRToolbar : MonoBehaviour
 	{
 		#region Fields
@@ -61,7 +61,7 @@ namespace DeadlyReentry
             //Melificent.width /= 2;
         }
 
-        void Awake() 
+        void Start() 
 		{
 			// Set up the stock toolbar
             if (!CompatibilityChecker.IsAllCompatible())
@@ -81,6 +81,7 @@ namespace DeadlyReentry
             GameEvents.onGUIApplicationLauncherReady.Add(OnGUIAppLauncherReady);
 			GameEvents.onGUIApplicationLauncherDestroyed.Add(OnGUIAppLauncherDestroyed);
             GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequestedForAppLauncher);
+            GameObject.DontDestroyOnLoad(this);
             //Texture Melificent =
 		}
 /*		
@@ -184,6 +185,7 @@ namespace DeadlyReentry
                 ApplicationLauncher.AppScenes.TRACKSTATION;
             if (ApplicationLauncher.Ready && this.DRToolbarButton == null)
 			{
+                print("onGUIAppLauncherReady! Let's set up our button!"); 
                 this.DRToolbarButton = ApplicationLauncher.Instance.AddModApplication(onAppLaunchToggleOn,
                     onAppLaunchToggleOff,
                     null,
@@ -300,7 +302,7 @@ namespace DeadlyReentry
             GUILayout.EndHorizontal();
             GUILayout.Width(0);
             GUILayout.Height(0);
-            GUILayout.Label("For other thermal settings, press F-12 then select Physics->Thermals.", windowStyleCenter);
+            GUILayout.Label("For other thermal settings, press F12 then select Physics->Thermals.", windowStyleCenter);
             GUILayout.Label(Ariel, windowStyleCenter);
 
             GUILayout.EndVertical();
