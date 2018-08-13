@@ -1,0 +1,169 @@
+@PART[parachuteDrogue]
+{
+	@maxTemp = 1150
+	emissiveConstant = 0.65
+	
+	MODULE
+	{
+    	name = ModuleTransform2Value
+		transformName = cap
+		valueName = emissiveConstant
+    	valueCurve
+		{
+			key = 0.0 0.6
+			key = 1.0 0.4
+		}
+	}
+}
+@PART[parachuteLarge]
+{
+	@maxTemp = 1150
+	emissiveConstant = 0.6
+
+	MODULE
+	{
+    	name = ModuleTransform2Value
+		animationName = cone
+		valueName = emissiveConstant
+    	valueCurve
+		{
+			key = 0.0 0.6
+			key = 1.0 0.4
+		}
+	}
+	MODULE
+	{
+    	name = ModuleTransform2Value
+		transformName = cap
+		valueName = emissiveConstant
+    	valueCurve
+		{
+			key = 0.0 0.6
+			key = 1.0 0.4
+		}
+	}
+}
+@PART[parachuteRadial]
+{
+	@maxTemp = 1423.15
+	emissiveConstant = 0.6
+
+	MODULE
+	{
+    	name = ModuleTransform2Value
+		transformName = cap
+		valueName = skinInternalConductionMult
+    	valueCurve
+		{
+			key = 0.0 0.12
+			key = 1.0 1.0
+		}
+	}
+	MODULE
+	{
+    	name = ModuleTransform2Value
+		transformName = cap
+		valueName = emissiveConstant
+    	valueCurve
+		{
+			key = 0.0 0.6
+			key = 1.0 0.4
+		}
+	}
+}
+@PART[parachuteSingle]
+{
+	@maxTemp = 1600
+	@emissiveConstant = 0.6
+
+	MODULE
+	{
+    	name = ModuleTransform2Value
+		transformName = cap
+		valueName = skinInternalConductionMult
+    	valueCurve
+		{
+			key = 0.0 0.12
+			key = 1.0 1.0
+		}
+	}
+	MODULE
+	{
+    	name = ModuleTransform2Value
+		transformName = cap
+		valueName = emissiveConstant
+    	valueCurve
+		{
+			key = 0.0 0.6
+			key = 1.0 0.4
+		}
+	}
+}
+@PART[*]:HAS[@MODULE[RealChuteModule]]:Final
+{
+	%emissiveConstant = 0.85
+	%maxTemp = 850
+	%skinMaxTemp = 2300
+}
+@PART[RC_radial]
+{
+	MODULE
+	{
+		name = ModuleAeroReentry
+		leaveTemp = true
+	}
+
+	MODULE
+	{
+		name = ModuleTransform2Value
+		transformName = cap
+		valueName = emissiveConstant
+		valueCurve
+		{
+			key = 0.0 0.85
+			key = 1.0 0.4
+		}
+	}
+	MODULE
+	{
+		name = ModuleTransform2Value
+		transformName = cap
+		valueName = skinInternalConductionMult
+		valueCurve
+		{
+			key = 0.0 0.12
+			key = 1.0 1.0
+		}
+	}
+}
+@PART[RC_cone*]:NEEDS[RealChute]:FINAL
+{
+	MODULE
+	{
+		name = ModuleAeroReentry
+		leaveTemp = true
+	}
+
+	MODULE
+	{
+		name = ModuleTransform2Value
+		transformName = cone
+		valueName = emissiveConstant
+		valueCurve
+		{
+			key = 0.0 0.85
+			key = 1.0 0.4
+		}
+	}
+	MODULE
+	{
+		name = ModuleTransform2Value
+		transformName = cone
+		valueName = skinInternalConductionMult
+		valueCurve
+		{
+			key = 0.0 0.12
+			key = 1.0 1.0
+		}
+	}
+} 
