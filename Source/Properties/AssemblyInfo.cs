@@ -34,5 +34,5 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("7.7.1")]
 //[assembly: AssemblyFileVersion("7.0.*.*")]
-[assembly: KSPAssembly("DeadlyReentry", 7, 7)]
+[assembly: KSPAssembly("DeadlyReentry", 7, 7, 1)]
 //[assembly: KSPAssemblyDependency("ModularFlightIntegrator", 1, 0)]

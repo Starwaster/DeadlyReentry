@@ -119,7 +119,7 @@ namespace DeadlyReentry
             {
                 //Set the GUI Skin
                 //GUI.skin = HighLogic.Skin;
-                this.windowPosition = GUILayout.Window(id, this.windowPosition, OnWindow, "Deadly Reentry " + DREVersionString + " - The Ariel Edition", windowStyle);
+                this.windowPosition = GUILayout.Window(id, this.windowPosition, OnWindow, "Deadly Reentry " + DREVersionString + " - The Rachel Edition", windowStyle);
             }
         }
 

@@ -381,7 +381,8 @@ namespace DeadlyReentry
                     aeroThermalFlux = (Math.Pow(this.flightIntegrator.backgroundRadiationTempExposed, 4) * PhysicsGlobals.StefanBoltzmanConstant * PhysicsGlobals.RadiationFactor);
                 }
                 //displayHeatFluxPerArea = FormatFlux(heatFluxPerArea/10000) + "W/cm2";
-                displayHeatFluxPerArea = (heatFluxPerArea).ToString("F4") + "(" + (this.part.vessel.convectiveCoefficient + aeroThermalFlux).ToString("F4") + ")";
+                if (heatFluxPerArea > 0)
+                    displayHeatFluxPerArea = (heatFluxPerArea).ToString("F4") + "(" + (this.part.vessel.convectiveCoefficient + aeroThermalFlux).ToString("F4") + ")";
             }
             if (TimeWarp.CurrentRate <= PhysicsGlobals.ThermalMaxIntegrationWarp)
                 lastTemperature = part.temperature;
