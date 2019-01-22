@@ -25,10 +25,10 @@ namespace DeadlyReentry
 		//private bool visible = false, showing = true;
 		//private Rect window = new Rect(), button = new Rect();
         private Texture2D buttonTexture = new Texture2D(32, 32);
-        private Texture Melificent = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Melificent", false);
-        private Texture Ariel = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Ariel1", false);
+        //private Texture Melificent = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Melificent", false);
+        //private Texture Ariel = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Ariel1", false);
+        private Texture Rachel = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Rachel1", false);
         private string DREVersionString = "";
-        private bool isCompatible = true;
 		#endregion
 		
 		#region Properties
@@ -64,11 +64,6 @@ namespace DeadlyReentry
         void Start() 
 		{
 			// Set up the stock toolbar
-            if (!CompatibilityChecker.IsAllCompatible())
-            {
-                isCompatible = false;
-                return;
-            }
             this.windowPosition = new Rect(0,0,360,480);
 
             windowStyle = new GUIStyle (HighLogic.Skin.window);
@@ -109,11 +104,6 @@ namespace DeadlyReentry
 */		
         public void OnGUI()
         {
-            if (!CompatibilityChecker.IsAllCompatible())
-            {
-                isCompatible = false;
-                return;
-            }
             GUI.skin = HighLogic.Skin;
 
             if (HighLogic.LoadedSceneIsEditor) PreventEditorClickthrough();
@@ -125,11 +115,6 @@ namespace DeadlyReentry
 
         void Draw()
         {
-            if (!CompatibilityChecker.IsAllCompatible())
-            {
-                isCompatible = false;
-                return;
-            }
             if (visible)
             {
                 //Set the GUI Skin
@@ -246,11 +231,6 @@ namespace DeadlyReentry
 		
         private void OnWindow(int windowID)
         {
-            if (!CompatibilityChecker.IsAllCompatible())
-            {
-                isCompatible = false;
-                return;
-            }
             GUILayout.ExpandWidth(true);
             GUILayout.ExpandHeight(true);
             GUILayout.BeginVertical();
@@ -303,7 +283,7 @@ namespace DeadlyReentry
             GUILayout.Width(0);
             GUILayout.Height(0);
             GUILayout.Label("For other thermal settings, press F12 then select Physics->Thermals.", windowStyleCenter);
-            GUILayout.Label(Ariel, windowStyleCenter);
+            GUILayout.Label(Rachel, windowStyleCenter);
 
             GUILayout.EndVertical();
 

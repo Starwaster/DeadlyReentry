@@ -31,6 +31,8 @@ namespace DeadlyReentry
         [KSPField(isPersistant = false, guiActive = false, guiName = "Cumulative G", guiUnits = "", guiFormat = "F0")]
         public double gExperienced = 0;
 
+        protected FlightIntegrator flightIntegrator;
+
         /*
         private ModularFlightIntegrator fi;
         public ModularFlightIntegrator FI
@@ -282,11 +284,6 @@ namespace DeadlyReentry
         public override void OnAwake()
         {
             base.OnAwake();
-            if (!CompatibilityChecker.IsAllCompatible())
-            {
-                isCompatible = false;
-                return;
-            }
 
             // are we an engine?
             for (int i = part.Modules.Count - 1; i >= 0; --i)
@@ -359,23 +356,32 @@ namespace DeadlyReentry
             if (is_debugging && vessel.mach > 1.0)
             {
                 double thermalConvectionFlux = double.IsNaN(part.thermalConvectionFlux) ? 0d : part.thermalConvectionFlux;
-                if (thermalConvectionFlux > 0)
+                double thermalRadiationFlux = double.IsNaN(part.thermalRadiationFlux) ? 0d : part.thermalRadiationFlux;
+                double totalThermalFlux = thermalConvectionFlux + thermalRadiationFlux;
+                if (totalThermalFlux > 0)
                 {
-                    recordedHeatLoad += thermalConvectionFlux;
-                    maximumRecordedHeat = Math.Max(maximumRecordedHeat, part.thermalConvectionFlux);
+                    recordedHeatLoad += totalThermalFlux;
+                    maximumRecordedHeat = Math.Max(maximumRecordedHeat, totalThermalFlux);
                 }
 
-                heatFluxPerArea = part.thermalConvectionFlux / part.skinExposedArea;
+                heatFluxPerArea = totalThermalFlux / part.skinExposedArea;
                 if (Double.IsNaN(heatFluxPerArea))
                     heatFluxPerArea = 0;
                 
-                displayExposedAreas = part.skinExposedArea.ToString("F2") + "/" + part.exposedArea.ToString("F2");
+                displayExposedAreas = part.skinExposedArea.ToString("F4");
 
                 displayRecordedHeatLoad = FormatFlux(recordedHeatLoad, true) + "J";
                 displayMaximumRecordedHeat = FormatFlux(maximumRecordedHeat) + "W";
                 //displayMaximumRecordedHeat = part.skinExposedArea.ToString("F2") + " / " + part.radiativeArea.ToString("F2") + "  m2";
 
-                displayHeatFluxPerArea = FormatFlux(heatFluxPerArea/10000) + "W/cm2";
+                double aeroThermalFlux = 0;
+
+                if ((object)flightIntegrator != null)
+                {
+                    aeroThermalFlux = (Math.Pow(this.flightIntegrator.backgroundRadiationTempExposed, 4) * PhysicsGlobals.StefanBoltzmanConstant * PhysicsGlobals.RadiationFactor);
+                }
+                //displayHeatFluxPerArea = FormatFlux(heatFluxPerArea/10000) + "W/cm2";
+                displayHeatFluxPerArea = (heatFluxPerArea).ToString("F4") + "(" + (this.part.vessel.convectiveCoefficient + aeroThermalFlux).ToString("F4") + ")";
             }
             if (TimeWarp.CurrentRate <= PhysicsGlobals.ThermalMaxIntegrationWarp)
                 lastTemperature = part.temperature;
@@ -493,11 +499,10 @@ namespace DeadlyReentry
                                                           + member.name + " died of G-force damage.");
                                 Debug.Log("*DRE* [" + Time.time + "]: " + vessel.vesselName + " - " + member.name + " died of G-force damage.");
                                 
-                                if (!vessel.isEVA)
-                                {
-                                    part.RemoveCrewmember(member);
-                                    member.Die();
-                                }
+                                part.RemoveCrewmember(member);
+                                member.Die();
+                                if (vessel.isEVA)
+                                    this.part.explode();
                             }
                         }
                     }
@@ -735,6 +740,7 @@ namespace DeadlyReentry
                 ProcessDamage();
                 SetDamageLabel();
             }
+            flightIntegrator = vessel.gameObject.GetComponent<FlightIntegrator>();
         }
 
         static void print(string msg)
@@ -879,18 +885,21 @@ namespace DeadlyReentry
         [KSPField(isPersistant = false, guiActive = false, guiName = "Health", guiUnits = "%", guiFormat = "F0")]
         string injury = "";
 
+
         private double _toBeSkin;
         private double _toBeInternal;
-        private double desiredSuitTemp = 297.6;
+        private double desiredSuitTemp = 310.15;
 
         [KSPField(isPersistant = true)]
         public bool needsSuitTempInit = true;
 
+        [KSPField(isPersistant = true)]
         private string EVATestProperty = "default value";
 
         public override void OnStart(PartModule.StartState state)
         {
             GameEvents.onCrewOnEva.Add(OnCrewOnEva);
+            GameEvents.onVesselGoOffRails.Add(OnVesselGoOffRails);
 
             base.OnStart(state);
 
@@ -899,7 +908,18 @@ namespace DeadlyReentry
                 this.part.temperature = desiredSuitTemp;
                 this.needsSuitTempInit = false;
             }
+            //this.part.gaugeThresholdMult = this.gaugeThresholdMult;
+            //this.part.edgeHighlightThresholdMult = this.edgeHighlightThresholdMult;
             Debug.Log("[ModuleKerbalAeroReentry.OnStart()] EVATestProperty = " + EVATestProperty);
+        }
+
+        public void OnVesselGoOffRails(Vessel v)
+        {
+            if ((object)v != null)
+            {
+                //this.part.gaugeThresholdMult = this.gaugeThresholdMult;
+                //this.part.edgeHighlightThresholdMult = this.edgeHighlightThresholdMult;
+            }
         }
 
         public override void FixedUpdate()
@@ -936,6 +956,7 @@ namespace DeadlyReentry
             }
         }
 
+        // setting values in this event is pointless as they are reset to their default values in OnStart()
         public void OnCrewOnEva(GameEvents.FromToAction<Part, Part> eventData)
         {
             this.EVATestProperty = "value changed";
@@ -967,7 +988,6 @@ namespace DeadlyReentry
         #endregion
     }
 
-    // TODO WOULD deprecate ModuleHeatShield but still needed for depletedMaxTemp.
     class ModuleHeatShield : ModuleAblator
     {
         public PartResource _ablative = null; // pointer to the PartResource
@@ -976,7 +996,7 @@ namespace DeadlyReentry
         protected double depletedMaxTemp = 1200.0;
 
         [KSPField]
-        protected double depletedConductivity = 20.0;
+        protected double depletedConductivity = 250.0;
 
         public new void Start()
         {
@@ -1009,8 +1029,9 @@ namespace DeadlyReentry
             {
                 part.skinMaxTemp = Math.Min(part.skinMaxTemp, depletedMaxTemp);
                 part.heatConductivity = Math.Min(part.heatConductivity, depletedConductivity);
-                part.skinSkinConductionMult = Math.Min(part.skinSkinConductionMult, depletedConductivity);
-                part.skinInternalConductionMult = Math.Min(part.skinInternalConductionMult, depletedConductivity);
+                // TODO Think about removing the next two lines; skin-skin and skin-internal depend on heatConductivity so this could be overkill
+                //part.skinSkinConductionMult = Math.Min(part.skinSkinConductionMult, depletedConductivity);
+                //part.skinInternalConductionMult = Math.Min(part.skinInternalConductionMult, depletedConductivity);
             }
         }
     }
@@ -1023,8 +1044,6 @@ namespace DeadlyReentry
         
         public void Start()
         {
-            if (!CompatibilityChecker.IsAllCompatible())
-                return;
             Debug.Log("FixMaxTemps: Fixing Temps");
             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
             {
@@ -1179,14 +1198,9 @@ namespace DeadlyReentry
 
 
         public static bool debugging = false;
-        private static bool isCompatible = true;
 
         public void Start()
         {
-            if (!CompatibilityChecker.IsAllCompatible())
-            {
-                return;
-            }
             enabled = true; // 0.24 compatibility
             Debug.Log("[DRE] - ReentryPhysics.Start(): LoadSettings(), Difficulty: " + DeadlyReentryScenario.DifficultyName);
             LoadSettings(); // Moved loading of REENTRY_EFFECTS into a generic loader which uses new difficulty settings
@@ -1198,11 +1212,6 @@ namespace DeadlyReentry
         }
         public static void LoadSettings()
         {
-            if (!CompatibilityChecker.IsAllCompatible())
-            {
-                isCompatible = false;
-                return;
-            }
             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
             {
                 if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.DifficultyName)
@@ -1229,11 +1238,6 @@ namespace DeadlyReentry
         
         public static void SaveSettings()
         {
-            if (!CompatibilityChecker.IsAllCompatible())
-            {
-                isCompatible = false;
-                return;
-            }
             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
             {
                 if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.DifficultyName)
@@ -1262,11 +1266,6 @@ namespace DeadlyReentry
         }
         public static void SaveCustomSettings()
         {
-            if (!CompatibilityChecker.IsAllCompatible())
-            {
-                isCompatible = false;
-                return;
-            }
             string[] difficultyNames = {"Default"};
             float ftmp;
             double dtmp;
