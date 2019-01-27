@@ -996,9 +996,6 @@ namespace DeadlyReentry
         [KSPField()]
         protected double depletedMaxTemp = 1200.0;
 
-        [KSPField]
-        protected double depletedConductivity = 250.0;
-
         public new void Start()
         {
             if (!HighLogic.LoadedSceneIsFlight)
@@ -1029,7 +1026,7 @@ namespace DeadlyReentry
             if (_ablative.amount * _ablative.info.density <= 0.000001)
             {
                 part.skinMaxTemp = Math.Min(part.skinMaxTemp, depletedMaxTemp);
-                part.heatConductivity = Math.Min(part.heatConductivity, depletedConductivity);
+                part.heatConductivity = part.partInfo.partPrefab.heatConductivity;
                 // TODO Think about removing the next two lines; skin-skin and skin-internal depend on heatConductivity so this could be overkill
                 //part.skinSkinConductionMult = Math.Min(part.skinSkinConductionMult, depletedConductivity);
                 //part.skinInternalConductionMult = Math.Min(part.skinInternalConductionMult, depletedConductivity);
