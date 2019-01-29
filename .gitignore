@@ -152,11 +152,9 @@ $RECYCLE.BIN/
 .DS_Store
 
 # Stuff
-.csproj
 .mdb
 .userprefs
 DeadlyReentry/custom.cfg
 *.zip
 DeadlyReentry.userprefs
-Source/DeadlyReentry.csproj
 DeadlyReentry/Plugins/UnityEngine.xml
