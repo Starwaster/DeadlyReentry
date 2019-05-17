@@ -63,8 +63,6 @@ namespace DeadlyReentry
         [KSPField(isPersistant = true)]
         public float crashTolerance = 8;
 
-        private bool isCompatible = true;
-
         private bool is_on_fire = false;
         private bool is_gforce_fx_playing = false;
 
