@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using KSP.UI;
 using KSP.UI.Screens;
+using KSP.Localization;
 
 namespace DeadlyReentry
 {
@@ -228,7 +229,7 @@ namespace DeadlyReentry
             if (DRToolbarButton != null)
                 ApplicationLauncher.Instance.RemoveModApplication(DRToolbarButton);			
 		}
-		
+
         private void OnWindow(int windowID)
         {
             GUILayout.ExpandWidth(true);
@@ -280,6 +281,19 @@ namespace DeadlyReentry
             GUILayout.Height(0);
             DeadlyReentryScenario.displayCrewGForceWarning = GUILayout.Toggle(DeadlyReentryScenario.displayCrewGForceWarning, "Warn crew G forces are becoming dangerous!");
             GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Height(0);
+            GUILayout.Label(Localizer.Format("#autoLOC_189833", new string[] { (HighLogic.CurrentGame.Parameters.Difficulty.ReentryHeatScale * 100f).ToString("N0") }), labelStyle);
+            //string mylabel = Localizer.Format("#autoLOC_189833", new string[] { (100f).ToString("N0")});
+
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Height(0);
+            DeadlyReentryScenario.DREReentryHeatScale = GUILayout.HorizontalSlider(DeadlyReentryScenario.DREReentryHeatScale, 0, 10);
+            GUILayout.EndHorizontal();
+
             GUILayout.Width(0);
             GUILayout.Height(0);
             GUILayout.Label("For other thermal settings, press F12 then select Physics->Thermals.", windowStyleCenter);
@@ -329,6 +343,7 @@ namespace DeadlyReentry
                 DeadlyReentry.ReentryPhysics.SaveCustomSettings();
                 if (!DeadlyReentryScenario.displayCrewGForceWarning)
                     ScreenMessages.RemoveMessage(ReentryPhysics.crewGWarningMsg);
+                HighLogic.CurrentGame.Parameters.Difficulty.ReentryHeatScale = DeadlyReentryScenario.DREReentryHeatScale;
             }
 		}
 

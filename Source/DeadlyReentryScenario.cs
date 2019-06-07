@@ -14,6 +14,7 @@ namespace DeadlyReentry
 		}
 		
         public static bool displayCrewGForceWarning = true;
+        public static float DREReentryHeatScale = 1;
 		
 		private static int difficultySetting = 1;
 		
@@ -51,7 +52,8 @@ namespace DeadlyReentry
 		public override void OnSave(ConfigNode node)
 		{
 			node.AddValue ("difficultySetting", difficultySetting);
-            node.AddValue ("displayCrewGForceWarning", displayCrewGForceWarning);
+            node.AddValue ("displayCrewGForceWarning", displayCrewGForceWarning, " Should we display warning about unsafe crew G-Forces.");
+            node.AddValue("DREReentryHeatScale", DREReentryHeatScale, " Overrides stock ReentryHeatScale.");
 		}
 		
 		public override void OnLoad(ConfigNode node)
@@ -60,6 +62,9 @@ namespace DeadlyReentry
 				difficultySetting = int.Parse (node.GetValue ("difficultySetting"));
             if (node.HasValue("displayCrewGForceWarning"))
                 displayCrewGForceWarning = bool.Parse(node.GetValue("displayCrewGForceWarning"));
+            if (node.HasValue("DREReentryHeatScale"))
+                DREReentryHeatScale = float.Parse(node.GetValue("DREReentryHeatScale"));
+            HighLogic.CurrentGame.Parameters.Difficulty.ReentryHeatScale = DREReentryHeatScale;
 		}
         static void print(string msg)
         {
