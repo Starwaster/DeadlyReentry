@@ -291,7 +291,7 @@ namespace DeadlyReentry
 
             GUILayout.BeginHorizontal();
             GUILayout.Height(0);
-            DeadlyReentryScenario.DREReentryHeatScale = GUILayout.HorizontalSlider(DeadlyReentryScenario.DREReentryHeatScale, 0, 10);
+            DeadlyReentryScenario.DREReentryHeatScale = GUILayout.HorizontalSlider(DeadlyReentryScenario.DREReentryHeatScale, 0, ReentryPhysics.maxHeatScale);
             GUILayout.EndHorizontal();
 
             GUILayout.Width(0);

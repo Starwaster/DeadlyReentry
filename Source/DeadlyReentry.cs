@@ -1133,7 +1133,7 @@ namespace DeadlyReentry
                                         if (add)
                                         {
                                             print("Adding ModuleAeroReentry to part " + part.name);
-                                            part.partPrefab.AddModule("ModuleAeroReentry");
+                                            part.partPrefab.AddModule("ModuleAeroReentry", true);
                                         }
                                     }
                                     else
@@ -1191,6 +1191,7 @@ namespace DeadlyReentry
         public static float crewGWarn = 300000;
         public static float crewGLimit = 600000;
         public static float crewGKillChance = 0.75f;
+        public static int maxHeatScale = 2;
 
 
         public static bool debugging = false;
@@ -1226,6 +1227,8 @@ namespace DeadlyReentry
                         float.TryParse(node.GetValue("crewGLimit"), out crewGLimit);
                     if (node.HasValue("crewGKillChance"))
                         float.TryParse(node.GetValue("crewGKillChance"), out crewGKillChance);
+                    if (node.HasValue("maxHeatScale"))
+                        int.TryParse(node.GetValue("maxHeatScale"), out maxHeatScale);
                     
                     break;
                 }
