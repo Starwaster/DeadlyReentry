@@ -28,7 +28,7 @@ namespace DeadlyReentry
         private Texture2D buttonTexture = new Texture2D(32, 32);
         //private Texture Melificent = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Melificent", false);
         //private Texture Ariel = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Ariel1", false);
-        private Texture Rachel = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Rachel1", false);
+        private Texture Rachel = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Maat1", false);
         private string DREVersionString = "";
 		#endregion
 		
@@ -120,7 +120,7 @@ namespace DeadlyReentry
             {
                 //Set the GUI Skin
                 //GUI.skin = HighLogic.Skin;
-                this.windowPosition = GUILayout.Window(id, this.windowPosition, OnWindow, "Deadly Reentry " + DREVersionString + " - The Rachel Edition", windowStyle);
+                this.windowPosition = GUILayout.Window(id, this.windowPosition, OnWindow, "Deadly Reentry " + DREVersionString + " - The Maat Edition", windowStyle);
             }
         }
 
