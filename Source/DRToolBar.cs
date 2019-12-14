@@ -22,10 +22,10 @@ namespace DeadlyReentry
         private GUIStyle windowStyleCenter = null;
 
         private GUISkin skins = HighLogic.Skin;
-		private int id = Guid.NewGuid().GetHashCode();
-		//private bool visible = false, showing = true;
-		//private Rect window = new Rect(), button = new Rect();
-        private Texture2D buttonTexture = new Texture2D(32, 32);
+        private int id = Guid.NewGuid().GetHashCode();
+        //private bool visible = false, showing = true;
+        //private Rect window = new Rect(), button = new Rect();
+        private Texture2D buttonTexture;
         //private Texture Melificent = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Melificent", false);
         //private Texture Ariel = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Ariel1", false);
         private Texture Rachel = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Maat1", false);
@@ -58,10 +58,15 @@ namespace DeadlyReentry
             Assembly assembly = Assembly.GetExecutingAssembly();
             FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
             DREVersionString = string.Format("{0}.{1}.{2}", fileVersionInfo.FileMajorPart, fileVersionInfo.FileMinorPart, fileVersionInfo.FileBuildPart);
+
             //Melificent.height /= 2;
             //Melificent.width /= 2;
         }
 
+        void Awake()
+        {
+            buttonTexture = new Texture2D(32, 32);
+        }
         void Start() 
 		{
 			// Set up the stock toolbar
