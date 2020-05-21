@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Collections;
 using System.Reflection;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 using KSP;
+//using KSP.IO;
 //using ModularFI;
 
 namespace DeadlyReentry
@@ -14,21 +16,21 @@ namespace DeadlyReentry
         [KSPField]
         public bool leaveTemp = false;
 
-        [KSPField(isPersistant = false, guiActive = true, guiName = "maxOperationalTemp", guiUnits = " K", guiFormat = "F2")]
+        [KSPField(isPersistant = false, guiActive = true, guiName = "maxOperationalTemp", guiUnits = " K", guiFormat = "F2", groupDisplayName = "Deadly Reentry Debug", groupName = "DeadlyReentryDebug")]
         public double maxOperationalTemp = -1d;
 
-        [KSPField(isPersistant = false, guiActive = true, guiName = "skinMaxOperationalTemp", guiUnits = " K", guiFormat = "F2")]
+        [KSPField(isPersistant = false, guiActive = true, guiName = "skinMaxOperationalTemp", guiUnits = " K", guiFormat = "F2", groupDisplayName = "Deadly Reentry Debug", groupName = "DeadlyReentryDebug")]
         public double skinMaxOperationalTemp = -1d;
 
         public bool is_debugging;
 
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Acceleration", guiUnits = " G", guiFormat = "F3")]
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Acceleration", guiUnits = " G", guiFormat = "F3", groupDisplayName = "Deadly Reentry Debug", groupName = "DeadlyReentryDebug")]
         public double displayGForce;
 
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Damage", guiUnits = "", guiFormat = "G")]
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Damage", guiUnits = "", guiFormat = "G", groupDisplayName = "Deadly Reentry Debug", groupName = "DeadlyReentryDebug")]
         public string displayDamage;
 
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Cumulative G", guiUnits = "", guiFormat = "F0")]
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Cumulative G", guiUnits = "", guiFormat = "F0", groupDisplayName = "Deadly Reentry Debug", groupName = "DeadlyReentryDebug")]
         public double gExperienced = 0;
 
         protected FlightIntegrator flightIntegrator;
@@ -72,24 +74,24 @@ namespace DeadlyReentry
         protected double recordedHeatLoad = 0.0;
         protected double maximumRecordedHeat = 0.0;
         protected double heatFluxPerArea = 0.0;
-        protected DamageCube damageCube = new DamageCube();
+        protected DamageCube damageCube;
 
         [KSPField(isPersistant = true)]
         protected float internalDamage;
 
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Rec. Heat", guiUnits = "", guiFormat = "F4")]
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Rec. Heat", guiUnits = "", guiFormat = "F4", groupDisplayName = "Deadly Reentry Debug", groupName = "DeadlyReentryDebug")]
         protected string displayRecordedHeatLoad = "0 W";
 
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Max. Rec. Heat", guiUnits = "", guiFormat = "F4")]
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Max. Rec. Heat", guiUnits = "", guiFormat = "F4", groupDisplayName = "Deadly Reentry Debug", groupName = "DeadlyReentryDebug")]
         protected string displayMaximumRecordedHeat = "0 W";
 
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Heat/cm2", guiUnits = "", guiFormat = "F4")]
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Heat/cm2", guiUnits = "", guiFormat = "F4", groupDisplayName = "Deadly Reentry Debug", groupName = "DeadlyReentryDebug")]
         protected string displayHeatFluxPerArea = "0 W/cm2";
 
-        [KSPField(isPersistant = false, guiActive = false, guiName = "Exposed Area", guiUnits = "", guiFormat = "F2")]
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Exposed Area", guiUnits = "", guiFormat = "F2", groupDisplayName = "Deadly Reentry Debug", groupName = "DeadlyReentryDebug")]
         protected string displayExposedAreas = "0";
 
-        [KSPEvent(guiName = "Reset Heat Record", guiActiveUnfocused = true, externalToEVAOnly = false, guiActive = false, unfocusedRange = 4f)]
+        [KSPEvent(guiName = "Reset Heat Record", guiActiveUnfocused = true, externalToEVAOnly = false, guiActive = false, unfocusedRange = 4f, groupDisplayName = "Deadly Reentry Debug", groupName = "DeadlyReentryDebug")]
         public void ResetRecordedHeat()
         {
             displayRecordedHeatLoad = "0 W";
@@ -282,6 +284,7 @@ namespace DeadlyReentry
         public override void OnAwake()
         {
             base.OnAwake();
+            damageCube = new DamageCube();
 
             // are we an engine?
             for (int i = part.Modules.Count - 1; i >= 0; --i)
@@ -1032,7 +1035,7 @@ namespace DeadlyReentry
         }
     }
     
-    [KSPAddon(KSPAddon.Startup.MainMenu, false)] // fixed
+    [KSPAddon(KSPAddon.Startup.SpaceCentre, true)]
     public class FixMaxTemps : MonoBehaviour
     {
         //public PartModule RFEngineConfig = null;
@@ -1041,21 +1044,30 @@ namespace DeadlyReentry
         public void Start()
         {
             Debug.Log("FixMaxTemps: Fixing Temps");
-            foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))
+            foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("REENTRY_EFFECTS"))
             {
                 if(node.HasValue("name") && node.GetValue("name") == "Default" && node.HasValue("ridiculousMaxTemp"))
                 {
                     double maxTemp;
                     double scale = 0.5f;
-                    if(node.HasValue ("maxTempScale"))
+                    bool bDebugLog = false;
+                    if (node.HasValue("bFMTDebugLog"))
+                        bool.TryParse(node.GetValue("bFMTDebugLog"), out bDebugLog);
+                    if (node.HasValue ("maxTempScale"))
                         double.TryParse(node.GetValue("maxTempScale"), out scale);
                     if(scale > 0 && double.TryParse(node.GetValue("ridiculousMaxTemp"), out maxTemp))
                     {
                         Debug.Log("Using ridiculousMaxTemp = " + maxTemp.ToString() + " / maxTempScale =" + scale.ToString());
+                        
                         if ((object)PartLoader.LoadedPartsList != null)
                         {
-                            foreach (AvailablePart part in PartLoader.LoadedPartsList)
+                            //StringBuilder fixMaxTempLogs = new StringBuilder();
+                            //foreach (AvailablePart part in PartLoader.LoadedPartsList)
+                            Debug.Log("Loaded Parts List Count = " + PartLoader.LoadedPartsList.Count.ToString());
+
+                            for (int i = 0; i < PartLoader.LoadedPartsList.Count; i++)
                             {
+                                AvailablePart part = PartLoader.LoadedPartsList[i];
                                 try
                                 {
                                     if ((object)part.partPrefab != null && !(part.partPrefab.FindModuleImplementing<ModuleHeatShield>() || part.partPrefab.FindModuleImplementing<ModuleAblator>()))
@@ -1079,21 +1091,22 @@ namespace DeadlyReentry
                                         if (part.partPrefab.maxTemp > maxTemp)
                                         {
                                             part.partPrefab.maxTemp = Math.Min(part.partPrefab.maxTemp * scale, maxTemp);
+                                            part.partPrefab.skinMaxTemp = Math.Min(part.partPrefab.skinMaxTemp * scale, maxTemp);
 
-                                            // THIS probably isn't necessary; should have been handled in PartLoader before we even got here.
-                                            if (part.partPrefab.skinMaxTemp < 0.0)
-                                                part.partPrefab.skinMaxTemp = part.partPrefab.maxTemp;
-                                            
-                                            Debug.Log("[DRE] rebalancing OP maxTemp for part " + part.name);
+                                            if (bDebugLog)
+                                               Debug.Log("[DRE] rebalancing OP maxTemp/skinMaxTemp for part " + part.name);
 
                                             double curScale = part.partPrefab.maxTemp / oldTemp;
 
-                                            foreach (PartModule module in part.partPrefab.Modules)
+                                            //foreach (PartModule module in part.partPrefab.Modules)
+                                            for (int j = 0; j < part.partPrefab.Modules.Count; j++)
                                             {
+                                                PartModule module = part.partPrefab.Modules[j];
                                                 if (module is ModuleEngines)
                                                 {
                                                     ((ModuleEngines)module).heatProduction *= (float)curScale;
-                                                    Debug.Log("Adjusted heat production of engine module " + module.name);
+                                                    if (bDebugLog)
+                                                       Debug.Log("Adjusted heat production of engine module " + module.name);
                                                 }
                                             }
                                         }
@@ -1101,60 +1114,69 @@ namespace DeadlyReentry
                                         if (part.partPrefab.skinMaxTemp > maxTemp)
                                         {
                                             part.partPrefab.skinMaxTemp = Math.Min(part.partPrefab.skinMaxTemp * scale, maxTemp);
-                                            Debug.Log("[DRE] rebalancing OP maxTemp for part " + part.name);
+                                            if (bDebugLog)
+                                               Debug.Log("[DRE] rebalancing OP skinMaxTemp for part " + part.name);
                                         }
                                     }
                                 }
                                 catch (Exception e)
                                 {
-                                    print("Error processing part maxTemp " + part.name);
-                                    Debug.Log(e.Message);
+                                   Debug.Log("Error processing part maxTemp " + part.name + "\n" + e.Message);
                                 }
                                 try
                                 {
                                     if ((object)part.partPrefab != null && (object)part.partPrefab.Modules != null)
                                     {
                                         bool add = true;
-                                        for (int i = part.partPrefab.Modules.Count - 1; i >= 0; --i)
+                                        for (int k = 0; k < part.partPrefab.Modules.Count; k++)
                                         {
-                                            if (part.partPrefab.Modules[i] is ModuleAeroReentry)
+                                            if (part.partPrefab.Modules[k] is ModuleAeroReentry)
                                             {
-                                                print(part.name + " already has ModuleAeroReentry. Not adding.");
+                                                Debug.Log(part.name + " already has ModuleAeroReentry. Not adding.");
                                                 add = false;
                                                 continue;
                                             }
                                             if (part.name == "flag")
                                             {
-                                                print("Not adding ModuleAeroReentry to part 'flag'");
+                                                Debug.Log("Not adding ModuleAeroReentry to part 'flag'");
                                                 add = false;
                                                 continue;
                                             }
                                         }
                                         if (add)
                                         {
-                                            print("Adding ModuleAeroReentry to part " + part.name);
-                                            part.partPrefab.AddModule("ModuleAeroReentry", true);
+                                            if (bDebugLog)
+                                               Debug.Log("Adding ModuleAeroReentry to part " + part.name);
+											part.partPrefab.AddModule("ModuleAeroReentry", true).OnStart(PartModule.StartState.None);
                                         }
                                     }
                                     else
-                                        print("Error adding ModuleAeroReentry to " + part.name + "(either partPrefab or partPrefab.Modules was null)");
+                                       Debug.Log("Error adding ModuleAeroReentry to " + part.name + "(either partPrefab or partPrefab.Modules was null)");
                                 }
                                 catch (Exception e)
                                 {
-                                    print("Error adding ModuleAeroReentry to " + part.name);
-                                    Debug.Log(e.Message);
-
+                                   Debug.Log("Error adding ModuleAeroReentry to " + part.name + "\n" +e.Message);
                                 }
                             }
+                            //if (bDebugLog)
+                            //    Debug.Log(fixMaxTempLogs);
+                            Debug.Log("FixMaxTemps finished walking through part list.");
                         }
                     }
                 }
             }
         }
+
+        void LogBuild(StringBuilder log, string logstring)
+        {
+            log.Append("[DeadlyReentry.FixMaxTemps] " + logstring + "\n");
+        }
+        /*
         static void print(string msg)
         {
             MonoBehaviour.print("[DeadlyReentry.FixMaxTemps] " + msg);
         }
+        */
     }
 
     [KSPAddon(KSPAddon.Startup.SpaceCentre, false)]
@@ -1182,7 +1204,7 @@ namespace DeadlyReentry
         public static GUIStyle warningMessageStyle = new GUIStyle();
         public static FontStyle fontStyle = new FontStyle();
         
-        public static ScreenMessage crewGWarningMsg = new ScreenMessage("<color=#ff0000>Reaching Crew G limit!</color>", 1f, ScreenMessageStyle.UPPER_CENTER);
+        public static ScreenMessage crewGWarningMsg;
 
         public static float gToleranceMult = 6.0f;
         public static float crewGClamp = 30;
@@ -1199,6 +1221,7 @@ namespace DeadlyReentry
         public void Start()
         {
             enabled = true; // 0.24 compatibility
+			crewGWarningMsg = new ScreenMessage("<color=#ff0000>Reaching Crew G limit!</color>", 1f, ScreenMessageStyle.UPPER_CENTER);
             Debug.Log("[DRE] - ReentryPhysics.Start(): LoadSettings(), Difficulty: " + DeadlyReentryScenario.DifficultyName);
             LoadSettings(); // Moved loading of REENTRY_EFFECTS into a generic loader which uses new difficulty settings
             //warningMessageStyle.font = GUI.skin.font;
@@ -1207,6 +1230,7 @@ namespace DeadlyReentry
             //warningMessageStyle.fontStyle = GUI.skin.label.fontStyle;
             //crewGWarningMsg.guiStyleOverride = warningMessageStyle;
         }
+
         public static void LoadSettings()
         {
             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("REENTRY_EFFECTS"))

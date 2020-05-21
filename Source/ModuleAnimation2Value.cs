@@ -29,6 +29,10 @@ namespace DeadlyReentry
 		protected Type fswType = null;
 		protected bool fswHack = false;
 
+        public override void OnAwake()
+        {
+            base.OnAwake();
+        }
         public override void OnStart(PartModule.StartState state)
         {
             if (state != PartModule.StartState.Editor)
@@ -138,6 +142,10 @@ namespace DeadlyReentry
         protected PropertyInfo property;
         //protected float currentTime;
 
+        public override void OnAwake()
+        {
+            base.OnAwake();
+        }
         public override void OnStart(PartModule.StartState state)
         {
             if (state != PartModule.StartState.Editor)

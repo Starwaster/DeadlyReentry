@@ -16,10 +16,57 @@ INSTALL INSTRUCTIONS:
 USAGE INSTRUCTIONS:
 Be careful how you reenter. Make sure your craft has a heatshield (the Mk1 pod has a built-in heatshield, as do stock spaceplanes; the Mk1-2 needs a heat shield from the Structural tab). For a low Kerbin orbit reentry, try for a periapsis of about 20km.
 
-Hold down ALT+D+R to enable debugging. This lets you change settings in-game, and shows additional information when you right-click parts. After making any changes, hit save to write to custom.cfg. Hold ALT+D+R to make the window go away and disable debugging.
-
+To change DRE settings, click the DRE menu button (looks like a capsule reentering)
+DRE menu icon created by lajoswinkler
 ==========
 Changelog:
+v7.8.0
+* Refactoring of code
+* Removed Monobehaviour calls from any constructors or code which would result in Monobehaviour being called from a constructor
+* Moved temperature rebalancing to after a game save has been loaded (once only)
+* The previous two items addresses KSP hanging at main menu. It cannot be guaranteed to correct such behaviour as I don't believe any one mod is responsible and in fact the more mods you have the more likely it is to happen. This only minimizes DREs contribution to the problem.
+* Added DRE PAW grouping. (DRE fields are grouped and can be collapsed in the PAW)
+
+v7.7.4
+* Compile of The Maat Edition for KSP 1.8.x
+* Functionally identical to 7.7.3.1.
+* Players should not try to use this with versions of KSP older than 1.8.0
+
+v7.7.3.1
+* Recompile for KSP 1.7.x
+* Released as The Maat Edition in honor of my cat Maat (named for the Egyptian goddess of balance and justice)
+
+v7.7.3
+* Fixed versioning
+* Forced ModuleAeroReentry to Awake when added at runtime.
+* Added DR reentry heat override in DR menu (up to 200% by default. Can be patched to support any arbitrary integer. 1 = 100%, 2 = 200%, 3 = 300% etc etc)
+* WARNING: If the stock reentry slider is used to scale heat it will revert to the stock cap of 150%. I can't actually override the stock slider which is why I added one to the Deadly Reentry menu.
+// example scale patch:
+{
+    maxHeatScale = 3 // this caps the reentry heat scale override menu slider at %300
+}
+
+v7.7.2
+* Updated for KSP 1.6
+* Fix for OPT config
+* Support for future compatibility with all EVA Kerbals. (as long as the Kerbal has ModuleKerbalEVA then it is supported)
+
+v7.7.1
+* Compiled for KSP 1.5.1
+* Compatibility restrictions removed. DR will no longer disable itself if invalid version detected. This does NOT guarantee compatibility. DR will try to work with invalid versions but you will still be warned of compatibility issues so you are warned.
+* Changed how depleted conductivity is handled. Uses prefab.heatConductivity when ablator depleted.
+* Making History configs added for Mk2Pod and round pods.
+* Support added for new part config of old Mk1Pod. (Mk1Pod_v2)
+* Updated KerbalEVA config to catch any PART with MODULE KerbalEVA (new kerbal PART's were added so I changed how this was being detected to guard against future additions)
+
+v7.7.0
+* Compatibility release for KSP 1.4.*
+* Other configuration tweaks
+
+v7.6.2
+* Recompiled for KSP 1.3.1
+* Adjusted heat shield lossConst and pyrolysisLossFactor for improved survivability.
+
 v7.6.1
 * Recompiled for KSP 1.3.0
 * Rescaled tempRatio for inner kerbal temps. Lower limit = 317K and upper = 322 (scalding) - Clamped to 0-1 for sound volume. Unclamped for fear reaction animation

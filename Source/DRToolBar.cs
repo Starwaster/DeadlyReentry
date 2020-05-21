@@ -12,7 +12,7 @@ using KSP.Localization;
 
 namespace DeadlyReentry
 {
-    [KSPAddon(KSPAddon.Startup.MainMenu, true)]
+    [KSPAddon(KSPAddon.Startup.SpaceCentre, true)]
 	public class DRToolbar : MonoBehaviour
 	{
 		#region Fields
@@ -21,35 +21,23 @@ namespace DeadlyReentry
         private GUIStyle labelStyle = null;
         private GUIStyle windowStyleCenter = null;
 
-        private GUISkin skins = HighLogic.Skin;
+        private GUISkin skins;
         private int id = Guid.NewGuid().GetHashCode();
         //private bool visible = false, showing = true;
         //private Rect window = new Rect(), button = new Rect();
-        private Texture2D buttonTexture;
         //private Texture Melificent = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Melificent", false);
         //private Texture Ariel = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Ariel1", false);
-        private Texture Rachel = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Maat1", false);
+        private Texture textureCurrentEdition;
         private string DREVersionString = "";
-		#endregion
-		
-		#region Properties
         private static Vector3 mousePos = Vector3.zero;
         private bool weLockedInputs = false;
-		private GUIStyle _buttonStyle = null;
-		private GUIStyle buttonStyle
-		{
-			get
-			{
-				if (_buttonStyle == null)
-				{
-					_buttonStyle = new GUIStyle(skins.button);
-					_buttonStyle.onNormal = _buttonStyle.hover;
-				}
-				return _buttonStyle;
-			}
-		}
-		#endregion
-		
+        private GUIStyle _buttonStyle = null;
+        #endregion
+
+        #region Properties
+
+        #endregion
+
         private ApplicationLauncherButton DRToolbarButton = null;
         private bool visible = false;
 		
@@ -65,7 +53,8 @@ namespace DeadlyReentry
 
         void Awake()
         {
-            buttonTexture = new Texture2D(32, 32);
+            textureCurrentEdition = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Maat1", false);
+            skins = HighLogic.Skin;
         }
         void Start() 
 		{
@@ -83,7 +72,6 @@ namespace DeadlyReentry
 			GameEvents.onGUIApplicationLauncherDestroyed.Add(OnGUIAppLauncherDestroyed);
             GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequestedForAppLauncher);
             GameObject.DontDestroyOnLoad(this);
-            //Texture Melificent =
 		}
 /*		
 		void Start() 
@@ -302,7 +290,7 @@ namespace DeadlyReentry
             GUILayout.Width(0);
             GUILayout.Height(0);
             GUILayout.Label("For other thermal settings, press F12 then select Physics->Thermals.", windowStyleCenter);
-            GUILayout.Label(Rachel, windowStyleCenter);
+            GUILayout.Label(textureCurrentEdition, windowStyleCenter);
 
             GUILayout.EndVertical();
 

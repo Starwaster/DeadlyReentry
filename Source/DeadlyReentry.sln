@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29728.190
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeadlyReentry", "DeadlyReentry.csproj", "{F6F826CC-5CED-421B-B05F-5758D402976A}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModularFlightIntegrator", "..\..\ModularFlightIntegrator\ModularFlightIntegrator.csproj", "{D03697DA-C866-4D0E-A821-1795F0B0333C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,10 +15,12 @@ Global
 		{F6F826CC-5CED-421B-B05F-5758D402976A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F6F826CC-5CED-421B-B05F-5758D402976A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F6F826CC-5CED-421B-B05F-5758D402976A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D03697DA-C866-4D0E-A821-1795F0B0333C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D03697DA-C866-4D0E-A821-1795F0B0333C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D03697DA-C866-4D0E-A821-1795F0B0333C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D03697DA-C866-4D0E-A821-1795F0B0333C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7CE1FAB3-434E-4726-9BA5-822BDECEE9E4}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0
@@ -30,11 +32,10 @@ Global
 		$2.TabsToSpaces = False
 		$2.inheritsSet = VisualStudio
 		$2.inheritsScope = text/plain
+		$0.VersionControlPolicy = $3
+		$3.inheritsSet = Mono
 		description = The Melificent Edition. Also in memory of Blessing, Calypso, Susan, Delilah, Clara and Rachel. (and others)
 		version = 7.7.1.0
 		StartupItem = DeadlyReentry.csproj
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal

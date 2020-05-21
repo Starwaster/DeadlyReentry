@@ -158,3 +158,11 @@ DeadlyReentry/custom.cfg
 *.zip
 DeadlyReentry.userprefs
 DeadlyReentry/Plugins/UnityEngine.xml
+Source/.vs/DeadlyReentry/v16/Server/sqlite3/db.lock
+Source/.vs/DeadlyReentry/v16/Server/sqlite3/storage.ide
+Source/.vs/DeadlyReentry/v16/Server/sqlite3/storage.ide-shm
+Source/.vs/DeadlyReentry/v16/Server/sqlite3/storage.ide-wal
+*.ruleset
+*.p7s
+Source/packages/
+Source/packages.config
