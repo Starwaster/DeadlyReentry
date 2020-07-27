@@ -696,7 +696,7 @@ namespace DeadlyReentry
                         float damage = damageCube.GetCubeDamageFacing(part.partTransform.InverseTransformDirection(-this.vessel.upAxis));
                         if (damage > 0f && vessel.externalTemperature > part.temperature)
                         {
-                            double convectiveFluxLeak = part.thermalConvectionFlux * (vessel.externalTemperature - part.temperature) * (double)damage;
+                            double convectiveFluxLeak = part.thermalConvectionFlux * (1 - (part.temperature / vessel.externalTemperature)) * (double)damage;
                             part.AddThermalFlux(convectiveFluxLeak * 2d);
                         }
                     }
