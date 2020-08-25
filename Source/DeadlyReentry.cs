@@ -697,7 +697,7 @@ namespace DeadlyReentry
                         if (damage > 0f && vessel.externalTemperature > part.temperature)
                         {
                             double convectiveFluxLeak = part.thermalConvectionFlux * (1 - (part.temperature / vessel.externalTemperature)) * (double)damage;
-                            part.AddThermalFlux(convectiveFluxLeak * 2d);
+                            part.AddThermalFlux(convectiveFluxLeak);
                         }
                     }
                     else
@@ -705,8 +705,8 @@ namespace DeadlyReentry
                         float damage = damageCube.averageDamage;
                         if (damage > 0f && part.ptd != null)
                         {
-                            double convectiveFluxLeak = (double)damage * Math.Abs(part.ptd.convectionFlux) * (part.ptd.postShockExtTemp - part.temperature);
-                            part.AddThermalFlux(convectiveFluxLeak * 2d);
+                            double convectiveFluxLeak = (double)damage * Math.Abs(part.ptd.convectionFlux) * (1 - (part.temperature / part.ptd.postShockExtTemp));
+                            part.AddThermalFlux(convectiveFluxLeak);
                         }
                     }
                 }
