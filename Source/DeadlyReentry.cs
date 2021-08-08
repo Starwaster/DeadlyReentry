@@ -134,7 +134,7 @@ namespace DeadlyReentry
                 else if(internalDamage > 0)
                     requiredSkill = 1;
 
-                if(FlightGlobals.ActiveVessel.VesselValues.RepairSkill.value >= requiredSkill)
+                if(repairSkill >= requiredSkill)
                 {
                     internalDamage = internalDamage - UnityEngine.Random.Range(0.0f, 0.1f);
                     if (internalDamage < 0)
@@ -256,8 +256,7 @@ namespace DeadlyReentry
                     _ablationFX.audio.clip = GameDatabase.Instance.GetAudioClip("DeadlyReentry/Sounds/fire_damage");
                     _ablationFX.audio.spatialBlend = 1f;
                     _ablationFX.audio.volume = GameSettings.SHIP_VOLUME;
-                    _ablationFX.audio.Stop ();
-                    
+                    _ablationFX.audio.Stop();  
                 }
                 return _ablationFX;
             }
@@ -568,12 +567,7 @@ namespace DeadlyReentry
             }
         }
 
-        public float RangePercent(float min, float max, float value)
-        {
-            return (value - min) / (max - min);
-        }
-
-        public double RangePercent(double min, double max, double value)
+        public static double RangePercent(double min, double max, double value)
         {
             return (value - min) / (max - min);
         }
@@ -587,14 +581,6 @@ namespace DeadlyReentry
                     if (dead)
                         return;
 
-                    //if (is_engine && damage < 1)
-                    //    skinMaxOperationalTemp = part.skinMaxTemp * 0.975;
-                    //else if (vessel.isEVA)
-                    //{
-                    //    skinMaxOperationalTemp = 800 * (1 - damage) * (1 - damage);
-                    //    part.skinMaxTemp = 900;
-                    //}
-
                     if (part.temperature > maxOperationalTemp)
                     {
                         // for scream / fear reaction ratio, use scalding water as upper value
@@ -605,7 +591,7 @@ namespace DeadlyReentry
                         
                         AddInternalDamage(TimeWarp.fixedDeltaTime * tempRatio);
 
-                        if (vessel.isEVA && tempRatio >= 0.089 && nextScream <= DateTime.Now)
+                        if (vessel.isEVA && tempRatio >= 0.089 && nextScream >= DateTime.Now)
                         {
                             ReentryReaction.Fire(new GameEvents.ExplosionReaction(0, tempRatio));
                             PlaySound(screamFX, tempRatio);
@@ -726,10 +712,15 @@ namespace DeadlyReentry
 
         public override void OnStart(PartModule.StartState state)
         {
-            if (maxOperationalTemp < 0d || maxOperationalTemp > part.maxTemp)
+            if (maxOperationalTemp < 0d)
                 maxOperationalTemp = part.maxTemp * (is_engine ? 0.975 : 0.85);
-            if (skinMaxOperationalTemp < 0d || skinMaxOperationalTemp > part.skinMaxTemp)
+            if (maxOperationalTemp > part.maxTemp)
+                part.maxTemp = maxOperationalTemp;
+
+            if (skinMaxOperationalTemp < 0d)
                 skinMaxOperationalTemp = part.skinMaxTemp * (is_engine ? 0.975 : 0.85);
+            if (skinMaxOperationalTemp > part.skinMaxTemp)
+                part.skinMaxTemp = skinMaxOperationalTemp;
 
             if (!HighLogic.LoadedSceneIsFlight)
                 return;
@@ -1019,9 +1010,7 @@ namespace DeadlyReentry
         {
             if (!HighLogic.LoadedSceneIsFlight || !FlightGlobals.ready)
                 return;
-            //if (ablativeResource == "")
-                // silently fail.
-            //    return;
+
             base.FixedUpdate ();
             // if less than one gram remaining
             if (_ablative.amount * _ablative.info.density <= 0.000001)
@@ -1220,7 +1209,7 @@ namespace DeadlyReentry
 
         public void Start()
         {
-            enabled = true; // 0.24 compatibility
+            enabled = true;
 			crewGWarningMsg = new ScreenMessage("<color=#ff0000>Reaching Crew G limit!</color>", 1f, ScreenMessageStyle.UPPER_CENTER);
             Debug.Log("[DRE] - ReentryPhysics.Start(): LoadSettings(), Difficulty: " + DeadlyReentryScenario.DifficultyName);
             LoadSettings(); // Moved loading of REENTRY_EFFECTS into a generic loader which uses new difficulty settings

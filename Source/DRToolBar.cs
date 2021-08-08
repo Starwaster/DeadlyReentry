@@ -27,7 +27,10 @@ namespace DeadlyReentry
         //private Rect window = new Rect(), button = new Rect();
         //private Texture Melificent = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Melificent", false);
         //private Texture Ariel = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Ariel1", false);
-        private Texture textureCurrentEdition;
+
+        private int coinToss;
+        private Texture textureCurrentEdition1;
+        private Texture textureCurrentEdition2;
         private string DREVersionString = "";
         private static Vector3 mousePos = Vector3.zero;
         private bool weLockedInputs = false;
@@ -53,7 +56,8 @@ namespace DeadlyReentry
 
         void Awake()
         {
-            textureCurrentEdition = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Maat1", false);
+            textureCurrentEdition1 = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Barbie1", false);
+            textureCurrentEdition2 = (Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/Barbie2", false);
             skins = HighLogic.Skin;
         }
         void Start() 
@@ -113,7 +117,7 @@ namespace DeadlyReentry
             {
                 //Set the GUI Skin
                 //GUI.skin = HighLogic.Skin;
-                this.windowPosition = GUILayout.Window(id, this.windowPosition, OnWindow, "Deadly Reentry " + DREVersionString + " - The Maat Edition", windowStyle);
+                this.windowPosition = GUILayout.Window(id, this.windowPosition, OnWindow, "Deadly Reentry " + DREVersionString + " - The Barbie Edition", windowStyle);
             }
         }
 
@@ -197,6 +201,7 @@ namespace DeadlyReentry
         {
             print("onAppLaunchToggleOn() called");
             DRToolbarButton.SetTexture((Texture)GameDatabase.Instance.GetTexture("DeadlyReentry/Assets/DR_icon_on", false));
+            coinToss = UnityEngine.Random.Range(0, 2);
             visible = true;
 		}
 		
@@ -290,7 +295,7 @@ namespace DeadlyReentry
             GUILayout.Width(0);
             GUILayout.Height(0);
             GUILayout.Label("For other thermal settings, press F12 then select Physics->Thermals.", windowStyleCenter);
-            GUILayout.Label(textureCurrentEdition, windowStyleCenter);
+            GUILayout.Label(coinToss == 0 ? textureCurrentEdition1 : textureCurrentEdition2, windowStyleCenter);
 
             GUILayout.EndVertical();
 
