@@ -35,24 +35,6 @@ namespace DeadlyReentry
 
         protected FlightIntegrator flightIntegrator;
 
-        /*
-        private ModularFlightIntegrator fi;
-        public ModularFlightIntegrator FI
-        {
-            get
-            {
-                if ((object)fi == null)
-                    fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
-                return fi;
-            }
-            set
-            {
-                fi = value;
-            }
-        }
-        
-        public ModularFlightIntegrator.PartThermalData ptd;
-        */
         private double lastGForce = 0;
         protected double lastTemperature;
 
@@ -308,16 +290,6 @@ namespace DeadlyReentry
         public override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
-            /*
-            if (node.HasValue("maxOperationalTemp") && double.TryParse(node.GetValue("maxOperationalTemp"), out maxOperationalTemp))
-            {
-                Debug.Log("part " + part.name + ".maxOperationalTemp = " + maxOperationalTemp.ToString());
-            }
-            if (node.HasValue("skinMaxOperationalTemp") && double.TryParse(node.GetValue("skinMaxOperationalTemp"), out skinMaxOperationalTemp))
-            {
-                Debug.Log("part " + part.name + ".skinMaxOperationalTemp = " + skinMaxOperationalTemp.ToString());
-            }
-            */
 
             if (node.HasValue("damageCube"))
             {
@@ -463,11 +435,6 @@ namespace DeadlyReentry
                 {
                     dead = true;
 					GameEvents.onOverG.Fire(new EventReport(FlightEvents.OVERG, part, part.partInfo.title, "", 0, "exceeded g-force tolerance.", part.explosionPotential));
-                    // TODO See if we still need this or similar code. Rewrite if needed. Remove if obsolete.
-                    //if ( part is StrutConnector )
-                    //{
-                    //    ((StrutConnector)part).BreakJoint();
-                    //}
                     
                     part.explode();
                     return;
@@ -477,7 +444,7 @@ namespace DeadlyReentry
                 if (Math.Max(displayGForce, geeForce) >= ReentryPhysics.crewGMin)
                 {
                     gExperienced += Math.Pow(Math.Min(Math.Abs(Math.Max(displayGForce, geeForce)), ReentryPhysics.crewGClamp), ReentryPhysics.crewGPower) * TimeWarp.fixedDeltaTime;
-                    List<ProtoCrewMember> crew = part.protoModuleCrew; //vessel.GetVesselCrew();
+                    List<ProtoCrewMember> crew = part.protoModuleCrew;
                     if (gExperienced > ReentryPhysics.crewGWarn && crew.Count > 0)
                     {
                         if (DeadlyReentryScenario.displayCrewGForceWarning && gExperienced < ReentryPhysics.crewGLimit)
@@ -515,8 +482,6 @@ namespace DeadlyReentry
         {
             if (dead || (object)part == null || (object)part.partInfo == null || (object)part.partInfo.partPrefab == null)
                 return;
-            //if(is_debugging)
-            //    print (part.partInfo.title + ": +" + dmg + " damage");
             if (dir == Vector3.zero)
                 damageCube.AddCubeDamageAll(dmg);
             else
@@ -612,8 +577,7 @@ namespace DeadlyReentry
                             PlaySound(screamFX, 1f);
 
                         if (damageCube.averageDamage >= 1.0f)
-                        { // has it burnt up completely?
-
+                        {
                             List<ParticleSystem> fxs = ablationFX.fxEmittersNewSystem;
                             for (int i = fxs.Count - 1; i >= 0; --i)
                                 GameObject.Destroy(fxs[i].gameObject);
@@ -628,13 +592,7 @@ namespace DeadlyReentry
                             {
                                 dead = true;
 								GameEvents.onOverheat.Fire(new EventReport(FlightEvents.OVERHEAT, part, part.partInfo.title, "", 0, "burned up from overheating.", part.explosionPotential));
-                                
-                                // TODO See if we still need this or similar code. Rewrite if needed. Remove if obsolete.
-                                //if ( part is StrutConnector )
-                                //{
-                                //    ((StrutConnector)part).BreakJoint();
-                                //}
-                                
+                                                                
                                 part.explode();
                                 return;
                             }
@@ -713,7 +671,6 @@ namespace DeadlyReentry
             if (!HighLogic.LoadedSceneIsFlight)
                 return;
 
-            // disable any menu items that might cause trouble on an EVA Kerbal
             if (vessel.isEVA)
                 Events["RepairDamage"].guiActive = false;
             else
@@ -779,7 +736,7 @@ namespace DeadlyReentry
                         faceCount++;
                     }
                 }
-                return damage / faceCount; // average it
+                return damage / faceCount;
             }
 
             public float GetCubeDamageTotal()
@@ -874,14 +831,8 @@ namespace DeadlyReentry
         [KSPField(isPersistant = true)]
         public bool needsSuitTempInit = true;
 
-        [KSPField(isPersistant = true)]
-        private string EVATestProperty = "default value";
-
         public override void OnStart(PartModule.StartState state)
         {
-            GameEvents.onCrewOnEva.Add(OnCrewOnEva);
-            GameEvents.onVesselGoOffRails.Add(OnVesselGoOffRails);
-
             base.OnStart(state);
 
             if (this.needsSuitTempInit)
@@ -889,20 +840,7 @@ namespace DeadlyReentry
                 this.part.temperature = desiredSuitTemp;
                 this.needsSuitTempInit = false;
             }
-            //this.part.gaugeThresholdMult = this.gaugeThresholdMult;
-            //this.part.edgeHighlightThresholdMult = this.edgeHighlightThresholdMult;
-            Debug.Log("[ModuleKerbalAeroReentry.OnStart()] EVATestProperty = " + EVATestProperty);
         }
-
-        public void OnVesselGoOffRails(Vessel v)
-        {
-            if ((object)v != null)
-            {
-                //this.part.gaugeThresholdMult = this.gaugeThresholdMult;
-                //this.part.edgeHighlightThresholdMult = this.edgeHighlightThresholdMult;
-            }
-        }
-
         public override void FixedUpdate()
         {
             // give Kerbals minimal heat rejection ability
@@ -910,8 +848,7 @@ namespace DeadlyReentry
 
             if (tempDelta > 0)
             {
-                // TODO maybe put in safeguards against excessively high cooling rates but the default is low enough to be fine
-                part.AddThermalFlux(-heatRejection); // double heat added/removed until this is fixed in next KSP update
+                part.AddThermalFlux(-heatRejection);
                 part.AddSkinThermalFlux(heatRejection);
             }
 
@@ -930,19 +867,7 @@ namespace DeadlyReentry
             else
                 Fields["injury"].guiActive = false;
 
-            if (EVATestProperty != "default value")
-            {
-                Debug.Log("EVATestProperty = " + EVATestProperty);
-                EVATestProperty = "default value";
-            }
         }
-
-        // setting values in this event is pointless as they are reset to their default values in OnStart()
-        public void OnCrewOnEva(GameEvents.FromToAction<Part, Part> eventData)
-        {
-            this.EVATestProperty = "value changed";
-            Debug.Log("[ModuleKerbalAeroReentry.OnCrewOnEva()] EVATestProperty = " + EVATestProperty);
-    }
 
         #region IAnalyticTemperatureModifier
         // Analytic Interface - only purpose is to pin Kerbal internal to a reasonable value
@@ -1005,9 +930,6 @@ namespace DeadlyReentry
             {
                 part.skinMaxTemp = Math.Min(part.skinMaxTemp, depletedMaxTemp);
                 part.heatConductivity = part.partInfo.partPrefab.heatConductivity;
-                // TODO Think about removing the next two lines; skin-skin and skin-internal depend on heatConductivity so this could be overkill
-                //part.skinSkinConductionMult = Math.Min(part.skinSkinConductionMult, depletedConductivity);
-                //part.skinInternalConductionMult = Math.Min(part.skinInternalConductionMult, depletedConductivity);
             }
         }
     }
@@ -1148,12 +1070,6 @@ namespace DeadlyReentry
         {
             log.Append("[DeadlyReentry.FixMaxTemps] " + logstring + "\n");
         }
-        /*
-        static void print(string msg)
-        {
-            MonoBehaviour.print("[DeadlyReentry.FixMaxTemps] " + msg);
-        }
-        */
     }
 
     [KSPAddon(KSPAddon.Startup.SpaceCentre, false)]
@@ -1200,12 +1116,7 @@ namespace DeadlyReentry
             enabled = true;
 			crewGWarningMsg = new ScreenMessage("<color=#ff0000>Reaching Crew G limit!</color>", 1f, ScreenMessageStyle.UPPER_CENTER);
             Debug.Log("[DRE] - ReentryPhysics.Start(): LoadSettings(), Difficulty: " + DeadlyReentryScenario.DifficultyName);
-            LoadSettings(); // Moved loading of REENTRY_EFFECTS into a generic loader which uses new difficulty settings
-            //warningMessageStyle.font = GUI.skin.font;
-            //warningMessageStyle.fontSize = 32;
-            //warningMessageStyle.
-            //warningMessageStyle.fontStyle = GUI.skin.label.fontStyle;
-            //crewGWarningMsg.guiStyleOverride = warningMessageStyle;
+            LoadSettings();
         }
 
         public static void LoadSettings()
@@ -1322,7 +1233,7 @@ namespace DeadlyReentry
                             node.AddValue ("@crewGLimit", dtmp);
                         }
                         
-                        savenode.AddNode (node);
+                        savenode.AddNode(node);
                         break;
                     }
                 }
