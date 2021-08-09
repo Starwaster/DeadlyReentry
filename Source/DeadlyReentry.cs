@@ -597,14 +597,15 @@ namespace DeadlyReentry
 
                     if (part.temperature > maxOperationalTemp)
                     {
-                        // for scream / fear reaction ratio, use scalding water as upper value
-                        float tempRatio = (float)RangePercent(maxOperationalTemp, 322.15, part.temperature);
+                        float tempRatio = (float)RangePercent(maxOperationalTemp, part.maxTemp, part.temperature);
 
                         if (part.mass > 1)
                             tempRatio /= part.mass;
                         
                         AddInternalDamage(TimeWarp.fixedDeltaTime * tempRatio);
 
+						// for scream / fear reaction ratio, use scalding water as upper value
+						tempRatio = Mathf.InverseLerp(313.15f, 322.15f, (float)part.temperature);
                         if (vessel.isEVA && tempRatio >= 0.089 && nextScream <= DateTime.Now)
                         {
                             ReentryReaction.Fire(new GameEvents.ExplosionReaction(0, tempRatio));
