@@ -463,8 +463,7 @@ namespace DeadlyReentry
                 if ((damageCube.averageDamage >= 1.0f || internalDamage >= 1f) && !dead)
                 {
                     dead = true;
-                    FlightLogger.fetch.LogEvent("[" + FormatTime(vessel.missionTime) + "] "
-                                              + part.partInfo.title + " exceeded g-force tolerance.");
+					GameEvents.onOverG.Fire(new EventReport(FlightEvents.OVERG, part, part.partInfo.title, "", 0, "exceeded g-force tolerance.", part.explosionPotential));
                     // TODO See if we still need this or similar code. Rewrite if needed. Remove if obsolete.
                     //if ( part is StrutConnector )
                     //{
@@ -642,8 +641,7 @@ namespace DeadlyReentry
                             if (false && !dead)
                             {
                                 dead = true;
-                                FlightLogger.fetch.LogEvent("[" + FormatTime(vessel.missionTime) + "] "
-                                    + part.partInfo.title + " burned up from overheating.");
+								GameEvents.onOverheat.Fire(new EventReport(FlightEvents.OVERHEAT, part, part.partInfo.title, "", 0, "burned up from overheating.", part.explosionPotential));
                                 
                                 // TODO See if we still need this or similar code. Rewrite if needed. Remove if obsolete.
                                 //if ( part is StrutConnector )
