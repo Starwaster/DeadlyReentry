@@ -1057,8 +1057,6 @@ namespace DeadlyReentry
                                    Debug.Log("Error adding ModuleAeroReentry to " + part.name + "\n" +e.Message);
                                 }
                             }
-                            //if (bDebugLog)
-                            //    Debug.Log(fixMaxTempLogs);
                             Debug.Log("FixMaxTemps finished walking through part list.");
                         }
                     }
@@ -1126,21 +1124,21 @@ namespace DeadlyReentry
                 if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.DifficultyName)
                 {
                     if (node.HasValue("gToleranceMult"))
-                        float.TryParse(node.GetValue("gToleranceMult"), out gToleranceMult);                    
+                        _ = float.TryParse(node.GetValue("gToleranceMult"), out gToleranceMult);                    
                     if (node.HasValue("crewGClamp"))
-                        float.TryParse(node.GetValue("crewGClamp"), out crewGClamp);
+                        _ = float.TryParse(node.GetValue("crewGClamp"), out crewGClamp);
                     if (node.HasValue("crewGPower"))
-                        float.TryParse(node.GetValue("crewGPower"), out crewGPower);
+                        _ = float.TryParse(node.GetValue("crewGPower"), out crewGPower);
                     if (node.HasValue("crewGMin"))
-                        float.TryParse(node.GetValue("crewGMin"), out crewGMin);
+                        _ = float.TryParse(node.GetValue("crewGMin"), out crewGMin);
                     if (node.HasValue("crewGWarn"))
-                        float.TryParse(node.GetValue("crewGWarn"), out crewGWarn);
+                        _ = float.TryParse(node.GetValue("crewGWarn"), out crewGWarn);
                     if (node.HasValue("crewGLimit"))
-                        float.TryParse(node.GetValue("crewGLimit"), out crewGLimit);
+                        _ = float.TryParse(node.GetValue("crewGLimit"), out crewGLimit);
                     if (node.HasValue("crewGKillChance"))
-                        float.TryParse(node.GetValue("crewGKillChance"), out crewGKillChance);
+                        _ = float.TryParse(node.GetValue("crewGKillChance"), out crewGKillChance);
                     if (node.HasValue("maxHeatScale"))
-                        int.TryParse(node.GetValue("maxHeatScale"), out maxHeatScale);
+                        _ = int.TryParse(node.GetValue("maxHeatScale"), out maxHeatScale);
                     
                     break;
                 }
@@ -1193,43 +1191,43 @@ namespace DeadlyReentry
                         
                         if (settingNode.HasValue("gToleranceMult"))
                         {
-                            float.TryParse(settingNode.GetValue("gToleranceMult"), out ftmp);
+                            _ = float.TryParse(settingNode.GetValue("gToleranceMult"), out ftmp);
                             node.AddValue ("@gToleranceMult", ftmp);
                         }
 
                         if (settingNode.HasValue("crewGKillChance"))
                         {
-                            float.TryParse(settingNode.GetValue("crewGKillChance"), out ftmp);
+                            _ = float.TryParse(settingNode.GetValue("crewGKillChance"), out ftmp);
                             node.AddValue ("@crewGKillChance", ftmp);
                         }                        
                         
                         if (settingNode.HasValue("crewGClamp"))
                         {
-                            double.TryParse(settingNode.GetValue("crewGClamp"), out dtmp);
+                            _ = double.TryParse(settingNode.GetValue("crewGClamp"), out dtmp);
                             node.AddValue ("@crewGClamp", dtmp);
                         }
 
                         if (settingNode.HasValue("crewGPower"))
                         {
-                            double.TryParse(settingNode.GetValue("crewGPower"), out dtmp);
+                            _ = double.TryParse(settingNode.GetValue("crewGPower"), out dtmp);
                             node.AddValue ("@crewGPower", dtmp);
                         }
 
                         if (settingNode.HasValue("crewGMin"))
                         {
-                            double.TryParse(settingNode.GetValue("crewGMin"), out dtmp);
+                            _ = double.TryParse(settingNode.GetValue("crewGMin"), out dtmp);
                             node.AddValue ("@crewGMin", dtmp);
                         }
 
                         if (settingNode.HasValue("crewGWarn"))
                         {
-                            double.TryParse(settingNode.GetValue("crewGWarn"), out dtmp);
+                            _ = double.TryParse(settingNode.GetValue("crewGWarn"), out dtmp);
                             node.AddValue ("@crewGWarn", dtmp);
                         }
 
                         if (settingNode.HasValue("crewGLimit"))
                         {
-                            double.TryParse(settingNode.GetValue("crewGLimit"), out dtmp);
+                            _ = double.TryParse(settingNode.GetValue("crewGLimit"), out dtmp);
                             node.AddValue ("@crewGLimit", dtmp);
                         }
                         
