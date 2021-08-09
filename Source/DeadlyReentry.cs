@@ -624,8 +624,11 @@ namespace DeadlyReentry
                         float soundTempRatio = (float)(tempRatio);
                         PlaySound(ablationFX, soundTempRatio);
 
-                        if (vessel.isEVA)
+                        if (vessel.isEVA && nextScream <= DateTime.Now)
+						{
                             PlaySound(screamFX, 1f);
+							nextScream = DateTime.Now.AddSeconds(15);
+						}
 
                         if (damageCube.averageDamage >= 1.0f)
                         { // has it burnt up completely?
