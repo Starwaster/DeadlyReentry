@@ -691,23 +691,13 @@ namespace DeadlyReentry
                             fxs[i].gameObject.SetActive(false);
                     }
                     // Now: If a hole got burned in our hull... start letting the fire in!
-                    if (part.machNumber >= 1)
+					double machLerp = Math.Pow(UtilMath.Clamp01((part.machNumber - PhysicsGlobals.NewtonianMachTempLerpStartMach) / (PhysicsGlobals.NewtonianMachTempLerpEndMach - PhysicsGlobals.NewtonianMachTempLerpStartMach)), PhysicsGlobals.NewtonianMachTempLerpExponent);
+                    double damage = UtilMath.Lerp(damageCube.averageDamage, damageCube.GetCubeDamageFacing(part.partTransform.InverseTransformDirection(-this.vessel.upAxis)), machLerp);
+					
+                    if (damage > 0d && part.ptd != null && part.ptd.postShockExtTemp > part.temperature)
                     {
-                        float damage = damageCube.GetCubeDamageFacing(part.partTransform.InverseTransformDirection(-this.vessel.upAxis));
-                        if (damage > 0f && part.ptd != null && part.ptd.postShockExtTemp > part.temperature)
-                        {
-                            double convectiveFluxLeak = part.thermalConvectionFlux * (1 - (part.temperature / part.ptd.postShockExtTemp)) * (double)damage;
-                            part.AddThermalFlux(convectiveFluxLeak);
-                        }
-                    }
-                    else
-                    {
-                        float damage = damageCube.averageDamage;
-                        if (damage > 0f && part.ptd != null)
-                        {
-                            double convectiveFluxLeak = (double)damage * Math.Abs(part.ptd.convectionFlux) * (1 - (part.temperature / part.ptd.postShockExtTemp));
-                            part.AddThermalFlux(convectiveFluxLeak);
-                        }
+						double convectiveFluxLeak = part.ptd.finalCoeff * (part.ptd.postShockExtTemp - part.temperature ) * damage;
+						part.AddThermalFlux(convectiveFluxLeak);
                     }
                 }
             }
