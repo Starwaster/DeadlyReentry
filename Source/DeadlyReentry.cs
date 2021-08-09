@@ -41,7 +41,7 @@ namespace DeadlyReentry
         {
             get
             {
-                if ((object)fi == null)
+                if (fi == null)
                     fi = vessel.gameObject.GetComponent<ModularFlightIntegrator>();
                 return fi;
             }
@@ -98,7 +98,7 @@ namespace DeadlyReentry
             displayMaximumRecordedHeat = "0 W";
             recordedHeatLoad = 0f;
             maximumRecordedHeat = 0f;
-            if ((object)myWindow != null)
+            if (myWindow != null)
                 myWindow.displayDirty = true;
         }
 
@@ -111,7 +111,7 @@ namespace DeadlyReentry
 
             ProcessDamage();
             SetDamageLabel();
-            if ((object)myWindow != null)
+            if (myWindow != null)
                 myWindow.displayDirty = true;
         }
 
@@ -152,7 +152,7 @@ namespace DeadlyReentry
         {
             get
             {
-                if((object)_myWindow == null)
+                if(_myWindow == null)
                 {
                     UIPartActionWindow[] windows = FindObjectsOfType<UIPartActionWindow>();
                     for(int i = windows.Length - 1; i >= 0; --i)
@@ -214,7 +214,7 @@ namespace DeadlyReentry
         {
             get
             {
-                if((object)_gForceFX == null)
+                if(_gForceFX == null)
                 {
                     _gForceFX = new FXGroup (part.name + "_Crushing");
                     _gForceFX.audio = gameObject.AddComponent<AudioSource>();
@@ -233,7 +233,7 @@ namespace DeadlyReentry
         {
             get
             {
-                if((object)_ablationSmokeFX == null)
+                if(_ablationSmokeFX == null)
                 {
                     _ablationSmokeFX = new FXGroup (part.name + "_Smoking");
                     _ablationSmokeFX.fxEmittersNewSystem.Add (Emitter("fx_smokeTrail_medium").GetComponent<ParticleSystem>());
@@ -247,7 +247,7 @@ namespace DeadlyReentry
         {
             get
             {
-                if((object)_ablationFX == null)
+                if(_ablationFX == null)
                 {
                     _ablationFX = new FXGroup (part.name + "_Burning");
                     _ablationFX.fxEmittersNewSystem.Add (Emitter("fx_exhaustFlame_yellow").GetComponent<ParticleSystem>());
@@ -268,7 +268,7 @@ namespace DeadlyReentry
         {
             get
             {
-                if ((object)_screamFX == null)
+                if (_screamFX == null)
                 {
                     _screamFX = new FXGroup(part.name + "_Screaming");
                     _screamFX.audio = gameObject.AddComponent<AudioSource>();
@@ -300,9 +300,9 @@ namespace DeadlyReentry
         void OnDestroy()
         {
             //FI = null;
-            if((object)_ablationFX != null && (object)_ablationFX.audio != null)
+            if(_ablationFX != null && _ablationFX.audio != null)
                 Destroy(_ablationFX.audio);
-            if((object)_gForceFX != null && (object)_gForceFX.audio != null)
+            if(_gForceFX != null && _gForceFX.audio != null)
                 Destroy(_gForceFX.audio);
         }
 
@@ -377,7 +377,7 @@ namespace DeadlyReentry
 
                 double aeroThermalFlux = 0;
 
-                if ((object)flightIntegrator != null)
+                if (flightIntegrator != null)
                 {
                     aeroThermalFlux = (Math.Pow(this.flightIntegrator.backgroundRadiationTempExposed, 4) * PhysicsGlobals.StefanBoltzmanConstant * PhysicsGlobals.RadiationFactor);
                 }
@@ -403,7 +403,7 @@ namespace DeadlyReentry
                 Fields["displayDamage"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["displayExposedAreas"].guiActive = PhysicsGlobals.ThermalDataDisplay;
 
-                if ((object)myWindow != null)
+                if (myWindow != null)
                 {
                     myWindow.displayDirty = true;
                 }
@@ -414,7 +414,7 @@ namespace DeadlyReentry
         {
             if (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready && !CheatOptions.UnbreakableJoints)
             {
-                if (dead || (object)vessel == null || TimeWarp.fixedDeltaTime > 0.5 || TimeWarp.fixedDeltaTime <= 0)
+                if (dead || vessel == null || TimeWarp.fixedDeltaTime > 0.5 || TimeWarp.fixedDeltaTime <= 0)
                     return; // don't check G-forces in warp
                 
                 double geeForce = vessel.geeForce_immediate;
@@ -515,7 +515,7 @@ namespace DeadlyReentry
         
         public void AddDamage(float dmg, Vector3 dir)
         {
-            if (dead || (object)part == null || (object)part.partInfo == null || (object)part.partInfo.partPrefab == null)
+            if (dead || part == null || part.partInfo == null || part.partInfo.partPrefab == null)
                 return;
             //if(is_debugging)
             //    print (part.partInfo.title + ": +" + dmg + " damage");
@@ -550,7 +550,7 @@ namespace DeadlyReentry
         {
             if(!vessel.isEVA)
             {
-                if((object)Events == null)
+                if(Events == null)
                     return;
 
                 float maxDamage = Mathf.Max(internalDamage, damageCube.maxDamage);
@@ -917,7 +917,7 @@ namespace DeadlyReentry
 
         public void OnVesselGoOffRails(Vessel v)
         {
-            if ((object)v != null)
+            if (v != null)
             {
                 //this.part.gaugeThresholdMult = this.gaugeThresholdMult;
                 //this.part.edgeHighlightThresholdMult = this.edgeHighlightThresholdMult;
@@ -1003,7 +1003,7 @@ namespace DeadlyReentry
                 return;
             
             base.Start();
-            if((object)ablativeResource != null && ablativeResource != "")
+            if(ablativeResource != null && ablativeResource != "")
             {
                 if(part.Resources.Contains(ablativeResource))
                 {
@@ -1059,7 +1059,7 @@ namespace DeadlyReentry
                     {
                         Debug.Log("Using ridiculousMaxTemp = " + maxTemp.ToString() + " / maxTempScale =" + scale.ToString());
                         
-                        if ((object)PartLoader.LoadedPartsList != null)
+                        if (PartLoader.LoadedPartsList != null)
                         {
                             //StringBuilder fixMaxTempLogs = new StringBuilder();
                             //foreach (AvailablePart part in PartLoader.LoadedPartsList)
@@ -1070,7 +1070,7 @@ namespace DeadlyReentry
                                 AvailablePart part = PartLoader.LoadedPartsList[i];
                                 try
                                 {
-                                    if ((object)part.partPrefab != null && !(part.partPrefab.FindModuleImplementing<ModuleHeatShield>() || part.partPrefab.FindModuleImplementing<ModuleAblator>()))
+                                    if (part.partPrefab != null && !(part.partPrefab.FindModuleImplementing<ModuleHeatShield>() || part.partPrefab.FindModuleImplementing<ModuleAblator>()))
                                     {
                                         ModuleAeroReentry _ModuleAeroReentry = part.partPrefab.FindModuleImplementing<ModuleAeroReentry>();
                                         if (_ModuleAeroReentry != null)
@@ -1125,7 +1125,7 @@ namespace DeadlyReentry
                                 }
                                 try
                                 {
-                                    if ((object)part.partPrefab != null && (object)part.partPrefab.Modules != null)
+                                    if (part.partPrefab != null && part.partPrefab.Modules != null)
                                     {
                                         bool add = true;
                                         for (int k = 0; k < part.partPrefab.Modules.Count; k++)
@@ -1187,10 +1187,10 @@ namespace DeadlyReentry
         public static AerodynamicsFX afx {
             get
             {
-                if ((object)_afx == null)
+                if (_afx == null)
                 {
                     GameObject fx = GameObject.Find ("FXLogic");
-                    if ((object)fx != null)
+                    if (fx != null)
                 {
                         _afx = fx.GetComponent<AerodynamicsFX> ();
                     }
