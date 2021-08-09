@@ -590,7 +590,7 @@ namespace DeadlyReentry
                         
                         AddInternalDamage(TimeWarp.fixedDeltaTime * tempRatio);
 
-                        if (vessel.isEVA && tempRatio >= 0.089 && nextScream >= DateTime.Now)
+                        if (vessel.isEVA && tempRatio >= 0.089 && nextScream <= DateTime.Now)
                         {
                             ReentryReaction.Fire(new GameEvents.ExplosionReaction(0, tempRatio));
                             PlaySound(screamFX, tempRatio);
