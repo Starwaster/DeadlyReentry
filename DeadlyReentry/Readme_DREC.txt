@@ -20,6 +20,14 @@ To change DRE settings, click the DRE menu button (looks like a capsule reenteri
 DRE menu icon created by lajoswinkler
 ==========
 Changelog:
+v7.9.0
+* Don't type cast to object when checking for null references.
+* Damage internal flux fixes (see PR #56 for details)
+* Moved several config patches from :FINAL to :LAST[DeadlyReentry]
+* Register part destruction causes with FlightLogger
+* Fixed negative damage issue when internal temp over maxOperationalTemp
+* Changed behavior when max operational temps are incorrectly configured higher than max temps. (max temp is now increased to match configured max operational temp)
+
 v7.8.0
 * Refactoring of code
 * Removed Monobehaviour calls from any constructors or code which would result in Monobehaviour being called from a constructor
