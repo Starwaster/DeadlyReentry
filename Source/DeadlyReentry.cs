@@ -373,6 +373,8 @@ namespace DeadlyReentry
                 Events["ResetRecordedHeat"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["displayDamage"].guiActive = PhysicsGlobals.ThermalDataDisplay;
                 Fields["displayExposedAreas"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields["maxOperationalTemp"].guiActive = PhysicsGlobals.ThermalDataDisplay;
+                Fields["skinMaxOperationalTemp"].guiActive = PhysicsGlobals.ThermalDataDisplay;
 
                 if (myWindow != null)
                 {
