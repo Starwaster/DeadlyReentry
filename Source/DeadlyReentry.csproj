@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net480</TargetFramework>
+		<AssemblyTitle>DeadlyReentryContinued</AssemblyTitle>
+		<Company>Starwaster</Company>
+		<Product>DeadlyReentryContinued</Product>
+		<Copyright>Copyright © 2014 CC-BY-SA</Copyright>
+		<AssemblyVersion>7.9.0</AssemblyVersion>
+		<InformationalVersion>$(AssemblyVersion)</InformationalVersion>
+		<EnableNETAnalyzers>True</EnableNETAnalyzers>
+		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+		<AnalysisLevel>latest-recommended</AnalysisLevel>
+	</PropertyGroup>
+	
+	<!-- KSPBuildTools configuration -->
+	<PropertyGroup>
+		<KSPBT_ModRoot>$(MSBuildThisFileDirectory)/../$(MSBuildProjectName)/</KSPBT_ModRoot>
+		<KSPBT_ModPluginFolder>Plugins/</KSPBT_ModPluginFolder>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="KSPBuildTools" Version="1.1.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<KSPVersionFile Include=".">
+			<Destination>$(KSPBT_ModRoot)/DeadlyReentry.version</Destination>
+			<URL>https://raw.githubusercontent.com/Starwaster/DeadlyReentry/refs/heads/working/DeadlyReentry/DeadlyReentry.version</URL>
+			<Download>https://github.com/Starwaster/DeadlyReentry/releases/latest</Download>
+		</KSPVersionFile>
+	</ItemGroup>
+</Project>

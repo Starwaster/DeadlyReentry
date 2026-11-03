@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -34,7 +35,9 @@ namespace DeadlyReentry
         private string DREVersionString = "";
         private static Vector3 mousePos = Vector3.zero;
         private bool weLockedInputs = false;
+#pragma warning disable CS0414
         private GUIStyle _buttonStyle = null;
+#pragma warning restore CS0414
         #endregion
 
         #region Properties
@@ -48,7 +51,7 @@ namespace DeadlyReentry
 		{
             Assembly assembly = Assembly.GetExecutingAssembly();
             FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
-            DREVersionString = string.Format("{0}.{1}.{2}", fileVersionInfo.FileMajorPart, fileVersionInfo.FileMinorPart, fileVersionInfo.FileBuildPart);
+            DREVersionString = String.Format(CultureInfo.InvariantCulture, "{0}.{1}.{2}", fileVersionInfo.FileMajorPart, fileVersionInfo.FileMinorPart, fileVersionInfo.FileBuildPart);
 
             //Melificent.height /= 2;
             //Melificent.width /= 2;
@@ -237,43 +240,43 @@ namespace DeadlyReentry
             GUILayout.BeginHorizontal();
             GUILayout.Height(0);
             GUILayout.Label("G Tolerance Mult:", labelStyle);
-            string newGToleranceMult = GUILayout.TextField(ReentryPhysics.gToleranceMult.ToString(), GUILayout.MinWidth(100));
+            string newGToleranceMult = GUILayout.TextField(ReentryPhysics.gToleranceMult.ToString(CultureInfo.InvariantCulture), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
             GUILayout.Height(0);
             GUILayout.Label("Crew G Max", labelStyle);
-            string newcrewGClamp = GUILayout.TextField(ReentryPhysics.crewGClamp.ToString(), GUILayout.MinWidth(100));
+            string newcrewGClamp = GUILayout.TextField(ReentryPhysics.crewGClamp.ToString(CultureInfo.InvariantCulture), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
             GUILayout.Height(0);
             GUILayout.Label("Crew G Exponent", labelStyle);
-            string newcrewGPower = GUILayout.TextField(ReentryPhysics.crewGPower.ToString(), GUILayout.MinWidth(100));
+            string newcrewGPower = GUILayout.TextField(ReentryPhysics.crewGPower.ToString(CultureInfo.InvariantCulture), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
             GUILayout.Height(0);
             GUILayout.Label("Crew G Min", labelStyle);
-            string newcrewGMin = GUILayout.TextField(ReentryPhysics.crewGMin.ToString(), GUILayout.MinWidth(100));
+            string newcrewGMin = GUILayout.TextField(ReentryPhysics.crewGMin.ToString(CultureInfo.InvariantCulture), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
             GUILayout.Height(0);
             GUILayout.Label("Crew G Warn Level", labelStyle);
-            string newcrewGWarn = GUILayout.TextField(ReentryPhysics.crewGWarn.ToString(), GUILayout.MinWidth(100));
+            string newcrewGWarn = GUILayout.TextField(ReentryPhysics.crewGWarn.ToString(CultureInfo.InvariantCulture), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
             GUILayout.Height(0);
             GUILayout.Label("Crew G Kill threshold", labelStyle);
-            string newcrewGLimit = GUILayout.TextField(ReentryPhysics.crewGLimit.ToString(), GUILayout.MinWidth(100));
+            string newcrewGLimit = GUILayout.TextField(ReentryPhysics.crewGLimit.ToString(CultureInfo.InvariantCulture), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
             GUILayout.Height(0);
             GUILayout.Label("Crew G Kill chance per update", labelStyle);
-            string newcrewGKillChance = GUILayout.TextField(ReentryPhysics.crewGKillChance.ToString(), GUILayout.MinWidth(100));
+            string newcrewGKillChance = GUILayout.TextField(ReentryPhysics.crewGKillChance.ToString(CultureInfo.InvariantCulture), GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Height(0);
@@ -282,7 +285,7 @@ namespace DeadlyReentry
 
             GUILayout.BeginHorizontal();
             GUILayout.Height(0);
-            GUILayout.Label(Localizer.Format("#autoLOC_189833", new string[] { (HighLogic.CurrentGame.Parameters.Difficulty.ReentryHeatScale * 100f).ToString("N0") }), labelStyle);
+            GUILayout.Label(Localizer.Format("#autoLOC_189833", new string[] { (HighLogic.CurrentGame.Parameters.Difficulty.ReentryHeatScale * 100f).ToString("N0", CultureInfo.InvariantCulture) }), labelStyle);
             //string mylabel = Localizer.Format("#autoLOC_189833", new string[] { (100f).ToString("N0")});
 
             GUILayout.EndHorizontal();
@@ -290,6 +293,17 @@ namespace DeadlyReentry
             GUILayout.BeginHorizontal();
             GUILayout.Height(0);
             DeadlyReentryScenario.DREReentryHeatScale = GUILayout.HorizontalSlider(DeadlyReentryScenario.DREReentryHeatScale, 0, ReentryPhysics.maxHeatScale);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Height(0);
+            bool newFlameFX = GUILayout.Toggle(ReentryPhysics.flameFX, "Flame FX (visual only)", GUILayout.MinWidth(100));
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Height(0);
+            GUILayout.Label("Ablation SFX volume", labelStyle);
+            float newAblationSFX = GUILayout.HorizontalSlider(ReentryPhysics.ablationSFX, 0f, 1f, GUILayout.MinWidth(100));
             GUILayout.EndHorizontal();
 
             GUILayout.Width(0);
@@ -337,6 +351,9 @@ namespace DeadlyReentry
                 {
                     ReentryPhysics.crewGKillChance = newValue;
                 }
+                ReentryPhysics.flameFX = newFlameFX;
+                ReentryPhysics.ablationSFX = newAblationSFX;
+
                 DeadlyReentry.ReentryPhysics.SaveSettings();
                 DeadlyReentry.ReentryPhysics.SaveCustomSettings();
                 if (!DeadlyReentryScenario.displayCrewGForceWarning)

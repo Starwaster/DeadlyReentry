@@ -1,6 +1,7 @@
 using KSP;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using UnityEngine;
 
@@ -34,7 +35,7 @@ namespace DeadlyReentry
 			}
 		}
 
-        private static string[] difficultyName = {"Easy", "Default", "Hard"};
+        private static readonly string[] difficultyName = {"Easy", "Default", "Hard"};
 
         public static string DifficultyName
         {
@@ -59,11 +60,11 @@ namespace DeadlyReentry
 		public override void OnLoad(ConfigNode node)
 		{
 			if (node.HasValue ("difficultySetting"))
-				difficultySetting = int.Parse (node.GetValue ("difficultySetting"));
+				difficultySetting = int.Parse (node.GetValue ("difficultySetting"), CultureInfo.InvariantCulture);
             if (node.HasValue("displayCrewGForceWarning"))
                 displayCrewGForceWarning = bool.Parse(node.GetValue("displayCrewGForceWarning"));
             if (node.HasValue("DREReentryHeatScale"))
-                DREReentryHeatScale = float.Parse(node.GetValue("DREReentryHeatScale"));
+                DREReentryHeatScale = float.Parse(node.GetValue("DREReentryHeatScale"), CultureInfo.InvariantCulture);
             HighLogic.CurrentGame.Parameters.Difficulty.ReentryHeatScale = DREReentryHeatScale;
 		}
         static void print(string msg)

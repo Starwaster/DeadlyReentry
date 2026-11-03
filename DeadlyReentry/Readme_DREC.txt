@@ -20,6 +20,9 @@ To change DRE settings, click the DRE menu button (looks like a capsule reenteri
 DRE menu icon created by lajoswinkler
 ==========
 Changelog:
+v???
+* Add ablationSFX to set ablation SFX volume
+* Add flameFX to toggle visual flame FX when skin temperature exceeds maximum operational
 v7.9.0
 * Don't type cast to object when checking for null references.
 * Damage internal flux fixes (see PR #56 for details)
