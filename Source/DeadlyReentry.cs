@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Collections;
-using System.Reflection;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using UnityEngine;
@@ -11,7 +10,7 @@ using KSP;
 
 namespace DeadlyReentry
 {
-    class ModuleAeroReentry : PartModule
+    public class ModuleAeroReentry : PartModule
     {
         [KSPField]
         public bool leaveTemp = false;
@@ -156,8 +155,8 @@ namespace DeadlyReentry
             int seconds = iTime % 60;
             int minutes = (iTime / 60) % 60;
             int hours = (iTime / 3600);
-            return hours.ToString ("D2") 
-                + ":" + minutes.ToString ("D2") + ":" + seconds.ToString ("D2");
+            return hours.ToString ("D2", CultureInfo.InvariantCulture)
+                + ":" + minutes.ToString ("D2", CultureInfo.InvariantCulture) + ":" + seconds.ToString ("D2", CultureInfo.InvariantCulture);
         }
 
         static string FormatFlux(double flux, bool scale = false)
@@ -165,15 +164,15 @@ namespace DeadlyReentry
             if (scale)
                 flux *= TimeWarp.fixedDeltaTime;
             if (flux >= 1000000000.0)
-                return (flux / 1000000000.0).ToString("F2") + " T";
+                return (flux / 1000000000.0).ToString("F2", CultureInfo.InvariantCulture) + " T";
             else if (flux >= 1000000.0)
-                return (flux / 1000000.0).ToString("F2") + " G";
+                return (flux / 1000000.0).ToString("F2", CultureInfo.InvariantCulture) + " G";
             else if (flux >= 1000.0)
-                return (flux / 1000.0).ToString("F2") + " M";
+                return (flux / 1000.0).ToString("F2", CultureInfo.InvariantCulture) + " M";
             else if (flux >= 1.0)
-                return (flux).ToString("F2") + " k";
+                return (flux).ToString("F2", CultureInfo.InvariantCulture) + " k";
             else
-                return (flux * 1000.0).ToString("F2");
+                return (flux * 1000.0).ToString("F2", CultureInfo.InvariantCulture);
             
         }
 
@@ -309,7 +308,7 @@ namespace DeadlyReentry
             if (!FlightGlobals.ready)
                 return;
 
-            displayDamage = internalDamage.ToString();
+            displayDamage = internalDamage.ToString(CultureInfo.InvariantCulture);
 
             // sanity check for parts whose max temps might change
             if (part.maxTemp < maxOperationalTemp)
@@ -340,7 +339,7 @@ namespace DeadlyReentry
                 if (Double.IsNaN(heatFluxPerArea))
                     heatFluxPerArea = 0;
                 
-                displayExposedAreas = part.skinExposedArea.ToString("F4");
+                displayExposedAreas = part.skinExposedArea.ToString("F4", CultureInfo.InvariantCulture);
 
                 displayRecordedHeatLoad = FormatFlux(recordedHeatLoad, true) + "J";
                 displayMaximumRecordedHeat = FormatFlux(maximumRecordedHeat) + "W";
@@ -354,7 +353,7 @@ namespace DeadlyReentry
                 }
                 //displayHeatFluxPerArea = FormatFlux(heatFluxPerArea/10000) + "W/cm2";
                 if (heatFluxPerArea > 0)
-                    displayHeatFluxPerArea = (heatFluxPerArea).ToString("F4") + "(" + (this.part.vessel.convectiveCoefficient + aeroThermalFlux).ToString("F4") + ")";
+                    displayHeatFluxPerArea = (heatFluxPerArea).ToString("F4", CultureInfo.InvariantCulture) + "(" + (this.part.vessel.convectiveCoefficient + aeroThermalFlux).ToString("F4", CultureInfo.InvariantCulture) + ")";
             }
             if (TimeWarp.CurrentRate <= PhysicsGlobals.ThermalMaxIntegrationWarp)
                 lastTemperature = part.temperature;
@@ -574,7 +573,7 @@ namespace DeadlyReentry
                         tempRatio *= (float)(part.skinTemperature / part.skinMaxTemp);
                         AddDamage(TimeWarp.fixedDeltaTime * tempRatio, part.partTransform.InverseTransformDirection(-this.vessel.upAxis));
                         float soundTempRatio = (float)(tempRatio);
-                        PlaySound(ablationFX, soundTempRatio);
+                        PlaySound(ablationFX, soundTempRatio * ReentryPhysics.ablationSFX);
 
                         if (vessel.isEVA && nextScream <= DateTime.Now)
 						{
@@ -603,7 +602,7 @@ namespace DeadlyReentry
                                 return;
                             }
                         }
-                        else
+                        else if (ReentryPhysics.flameFX)
                         {
                             is_on_fire = true;
                             List<ParticleSystem> fxs = ablationFX.fxEmittersNewSystem;
@@ -692,13 +691,17 @@ namespace DeadlyReentry
             MonoBehaviour.print("[DeadlyReentry.ModuleAeroReentry] " + msg);
         }
 
-        protected class DamageCube
+        protected sealed class DamageCube
         {
             public float[] damage = new float[6];
             public float totalDamage = 0f;
             public float averageDamage = 0f;
             public float maxDamage = 0f;
 
+            private readonly char[] array = new char[] {
+                ',',
+                ' '
+            };
             public void AddCubeDamageFacing(Vector3 dir, float damageTaken)
             {
                 for (int i = 0; i < 6; i++)
@@ -783,10 +786,7 @@ namespace DeadlyReentry
 
             public bool LoadFromString(string damageCubeString)
             {
-                string[] data = damageCubeString.Split(new char[] {
-                    ',',
-                    ' '
-                }, StringSplitOptions.RemoveEmptyEntries);
+                string[] data = damageCubeString.Split(array, StringSplitOptions.RemoveEmptyEntries);
                 if (data.Length != 6)
                 {
                     Debug.Log("ModuleAeroReentry.DamageCube.LoadFromString() - Unable to deserialize: wrong number of entries in damage cube");
@@ -814,14 +814,14 @@ namespace DeadlyReentry
                     {
                         text += ", ";
                     }
-                    text += this.damage[i].ToString();
+                    text += this.damage[i].ToString(CultureInfo.InvariantCulture);
                 }
                 return text;
             }
         }
     }
 
-    class ModuleKerbalAeroReentry : ModuleAeroReentry, IAnalyticTemperatureModifier
+    public class ModuleKerbalAeroReentry : ModuleAeroReentry, IAnalyticTemperatureModifier
     {
         [KSPField]
         double heatRejection = 0.1; // real suit could get rid of 297 watts but KSP thermal is weak and forgiving and we're not adding body heat
@@ -868,7 +868,7 @@ namespace DeadlyReentry
             if (this.internalDamage > 0)
             {
                 Fields["injury"].guiActive = true;
-                this.injury = ((1 - this.internalDamage) * 100).ToString();
+                this.injury = ((1 - this.internalDamage) * 100).ToString(CultureInfo.InvariantCulture);
             }
             else
                 Fields["injury"].guiActive = false;
@@ -900,7 +900,7 @@ namespace DeadlyReentry
         #endregion
     }
 
-    class ModuleHeatShield : ModuleAblator
+    public class ModuleHeatShield : ModuleAblator
     {
         public PartResource _ablative = null; // pointer to the PartResource
 
@@ -957,18 +957,18 @@ namespace DeadlyReentry
                     double scale = 0.5f;
                     bool bDebugLog = false;
                     if (node.HasValue("bFMTDebugLog"))
-                        bool.TryParse(node.GetValue("bFMTDebugLog"), out bDebugLog);
+                        bDebugLog = bool.Parse(node.GetValue("bFMTDebugLog"));
                     if (node.HasValue ("maxTempScale"))
-                        double.TryParse(node.GetValue("maxTempScale"), out scale);
+                        scale = double.Parse(node.GetValue("maxTempScale"), CultureInfo.InvariantCulture);
                     if(scale > 0 && double.TryParse(node.GetValue("ridiculousMaxTemp"), out maxTemp))
                     {
-                        Debug.Log("Using ridiculousMaxTemp = " + maxTemp.ToString() + " / maxTempScale =" + scale.ToString());
+                        Debug.Log("Using ridiculousMaxTemp = " + maxTemp.ToString(CultureInfo.InvariantCulture) + " / maxTempScale =" + scale.ToString(CultureInfo.InvariantCulture));
                         
                         if (PartLoader.LoadedPartsList != null)
                         {
                             //StringBuilder fixMaxTempLogs = new StringBuilder();
                             //foreach (AvailablePart part in PartLoader.LoadedPartsList)
-                            Debug.Log("Loaded Parts List Count = " + PartLoader.LoadedPartsList.Count.ToString());
+                            Debug.Log("Loaded Parts List Count = " + PartLoader.LoadedPartsList.Count.ToString(CultureInfo.InvariantCulture));
 
                             for (int i = 0; i < PartLoader.LoadedPartsList.Count; i++)
                             {
@@ -1111,6 +1111,8 @@ namespace DeadlyReentry
         public static float crewGLimit = 600000;
         public static float crewGKillChance = 0.75f;
         public static int maxHeatScale = 2;
+        public static bool flameFX = true;
+        public static float ablationSFX = 1f;
 
 
         public static bool debugging = false;
@@ -1130,7 +1132,7 @@ namespace DeadlyReentry
                 if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.DifficultyName)
                 {
                     if (node.HasValue("gToleranceMult"))
-                        _ = float.TryParse(node.GetValue("gToleranceMult"), out gToleranceMult);                    
+                        _ = float.TryParse(node.GetValue("gToleranceMult"), out gToleranceMult);
                     if (node.HasValue("crewGClamp"))
                         _ = float.TryParse(node.GetValue("crewGClamp"), out crewGClamp);
                     if (node.HasValue("crewGPower"))
@@ -1145,7 +1147,11 @@ namespace DeadlyReentry
                         _ = float.TryParse(node.GetValue("crewGKillChance"), out crewGKillChance);
                     if (node.HasValue("maxHeatScale"))
                         _ = int.TryParse(node.GetValue("maxHeatScale"), out maxHeatScale);
-                    
+                    if (node.HasValue("flameFX"))
+                        _ = bool.TryParse(node.GetValue("flameFX"), out flameFX);
+                    if (node.HasValue("ablationSFX"))
+                        _ = float.TryParse(node.GetValue("ablationSFX"), out ablationSFX);
+
                     break;
                 }
             }
@@ -1158,21 +1164,25 @@ namespace DeadlyReentry
                 if (node.HasValue("name") && node.GetValue("name") == DeadlyReentryScenario.DifficultyName)
                 {
                     if (node.HasValue("gToleranceMult"))
-                        node.SetValue("gToleranceMult", gToleranceMult.ToString());                  
+                        node.SetValue("gToleranceMult", gToleranceMult.ToString(CultureInfo.InvariantCulture));
                     if (node.HasValue("crewGClamp"))
-                        node.SetValue("crewGClamp", crewGClamp.ToString());
+                        node.SetValue("crewGClamp", crewGClamp.ToString(CultureInfo.InvariantCulture));
                     if (node.HasValue("crewGPower"))
-                        node.SetValue("crewGPower", crewGPower.ToString());
+                        node.SetValue("crewGPower", crewGPower.ToString(CultureInfo.InvariantCulture));
                     if (node.HasValue("crewGMin"))
-                        node.SetValue("crewGMin", crewGMin.ToString());
+                        node.SetValue("crewGMin", crewGMin.ToString(CultureInfo.InvariantCulture));
                     if (node.HasValue("crewGWarn"))
-                        node.SetValue("crewGWarn", crewGWarn.ToString());
+                        node.SetValue("crewGWarn", crewGWarn.ToString(CultureInfo.InvariantCulture));
                     if (node.HasValue("crewGLimit"))
-                        node.SetValue("crewGLimit", crewGLimit.ToString());
+                        node.SetValue("crewGLimit", crewGLimit.ToString(CultureInfo.InvariantCulture));
                     if (node.HasValue("crewGKillChance"))
-                        node.SetValue("crewGKillChance", crewGKillChance.ToString());
-                    
-                    if(node.HasValue("debugging"))
+                        node.SetValue("crewGKillChance", crewGKillChance.ToString(CultureInfo.InvariantCulture));
+                    if (node.HasValue("flameFX"))
+                        node.SetValue("flameFX", flameFX.ToString(CultureInfo.InvariantCulture));
+                    if (node.HasValue("ablationSFX"))
+                        node.SetValue("ablationSFX", ablationSFX.ToString(CultureInfo.InvariantCulture));
+
+                    if (node.HasValue("debugging"))
                         node.SetValue("debugging", debugging.ToString());
                     break;
                 }
@@ -1184,6 +1194,7 @@ namespace DeadlyReentry
             string[] difficultyNames = {"Default"};
             float ftmp;
             double dtmp;
+            bool btmp;
             
             ConfigNode savenode = new ConfigNode();
             foreach(string difficulty in difficultyNames)
@@ -1236,7 +1247,19 @@ namespace DeadlyReentry
                             _ = double.TryParse(settingNode.GetValue("crewGLimit"), out dtmp);
                             node.AddValue ("@crewGLimit", dtmp);
                         }
-                        
+
+                        if (settingNode.HasValue("flameFX"))
+                        {
+                            _ = bool.TryParse(settingNode.GetValue("flameFX"), out btmp);
+                            node.AddValue("@flameFX", btmp);
+                        }
+
+                        if (settingNode.HasValue("ablationSFX"))
+                        {
+                            _ = float.TryParse(settingNode.GetValue("ablationSFX"), out ftmp);
+                            node.AddValue("@ablationSFX", ftmp);
+                        }
+
                         savenode.AddNode(node);
                         break;
                     }
